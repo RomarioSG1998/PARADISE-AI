@@ -557,22 +557,28 @@
         /* Simple Subtitle Box directly below avatar */
         .simple-subtitle-box {
             width: 100%;
-            min-height: 80px;
-            background: rgba(0, 0, 0, 0.4);
+            height: 90px;
+            max-height: 90px;
+            background: rgba(0, 0, 0, 0.45);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px;
-            padding: 0.8rem 1rem;
-            font-size: 0.95rem;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.92rem;
             color: #cbd5e1;
             text-align: center;
             line-height: 1.5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            overflow-y: auto;
+            scroll-behavior: smooth;
             box-sizing: border-box;
             font-style: italic;
             margin-top: 0.5rem;
             max-width: 240px;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+
+        .simple-subtitle-box::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
         }
 
         .simple-subtitle-box .sub-word {
@@ -1276,7 +1282,7 @@
                 if (idx === activeIdx) {
                     span.classList.add('highlighted');
                     // Smooth centered alignment scroll inside teleprompter panel
-                    span.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    span.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
                 } else {
                     span.classList.remove('highlighted');
                 }
