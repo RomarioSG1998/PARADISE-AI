@@ -514,117 +514,110 @@
             position: relative;
         }
 
-        /* Animated Teacher Avatar (HTML/CSS) */
+        /* Realistic Human Teacher Avatar */
         .teacher-avatar {
             position: relative;
             width: 140px;
             height: 140px;
-            background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            animation: sway 4s ease-in-out infinite;
+            border: 4px solid var(--border-glow);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.1);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            background: #000;
         }
 
-        /* Teacher's physical structure */
-        .avatar-head {
-            position: relative;
-            width: 90px;
-            height: 90px;
-            background: #ffdbac; /* Skin color */
-            border-radius: 50% 50% 45% 45%;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            border: 2px solid #5a3d28;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+        .teacher-avatar.speaking {
+            border-color: #a78bfa;
+            box-shadow: 0 0 25px rgba(167, 139, 250, 0.7);
+            animation: breathe 3s ease-in-out infinite alternate;
         }
 
-        .avatar-hair {
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+
+        .teacher-avatar.speaking .avatar-img {
+            transform: scale(1.04);
+        }
+
+        /* Dynamic Sound Wave visualizer overlay */
+        .avatar-visualizer {
             position: absolute;
-            top: -5px;
-            width: 98px;
-            height: 35px;
-            background: #503d33; /* Hair color */
-            border-radius: 50px 50px 0 0;
-            border-bottom: 2px solid #5a3d28;
-        }
-
-        .avatar-glasses {
-            position: absolute;
-            top: 30px;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            gap: 6px;
-            z-index: 5;
-        }
-
-        .glasses-lens {
-            width: 26px;
+            gap: 4px;
+            align-items: flex-end;
             height: 26px;
-            border: 3px solid #1a1a1a;
-            border-radius: 50%;
-            background: rgba(0, 242, 254, 0.15);
-            position: relative;
+            z-index: 10;
+            background: rgba(6, 5, 15, 0.75);
+            padding: 4px 10px;
+            border-radius: 12px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            opacity: 0;
+            transition: opacity 0.3s;
         }
 
-        .glasses-bridge {
-            width: 8px;
-            height: 3px;
-            background: #1a1a1a;
-            align-self: center;
+        .teacher-avatar.speaking .avatar-visualizer {
+            opacity: 1;
         }
 
-        .avatar-eyes {
-            position: absolute;
-            top: 38px;
-            display: flex;
-            gap: 20px;
-        }
-
-        .eye {
-            width: 8px;
-            height: 8px;
-            background: #2b2b2b;
-            border-radius: 50%;
-            animation: blink 5s infinite;
-        }
-
-        .avatar-mouth {
-            position: absolute;
-            bottom: 18px;
-            width: 14px;
+        .v-bar {
+            width: 3px;
             height: 4px;
-            background: #a52a2a;
-            border-radius: 2px;
+            background: #a78bfa;
+            border-radius: 3px;
+        }
+
+        .teacher-avatar.speaking .v-bar:nth-child(1) { animation: wave 0.6s ease-in-out infinite alternate; }
+        .teacher-avatar.speaking .v-bar:nth-child(2) { animation: wave 0.4s ease-in-out infinite alternate 0.1s; }
+        .teacher-avatar.speaking .v-bar:nth-child(3) { animation: wave 0.8s ease-in-out infinite alternate 0.2s; }
+        .teacher-avatar.speaking .v-bar:nth-child(4) { animation: wave 0.5s ease-in-out infinite alternate 0.15s; }
+        .teacher-avatar.speaking .v-bar:nth-child(5) { animation: wave 0.7s ease-in-out infinite alternate 0.3s; }
+
+        /* Subtitles Panel Word-by-Word style */
+        .subtitles-panel {
+            background: var(--bg-surface);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 1.75rem 2.5rem;
+            min-height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            margin-top: 0.5rem;
+        }
+
+        .subtitles-content {
+            font-size: 1.35rem;
+            line-height: 1.7;
+            text-align: center;
+            max-width: 950px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .sub-word {
+            display: inline-block;
+            margin: 0 4px;
             transition: all 0.15s ease;
         }
 
-        /* Mouth speech animation triggered by Javascript */
-        .teacher-avatar.speaking .avatar-mouth {
-            animation: talk 0.18s ease-in-out infinite alternate;
-            background: #4a0000;
-        }
-
-        .avatar-suit {
-            position: absolute;
-            bottom: -15px;
-            width: 80px;
-            height: 30px;
-            background: #1e293b;
-            border-radius: 10px 10px 0 0;
-            border: 2px solid #0f172a;
-            display: flex;
-            justify-content: center;
-        }
-
-        .avatar-tie {
-            width: 10px;
-            height: 18px;
-            background: #ef4444;
-            clip-path: polygon(0 0, 100% 0, 80% 100%, 50% 80%, 20% 100%);
-            margin-top: 4px;
+        .sub-word.highlighted {
+            color: #f3f4f6;
+            text-shadow: 0 0 15px rgba(167, 139, 250, 0.9);
+            font-weight: 600;
+            transform: scale(1.08);
         }
 
         .teacher-role {
@@ -637,17 +630,6 @@
             padding: 0.25rem 0.75rem;
             border-radius: 20px;
         }
-
-        .teacher-bubble {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-align: center;
-            line-height: 1.4;
-            max-height: 80px;
-            overflow-y: auto;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding-top: 0.75rem;
-            width: 100%;
         }
 
         /* Control Panel (Audio / Navigation) */
@@ -769,26 +751,14 @@
             100% { transform: rotate(360deg); }
         }
 
-        @keyframes sway {
-            0%, 100% { transform: rotate(0deg) translateY(0); }
-            50% { transform: rotate(2deg) translateY(-2px); }
+        @keyframes breathe {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.02); }
         }
 
-        @keyframes blink {
-            0%, 90%, 100% { transform: scaleY(1); }
-            95% { transform: scaleY(0.1); }
-        }
-
-        @keyframes talk {
-            0% {
-                height: 3px;
-                border-radius: 2px;
-            }
-            100% {
-                height: 12px;
-                width: 18px;
-                border-radius: 50%;
-            }
+        @keyframes wave {
+            0% { height: 4px; }
+            100% { height: 22px; }
         }
     </style>
 </head>
@@ -899,28 +869,27 @@
                 <!-- Teacher avatar panel -->
                 <div class="avatar-container">
                     
-                    <!-- CSS Animated avatar -->
+                    <!-- Human Realistic Avatar -->
                     <div class="teacher-avatar" id="teacher-avatar">
-                        <div class="avatar-hair"></div>
-                        <div class="avatar-head">
-                            <div class="avatar-glasses">
-                                <div class="glasses-lens"></div>
-                                <div class="glasses-bridge"></div>
-                                <div class="glasses-lens"></div>
-                            </div>
-                            <div class="avatar-eyes">
-                                <div class="eye"></div>
-                                <div class="eye"></div>
-                            </div>
-                            <div class="avatar-mouth"></div>
-                        </div>
-                        <div class="avatar-suit">
-                            <div class="avatar-tie"></div>
+                        <img src="/static/images/professor.png" alt="Professor" class="avatar-img">
+                        <!-- Sound wave frequency bars overlays -->
+                        <div class="avatar-visualizer">
+                            <span class="v-bar"></span>
+                            <span class="v-bar"></span>
+                            <span class="v-bar"></span>
+                            <span class="v-bar"></span>
+                            <span class="v-bar"></span>
                         </div>
                     </div>
 
-                    <div class="teacher-role">Professor IA</div>
-                    <div class="teacher-bubble" id="teacher-subtitles">Prepare-se para começar! Clique no botão Play para iniciar a explicação.</div>
+                    <div class="teacher-role">Dr. A. J. Bennett (Professor IA)</div>
+                </div>
+            </div>
+
+            <!-- Word-by-word Teleprompter Subtitles Panel -->
+            <div class="subtitles-panel">
+                <div class="subtitles-content" id="teleprompter-subtitles">
+                    Selecione ou crie uma aula para iniciar o teleprompter.
                 </div>
             </div>
 
@@ -989,7 +958,7 @@
         const boardBullets = document.getElementById('board-bullets');
         const boardImage = document.getElementById('board-image');
         const teacherAvatar = document.getElementById('teacher-avatar');
-        const teacherSubtitles = document.getElementById('teacher-subtitles');
+        const teleprompterSubtitles = document.getElementById('teleprompter-subtitles');
         
         // Control Bar Elements
         const btnPlay = document.getElementById('btn-play-audio');
@@ -1204,7 +1173,10 @@
             
             // Render text
             boardSlideTitle.textContent = `${idx + 1}. ${slide.title}`;
-            teacherSubtitles.textContent = slide.narration;
+            
+            // Prepare word-by-word array in teleprompter
+            const words = slide.narration.split(' ');
+            teleprompterSubtitles.innerHTML = words.map((w, wIdx) => `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ');
             
             // Render bullet points
             boardBullets.innerHTML = '';
@@ -1239,7 +1211,7 @@
             // Fetch Audio
             audioLoading = true;
             btnPlay.disabled = true;
-            teacherSubtitles.textContent = "Preparando a voz do professor para este quadro...";
+            teleprompterSubtitles.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">Preparando a voz do professor para este quadro...</span>`;
             
             try {
                 // Synthesize the narration text using standard proxy TTS
@@ -1249,7 +1221,9 @@
                 audioEl.oncanplaythrough = () => {
                     audioLoading = false;
                     btnPlay.disabled = false;
-                    teacherSubtitles.textContent = slide.narration;
+                    
+                    // Restore words
+                    teleprompterSubtitles.innerHTML = words.map((w, wIdx) => `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ');
                     
                     // Set speed rate
                     const speed = speedSlider.value / 10;
@@ -1267,12 +1241,12 @@
                 };
             } catch (e) {
                 console.error("Failed to load audio for slide", e);
-                teacherSubtitles.textContent = slide.narration + " (Áudio indisponível)";
+                teleprompterSubtitles.textContent = slide.narration + " (Áudio indisponível)";
                 audioLoading = false;
             }
         }
 
-        // Timeline Progress updates
+        // Timeline Progress updates & word highlighting
         audioEl.addEventListener('timeupdate', () => {
             if (audioEl.duration) {
                 const current = audioEl.currentTime;
@@ -1284,6 +1258,21 @@
                 
                 currentTimeEl.textContent = formatTime(current);
                 durationTimeEl.textContent = formatTime(duration);
+                
+                // Real-time word highlighting inside teleprompter subtitles
+                const wordSpans = teleprompterSubtitles.querySelectorAll('.sub-word');
+                if (wordSpans.length > 0) {
+                    const ratio = current / duration;
+                    const currentWordIdx = Math.min(Math.floor(ratio * wordSpans.length), wordSpans.length - 1);
+                    
+                    wordSpans.forEach((span, spanIdx) => {
+                        if (spanIdx === currentWordIdx) {
+                            span.classList.add('highlighted');
+                        } else {
+                            span.classList.remove('highlighted');
+                        }
+                    });
+                }
             }
         });
 
