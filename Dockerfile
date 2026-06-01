@@ -25,6 +25,7 @@ COPY --from=builder /install /usr/local
 COPY app.py .
 COPY database.py .
 COPY templates/ ./templates/
+COPY static/ ./static/
 
 # .env is injected at runtime via docker-compose / --env-file
 # hub.db is persisted via a named volume

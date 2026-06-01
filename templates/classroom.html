@@ -13,6 +13,9 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
     <style>
         :root {
             --bg-base: #06050f;
@@ -514,89 +517,49 @@
             position: relative;
         }
 
-        /* Realistic Human Teacher Avatar */
+        /* 3D WebGL Teacher Avatar */
         .teacher-avatar {
             position: relative;
-            width: 140px;
-            height: 140px;
+            width: 160px;
+            height: 160px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             border: 4px solid var(--border-glow);
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.1);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
             transition: all 0.3s ease;
             overflow: hidden;
-            background: #000;
+            background: radial-gradient(circle, #100b2b 0%, #06050f 100%);
         }
 
         .teacher-avatar.speaking {
             border-color: #a78bfa;
-            box-shadow: 0 0 25px rgba(167, 139, 250, 0.7);
-            animation: breathe 3s ease-in-out infinite alternate;
+            box-shadow: 0 0 30px rgba(167, 139, 250, 0.7);
         }
-
-        .avatar-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s;
-        }
-
-        .teacher-avatar.speaking .avatar-img {
-            transform: scale(1.04);
-        }
-
-        /* Dynamic Sound Wave visualizer overlay */
-        .avatar-visualizer {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 4px;
-            align-items: flex-end;
-            height: 26px;
-            z-index: 10;
-            background: rgba(6, 5, 15, 0.75);
-            padding: 4px 10px;
-            border-radius: 12px;
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .teacher-avatar.speaking .avatar-visualizer {
-            opacity: 1;
-        }
-
-        .v-bar {
-            width: 3px;
-            height: 4px;
-            background: #a78bfa;
-            border-radius: 3px;
-        }
-
-        .teacher-avatar.speaking .v-bar:nth-child(1) { animation: wave 0.6s ease-in-out infinite alternate; }
-        .teacher-avatar.speaking .v-bar:nth-child(2) { animation: wave 0.4s ease-in-out infinite alternate 0.1s; }
-        .teacher-avatar.speaking .v-bar:nth-child(3) { animation: wave 0.8s ease-in-out infinite alternate 0.2s; }
-        .teacher-avatar.speaking .v-bar:nth-child(4) { animation: wave 0.5s ease-in-out infinite alternate 0.15s; }
-        .teacher-avatar.speaking .v-bar:nth-child(5) { animation: wave 0.7s ease-in-out infinite alternate 0.3s; }
 
         /* Subtitles Panel Word-by-Word style */
         .subtitles-panel {
             background: var(--bg-surface);
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 16px;
-            padding: 1.75rem 2.5rem;
-            min-height: 90px;
+            padding: 1.25rem 2.5rem;
+            height: 100px;
+            max-height: 100px;
+            overflow-y: auto;
             display: flex;
             align-items: center;
             justify-content: center;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(10px);
             margin-top: 0.5rem;
+            scroll-behavior: smooth;
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        .subtitles-panel::-webkit-scrollbar {
+            display: none; /* Hide scrollbars for a clean look */
         }
 
         .subtitles-content {
@@ -629,7 +592,6 @@
             background: rgba(59, 130, 246, 0.1);
             padding: 0.25rem 0.75rem;
             border-radius: 20px;
-        }
         }
 
         /* Control Panel (Audio / Navigation) */
@@ -871,15 +833,7 @@
                     
                     <!-- Human Realistic Avatar -->
                     <div class="teacher-avatar" id="teacher-avatar">
-                        <img src="/static/images/professor.png" alt="Professor" class="avatar-img">
-                        <!-- Sound wave frequency bars overlays -->
-                        <div class="avatar-visualizer">
-                            <span class="v-bar"></span>
-                            <span class="v-bar"></span>
-                            <span class="v-bar"></span>
-                            <span class="v-bar"></span>
-                            <span class="v-bar"></span>
-                        </div>
+                        <canvas id="avatar-3d-canvas" style="width: 100%; height: 100%; border-radius: 50%;"></canvas>
                     </div>
 
                     <div class="teacher-role">Dr. A. J. Bennett (Professor IA)</div>
@@ -931,6 +885,166 @@
     <audio id="lesson-audio" style="display: none;"></audio>
 
     <script>
+        // 3D Avatar Scene Variables
+        let scene, camera, renderer, headGroup, coreMesh, wireframeMesh, mouthMesh, torus1, torus2;
+        let isSpeaking3D = false;
+
+        function init3DAvatar() {
+            const canvas = document.getElementById('avatar-3d-canvas');
+            if (!canvas) return;
+
+            const width = 160;
+            const height = 160;
+
+            // Scene & Camera
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+            camera.position.z = 4.8;
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                alpha: true,
+                antialias: true
+            });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // Head Group
+            headGroup = new THREE.Group();
+            scene.add(headGroup);
+
+            // Core Geometry (Abstract Futuristic AI Head)
+            const coreGeom = new THREE.IcosahedronGeometry(1.2, 1);
+            const coreMat = new THREE.MeshStandardMaterial({
+                color: 0x311a7a,
+                roughness: 0.1,
+                metalness: 0.9,
+                flatShading: true
+            });
+            coreMesh = new THREE.Mesh(coreGeom, coreMat);
+            headGroup.add(coreMesh);
+
+            // Wireframe outer sphere
+            const wireGeom = new THREE.IcosahedronGeometry(1.26, 2);
+            const wireMat = new THREE.MeshBasicMaterial({
+                color: 0xa78bfa,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.25
+            });
+            wireframeMesh = new THREE.Mesh(wireGeom, wireMat);
+            headGroup.add(wireframeMesh);
+
+            // Glowing Cyber-Eyes
+            const eyeGeom = new THREE.SphereGeometry(0.12, 16, 16);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00f2fe });
+            
+            const leftEye = new THREE.Mesh(eyeGeom, eyeMat);
+            leftEye.position.set(-0.35, 0.2, 1.05);
+            headGroup.add(leftEye);
+
+            const rightEye = new THREE.Mesh(eyeGeom, eyeMat);
+            rightEye.position.set(0.35, 0.2, 1.05);
+            headGroup.add(rightEye);
+
+            // Glowing Mouth
+            const mouthGeom = new THREE.BoxGeometry(0.4, 0.06, 0.08);
+            const mouthMat = new THREE.MeshBasicMaterial({ color: 0xec4899 });
+            mouthMesh = new THREE.Mesh(mouthGeom, mouthMat);
+            mouthMesh.position.set(0, -0.35, 1.1);
+            headGroup.add(mouthMesh);
+
+            // Saturn Synapse Rings
+            const torusGeom1 = new THREE.TorusGeometry(1.7, 0.015, 8, 48);
+            const torusMat1 = new THREE.MeshBasicMaterial({
+                color: 0x8b5cf6,
+                transparent: true,
+                opacity: 0.4
+            });
+            torus1 = new THREE.Mesh(torusGeom1, torusMat1);
+            torus1.rotation.x = Math.PI / 2.2;
+            scene.add(torus1);
+
+            const torusGeom2 = new THREE.TorusGeometry(1.9, 0.012, 8, 48);
+            const torusMat2 = new THREE.MeshBasicMaterial({
+                color: 0x3b82f6,
+                transparent: true,
+                opacity: 0.2
+            });
+            torus2 = new THREE.Mesh(torusGeom2, torusMat2);
+            torus2.rotation.x = Math.PI / 3.5;
+            scene.add(torus2);
+
+            // Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.35);
+            scene.add(ambient);
+
+            const l1 = new THREE.PointLight(0x8b5cf6, 2, 12);
+            l1.position.set(4, 4, 4);
+            scene.add(l1);
+
+            const l2 = new THREE.PointLight(0x00f2fe, 1.5, 12);
+            l2.position.set(-4, -3, 3);
+            scene.add(l2);
+
+            // Interactive Mouse Follow Coordinates
+            let tX = 0, tY = 0;
+            window.addEventListener('mousemove', (e) => {
+                const normX = (e.clientX / window.innerWidth) * 2 - 1;
+                const normY = -(e.clientY / window.innerHeight) * 2 + 1;
+                tX = normX * 0.35;
+                tY = normY * 0.25;
+            });
+
+            // Anim Loop
+            let clock = new THREE.Clock();
+
+            function animate() {
+                requestAnimationFrame(animate);
+                const time = clock.getElapsedTime();
+
+                // Rotate meshes
+                if (wireframeMesh) {
+                    wireframeMesh.rotation.y = time * 0.12;
+                    wireframeMesh.rotation.z = time * 0.04;
+                }
+                if (coreMesh) {
+                    coreMesh.rotation.y = time * 0.03;
+                }
+                if (torus1) torus1.rotation.z = time * 0.15;
+                if (torus2) torus2.rotation.z = -time * 0.08;
+
+                // Breath float
+                if (headGroup) {
+                    headGroup.position.y = Math.sin(time * 2.2) * 0.06;
+                    // Track cursor rotation
+                    headGroup.rotation.y += (tX - headGroup.rotation.y) * 0.05;
+                    headGroup.rotation.x += (tY - headGroup.rotation.x) * 0.05;
+                }
+
+                // Deform mouth / scale glow on speech
+                if (mouthMesh) {
+                    if (isSpeaking3D) {
+                        mouthMesh.scale.y = 1 + Math.abs(Math.sin(time * 26)) * 2.8;
+                        mouthMesh.scale.x = 1 + Math.sin(time * 12) * 0.12;
+                        l1.intensity = 2.2 + Math.sin(time * 28) * 0.8;
+                        const scaleFactor = 1.0 + Math.sin(time * 35) * 0.02;
+                        coreMesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                    } else {
+                        mouthMesh.scale.y = 1;
+                        mouthMesh.scale.x = 1;
+                        l1.intensity = 1.6;
+                        coreMesh.scale.set(1, 1, 1);
+                    }
+                }
+
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+        window.addEventListener('DOMContentLoaded', init3DAvatar);
+
         // DOM Elements
         const setupPanel = document.getElementById('setup-panel');
         const loadingPanel = document.getElementById('loading-panel');
@@ -981,6 +1095,10 @@
         let currentSlideIdx = 0;
         let audioDuration = 0;
         let audioLoading = false;
+
+        let wordRanges = [];
+        let isPlaying = false;
+        let animationFrameId = null;
 
         // Check if generate button should be enabled
         function checkInputs() {
@@ -1110,6 +1228,9 @@
             audioEl.pause();
             audioEl.src = '';
             teacherAvatar.classList.remove('speaking');
+            isSpeaking3D = false;
+            isPlaying = false;
+            stopSubtitleLoop();
             
             stagePanel.style.display = 'none';
             setupPanel.style.display = 'flex';
@@ -1131,10 +1252,16 @@
                 audioEl.play();
                 playIcon.className = 'fa-solid fa-pause';
                 teacherAvatar.classList.add('speaking');
+                isSpeaking3D = true;
+                isPlaying = true;
+                startSubtitleLoop();
             } else {
                 audioEl.pause();
                 playIcon.className = 'fa-solid fa-play';
                 teacherAvatar.classList.remove('speaking');
+                isSpeaking3D = false;
+                isPlaying = false;
+                stopSubtitleLoop();
             }
         });
 
@@ -1174,8 +1301,17 @@
             // Render text
             boardSlideTitle.textContent = `${idx + 1}. ${slide.title}`;
             
-            // Prepare word-by-word array in teleprompter
+            // Split narration and calculate character-weighted ranges
             const words = slide.narration.split(' ');
+            let totalChars = words.reduce((acc, w) => acc + w.length, 0);
+            let currentSum = 0;
+            wordRanges = words.map(w => {
+                let start = currentSum / totalChars;
+                currentSum += w.length;
+                let end = currentSum / totalChars;
+                return { start, end };
+            });
+            
             teleprompterSubtitles.innerHTML = words.map((w, wIdx) => `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ');
             
             // Render bullet points
@@ -1203,6 +1339,9 @@
             audioEl.pause();
             audioEl.src = '';
             teacherAvatar.classList.remove('speaking');
+            isSpeaking3D = false;
+            isPlaying = false;
+            stopSubtitleLoop();
             playIcon.className = 'fa-solid fa-play';
             progressBar.value = 0;
             currentTimeEl.textContent = '0:00';
@@ -1233,10 +1372,15 @@
                     audioEl.play().then(() => {
                         playIcon.className = 'fa-solid fa-pause';
                         teacherAvatar.classList.add('speaking');
+                        isSpeaking3D = true;
+                        isPlaying = true;
+                        startSubtitleLoop();
                     }).catch(() => {
                         // Browser blocked autoplay, wait for user
                         playIcon.className = 'fa-solid fa-play';
                         teacherAvatar.classList.remove('speaking');
+                        isSpeaking3D = false;
+                        isPlaying = false;
                     });
                 };
             } catch (e) {
@@ -1246,7 +1390,55 @@
             }
         }
 
-        // Timeline Progress updates & word highlighting
+        // Teleprompter Word Highlighting Real-Time Loop
+        function updateSubtitlesHighlight() {
+            if (!audioEl.duration) return;
+            const current = audioEl.currentTime;
+            const duration = audioEl.duration;
+            const ratio = current / duration;
+            
+            let activeIdx = -1;
+            for (let i = 0; i < wordRanges.length; i++) {
+                if (ratio >= wordRanges[i].start && ratio < wordRanges[i].end) {
+                    activeIdx = i;
+                    break;
+                }
+            }
+            if (activeIdx === -1 && ratio >= 0.99) {
+                activeIdx = wordRanges.length - 1;
+            }
+            
+            const spans = teleprompterSubtitles.querySelectorAll('.sub-word');
+            spans.forEach((span, idx) => {
+                if (idx === activeIdx) {
+                    span.classList.add('highlighted');
+                    // Smooth centered alignment scroll inside teleprompter panel
+                    span.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                } else {
+                    span.classList.remove('highlighted');
+                }
+            });
+        }
+
+        function startSubtitleLoop() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            function loop() {
+                updateSubtitlesHighlight();
+                if (isPlaying) {
+                    animationFrameId = requestAnimationFrame(loop);
+                }
+            }
+            animationFrameId = requestAnimationFrame(loop);
+        }
+
+        function stopSubtitleLoop() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        }
+
+        // Timeline Progress updates
         audioEl.addEventListener('timeupdate', () => {
             if (audioEl.duration) {
                 const current = audioEl.currentTime;
@@ -1258,27 +1450,15 @@
                 
                 currentTimeEl.textContent = formatTime(current);
                 durationTimeEl.textContent = formatTime(duration);
-                
-                // Real-time word highlighting inside teleprompter subtitles
-                const wordSpans = teleprompterSubtitles.querySelectorAll('.sub-word');
-                if (wordSpans.length > 0) {
-                    const ratio = current / duration;
-                    const currentWordIdx = Math.min(Math.floor(ratio * wordSpans.length), wordSpans.length - 1);
-                    
-                    wordSpans.forEach((span, spanIdx) => {
-                        if (spanIdx === currentWordIdx) {
-                            span.classList.add('highlighted');
-                        } else {
-                            span.classList.remove('highlighted');
-                        }
-                    });
-                }
             }
         });
 
         // On audio end, auto transition
         audioEl.addEventListener('ended', () => {
             teacherAvatar.classList.remove('speaking');
+            isSpeaking3D = false;
+            isPlaying = false;
+            stopSubtitleLoop();
             playIcon.className = 'fa-solid fa-play';
             
             // Auto transition to next slide after 2 seconds if available
