@@ -964,8 +964,36 @@
             }
         });
 
+        let chatHistory = [];
+
+        function saveChatHistory() {
+            localStorage.setItem('paradise_chat_history', JSON.stringify(chatHistory));
+        }
+
+        function loadChatHistory() {
+            const history = localStorage.getItem('paradise_chat_history');
+            if (history) {
+                try {
+                    chatHistory = JSON.parse(history) || [];
+                    if (chatHistory.length > 0) {
+                        const welcome = document.getElementById('welcome-screen');
+                        if (welcome) welcome.remove();
+                        chatHistory.forEach(msg => {
+                            appendMessageToDom(msg.sender, msg.text, msg.images);
+                        });
+                    }
+                } catch (e) {
+                    console.error("Failed to load chat history", e);
+                    chatHistory = [];
+                }
+            }
+        }
+
         // Reset Conversation
         function clearChat() {
+            chatHistory = [];
+            localStorage.removeItem('paradise_chat_history');
+
             // Keep welcome screen and delete the rest
             const welcome = welcomeScreen.cloneNode(true);
             chatWindow.innerHTML = '';
@@ -1001,7 +1029,7 @@
         });
 
         // Render message in chat window
-        function appendMessage(sender, text, images = []) {
+        function appendMessageToDom(sender, text, images = []) {
             // Hide welcome screen if showing
             const welcome = document.getElementById('welcome-screen');
             if (welcome) welcome.remove();
@@ -1057,6 +1085,12 @@
             
             // Auto scroll to bottom
             chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function appendMessage(sender, text, images = []) {
+            appendMessageToDom(sender, text, images);
+            chatHistory.push({ sender, text, images });
+            saveChatHistory();
         }
 
         // Render Loading Indicator
@@ -1139,6 +1173,7 @@
 
         // Boot
         checkStatus();
+        loadChatHistory();
     </script>
 </body>
 </html>
