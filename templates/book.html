@@ -1542,11 +1542,12 @@
             const rawText = pElement.getAttribute('data-raw-text');
 
             let speechLang = 'pt-BR';
-            if (currentBook.language === 'Inglês') speechLang = 'en-US';
-            else if (currentBook.language === 'Espanhol') speechLang = 'es-ES';
-            else if (currentBook.language === 'Francês') speechLang = 'fr-FR';
-            else if (currentBook.language === 'Italiano') speechLang = 'it-IT';
-            else if (currentBook.language === 'Alemão') speechLang = 'de-DE';
+            const langLower = (currentBook.language || '').toLowerCase();
+            if (langLower.includes('inglês') || langLower.includes('english') || langLower.includes('en')) speechLang = 'en-US';
+            else if (langLower.includes('espanhol') || langLower.includes('spanish') || langLower.includes('es') || langLower.includes('español')) speechLang = 'es-ES';
+            else if (langLower.includes('francês') || langLower.includes('french') || langLower.includes('fr')) speechLang = 'fr-FR';
+            else if (langLower.includes('italiano') || langLower.includes('italian') || langLower.includes('it')) speechLang = 'it-IT';
+            else if (langLower.includes('alemão') || langLower.includes('german') || langLower.includes('de')) speechLang = 'de-DE';
 
             const utterance = new SpeechSynthesisUtterance(rawText);
             utterance.lang = speechLang;

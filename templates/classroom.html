@@ -1144,6 +1144,7 @@
             
             const formData = new FormData();
             formData.append('type', currentType);
+            formData.append('language', localStorage.getItem('paradise_language') || 'pt');
             
             if (currentType === 'theme') {
                 formData.append('content', themeInput.value.trim());
@@ -1333,7 +1334,8 @@
             
             try {
                 // Synthesize the narration text using standard proxy TTS
-                audioEl.src = `/api/tts?text=${encodeURIComponent(slide.narration)}`;
+                const globalLang = localStorage.getItem('paradise_language') || 'pt';
+                audioEl.src = `/api/tts?text=${encodeURIComponent(slide.narration)}&lang=${globalLang}`;
                 audioEl.load();
                 
                 audioEl.oncanplaythrough = () => {
