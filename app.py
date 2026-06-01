@@ -1,7 +1,7 @@
 import os
 import asyncio
 import threading
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from dotenv import load_dotenv
 
 ENV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
@@ -9,6 +9,7 @@ load_dotenv(ENV_PATH, override=True)
 
 app = Flask(__name__, template_folder="templates")
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key-12345-vilmika")
 
 # 1. Setup a dedicated event loop in a background thread for thread-safe Async calls
 _loop = asyncio.new_event_loop()
@@ -104,6 +105,29 @@ async def chat_async(message):
             needs_config = True
             
         return None, f"An error occurred: {error_msg}", needs_config
+
+# ----------------- AUTHENTICATION HOOK & ROUTE -----------------
+
+@app.before_request
+def check_auth():
+    allowed_routes = ["login", "static"]
+    if request.endpoint and request.endpoint not in allowed_routes:
+        if not session.get("authenticated"):
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "Unauthorized. Please authenticate first."}), 401
+            return redirect(url_for("login"))
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        password = request.form.get("password")
+        if password == "vilmika":
+            session["authenticated"] = True
+            return redirect(url_for("index_hub"))
+        else:
+            error = "Senha incorreta!"
+    return render_template("login.html", error=error)
 
 # ----------------- PORTAL ROUTES -----------------
 
