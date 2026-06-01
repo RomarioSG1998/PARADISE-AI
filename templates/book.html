@@ -347,23 +347,19 @@
             background-repeat: no-repeat;
         }
 
-        /* ONLY atmospheric blur, NO solid color covering, allowing background illustration to fully render */
+        /* Hide the full page overlay so background illustration is 100% sharp and unblurred */
         .book-page-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(252, 248, 238, 0.4);
-            backdrop-filter: blur(4px);
-            z-index: 1;
-            pointer-events: none;
-            transition: background 0.1s ease;
+            display: none;
         }
 
+        /* The content card sits on top of page background, holding text and images with soft adjustable backing */
         .book-content-wrapper {
             position: relative;
-            z-index: 2; /* Sits above the page overlay */
+            z-index: 2;
+            padding: 1.5rem;
+            border-radius: 20px;
+            background: rgba(252, 248, 238, 0.4);
+            transition: background 0.15s ease;
         }
 
         /* HEADER - Contoured with cartoon box styling */
@@ -1979,13 +1975,13 @@
         // Persistent Background Contrast Overlay Opacity Regulator
         const bgOpacityRange = document.getElementById('bg-opacity-range');
         const bgOpacityValue = document.getElementById('bg-opacity-value');
-        const bookPageOverlay = document.querySelector('.book-page-overlay');
+        const bookContentWrapper = document.querySelector('.book-content-wrapper');
 
         function updateBgOpacity(val) {
             const opacity = val / 100;
-            if (bookPageOverlay) {
-                // Update overlay background color with calculated opacity
-                bookPageOverlay.style.background = `rgba(252, 248, 238, ${opacity})`;
+            if (bookContentWrapper) {
+                // Update text backing card background color with calculated opacity
+                bookContentWrapper.style.background = `rgba(252, 248, 238, ${opacity})`;
             }
             if (bgOpacityValue) {
                 bgOpacityValue.textContent = `${val}%`;
