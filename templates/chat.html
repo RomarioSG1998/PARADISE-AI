@@ -1684,6 +1684,7 @@
         let voiceRecognition = null;
         let voiceActive = false;
         let isMuted = false;
+        let isAiSpeaking = false;
 
         async function startVisualizer(stream) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1730,17 +1731,24 @@
             if (!voiceSynth) return;
             voiceSynth.cancel();
             
+            isAiSpeaking = true;
+            if (voiceRecognition) {
+                voiceRecognition.abort();
+            }
+            
             voiceUtterance = new SpeechSynthesisUtterance(text);
             voiceUtterance.lang = 'pt-BR';
             voiceUtterance.rate = 1.05;
             voiceUtterance.pitch = 0.9;
             
             voiceUtterance.onend = () => {
+                isAiSpeaking = false;
                 if (onEndCallback) onEndCallback();
             };
             
             voiceUtterance.onerror = (e) => {
                 console.error("Erro no TTS:", e);
+                isAiSpeaking = false;
                 if (onEndCallback) onEndCallback();
             };
             
@@ -1748,7 +1756,7 @@
         }
 
         function startListening() {
-            if (!voiceActive || isMuted || voiceSynth.speaking) return;
+            if (!voiceActive || isMuted || isAiSpeaking) return;
             
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRec) return;
@@ -1765,6 +1773,8 @@
                 };
                 
                 voiceRecognition.onresult = (event) => {
+                    if (isAiSpeaking) return;
+                    
                     let transcript = '';
                     for (let i = event.resultIndex; i < event.results.length; ++i) {
                         transcript += event.results[i][0].transcript;
@@ -1784,7 +1794,7 @@
                 };
                 
                 voiceRecognition.onend = () => {
-                    if (voiceActive && !isMuted && !voiceSynth.speaking) {
+                    if (voiceActive && !isMuted && !isAiSpeaking) {
                         setTimeout(startListening, 300);
                     }
                 };
@@ -1800,6 +1810,7 @@
         async function sendVoiceInput(text) {
             if (!text.trim()) return;
             
+            isAiSpeaking = true;
             if (voiceRecognition) {
                 voiceRecognition.abort();
             }
@@ -1850,6 +1861,7 @@
         async function startVoiceCall() {
             voiceActive = true;
             isMuted = false;
+            isAiSpeaking = false;
             document.getElementById('chat-window').classList.add('voice-active');
             document.getElementById('voice-overlay').style.display = 'flex';
             document.getElementById('voice-transcript').textContent = '"Iniciando..."';
@@ -1877,6 +1889,7 @@
 
         function endVoiceCall() {
             voiceActive = false;
+            isAiSpeaking = false;
             document.getElementById('chat-window').classList.remove('voice-active');
             if (voiceRecognition) {
                 voiceRecognition.abort();
