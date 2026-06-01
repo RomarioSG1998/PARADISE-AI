@@ -1729,8 +1729,8 @@
         let analyser;
         let micStream;
         let visualizerAnimationId;
-        let voiceSynth = window.speechSynthesis;
-        let voiceUtterance = null;
+        let ttsAudioElement = null;
+        let wordRevealInterval = null;
         let voiceRecognition = null;
         let voiceActive = false;
         let isMuted = false;
@@ -1813,8 +1813,15 @@
         }
 
         function speakText(text, onEndCallback) {
-            if (!voiceSynth) return;
-            voiceSynth.cancel();
+            // Clean up any running audio or text intervals
+            if (ttsAudioElement) {
+                ttsAudioElement.pause();
+                ttsAudioElement = null;
+            }
+            if (wordRevealInterval) {
+                clearInterval(wordRevealInterval);
+                wordRevealInterval = null;
+            }
             
             isAiSpeaking = true;
             if (voiceRecognition) {
@@ -1828,66 +1835,83 @@
             
             const cleanText = cleanMarkdownForSpeech(text);
             
-            voiceUtterance = new SpeechSynthesisUtterance(cleanText);
-            voiceUtterance.lang = 'pt-BR';
+            const ttsUrl = `/api/tts?text=${encodeURIComponent(cleanText)}`;
+            ttsAudioElement = new Audio(ttsUrl);
             
-            // Select the best voice (prefer Google pt-BR or Microsoft pt-BR)
-            if (typeof voiceSynth.getVoices === 'function') {
-                const voices = voiceSynth.getVoices();
-                const ptVoices = voices.filter(v => v.lang.includes('pt-BR') || v.lang.includes('pt_BR'));
-                let selectedVoice = ptVoices.find(v => v.name.toLowerCase().includes('google'));
-                if (!selectedVoice) {
-                    selectedVoice = ptVoices.find(v => v.name.toLowerCase().includes('microsoft'));
-                }
-                if (!selectedVoice) {
-                    selectedVoice = ptVoices[0];
-                }
-                if (selectedVoice) {
-                    voiceUtterance.voice = selectedVoice;
-                }
-            }
-            
-            // Apply speed multiplier
+            // Set playback rate based on speed slider
             const speedSlider = document.getElementById('speech-speed');
             const speedVal = speedSlider ? parseFloat(speedSlider.value) : 1.0;
-            voiceUtterance.rate = speedVal;
             
-            voiceUtterance.pitch = 0.9;
-            
-            let boundaryFired = false;
-            voiceUtterance.onstart = () => {
-                setTimeout(() => {
-                    if (!boundaryFired) {
-                        aiResponseBox.textContent = cleanText;
-                    }
-                }, 500);
-            };
-
-            voiceUtterance.onboundary = (event) => {
-                if (event.name === 'word') {
-                    boundaryFired = true;
-                    const charIndex = event.charIndex;
-                    const remainingText = cleanText.slice(charIndex);
-                    const nextSpace = remainingText.indexOf(' ');
-                    const wordLength = nextSpace === -1 ? remainingText.length : nextSpace;
-                    const spokenPart = cleanText.slice(0, charIndex + wordLength);
-                    aiResponseBox.textContent = spokenPart;
-                    aiResponseBox.scrollTop = aiResponseBox.scrollHeight;
+            // Wait for metadata to load to set playbackRate safely and calculate reveal speed
+            ttsAudioElement.addEventListener('loadedmetadata', () => {
+                const duration = ttsAudioElement.duration; // duration in seconds
+                const words = cleanText.split(/\s+/);
+                
+                // Set speed rate on playback
+                ttsAudioElement.playbackRate = speedVal;
+                
+                if (duration && words.length > 0) {
+                    const totalMs = (duration * 1000) / speedVal;
+                    const intervalTime = totalMs / words.length;
+                    
+                    let wordIndex = 0;
+                    aiResponseBox.textContent = "";
+                    
+                    wordRevealInterval = setInterval(() => {
+                        if (!isAiSpeaking || wordIndex >= words.length) {
+                            clearInterval(wordRevealInterval);
+                            return;
+                        }
+                        const spokenPart = words.slice(0, wordIndex + 1).join(" ");
+                        aiResponseBox.textContent = spokenPart;
+                        aiResponseBox.scrollTop = aiResponseBox.scrollHeight;
+                        wordIndex++;
+                    }, intervalTime);
+                } else {
+                    // Fallback to instantly showing all text if duration is zero/broken
+                    aiResponseBox.textContent = cleanText;
                 }
-            };
+            });
             
-            voiceUtterance.onend = () => {
+            // Fallback in case metadata loading fails or takes too long
+            const fallbackTimeout = setTimeout(() => {
+                if (aiResponseBox.textContent === "") {
+                    aiResponseBox.textContent = cleanText;
+                }
+            }, 3000);
+            
+            ttsAudioElement.addEventListener('play', () => {
+                isAiSpeaking = true;
+            });
+            
+            ttsAudioElement.addEventListener('ended', () => {
+                clearTimeout(fallbackTimeout);
                 isAiSpeaking = false;
+                if (wordRevealInterval) {
+                    clearInterval(wordRevealInterval);
+                }
                 if (onEndCallback) onEndCallback();
-            };
+            });
             
-            voiceUtterance.onerror = (e) => {
-                console.error("Erro no TTS:", e);
+            ttsAudioElement.addEventListener('error', (e) => {
+                clearTimeout(fallbackTimeout);
+                console.error("Erro no áudio do TTS:", e);
                 isAiSpeaking = false;
+                if (wordRevealInterval) {
+                    clearInterval(wordRevealInterval);
+                }
                 if (onEndCallback) onEndCallback();
-            };
+            });
             
-            voiceSynth.speak(voiceUtterance);
+            ttsAudioElement.play().catch(err => {
+                clearTimeout(fallbackTimeout);
+                console.error("Erro ao iniciar reprodução:", err);
+                isAiSpeaking = false;
+                if (wordRevealInterval) {
+                    clearInterval(wordRevealInterval);
+                }
+                if (onEndCallback) onEndCallback();
+            });
         }
 
         function startListening() {
@@ -2040,8 +2064,13 @@
             if (voiceRecognition) {
                 voiceRecognition.abort();
             }
-            if (voiceSynth) {
-                voiceSynth.cancel();
+            if (ttsAudioElement) {
+                ttsAudioElement.pause();
+                ttsAudioElement = null;
+            }
+            if (wordRevealInterval) {
+                clearInterval(wordRevealInterval);
+                wordRevealInterval = null;
             }
             if (visualizerAnimationId) {
                 cancelAnimationFrame(visualizerAnimationId);
@@ -2079,6 +2108,9 @@
         if (speedSlider && speedValText) {
             speedSlider.addEventListener('input', () => {
                 speedValText.textContent = `${parseFloat(speedSlider.value).toFixed(1)}x`;
+                if (ttsAudioElement && isAiSpeaking) {
+                    ttsAudioElement.playbackRate = parseFloat(speedSlider.value);
+                }
             });
         }
 

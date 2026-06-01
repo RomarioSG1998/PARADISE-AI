@@ -3,3 +3,4 @@ python-dotenv
 gemini-webapi==2.0.0
 requests
 pypdf
+gTTS

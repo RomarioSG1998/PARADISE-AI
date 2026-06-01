@@ -236,6 +236,26 @@ def proxy_image():
     except Exception as e:
         return f"Error proxying image: {str(e)}", 500
 
+@app.route("/api/tts")
+def text_to_speech():
+    text = request.args.get("text", "").strip()
+    if not text:
+        return "Text is required", 400
+        
+    try:
+        from gtts import gTTS
+        import io
+        from flask import send_file
+        
+        tts = gTTS(text=text, lang='pt', tld='com.br')
+        fp = io.BytesIO()
+        tts.write_to_fp(fp)
+        fp.seek(0)
+        return send_file(fp, mimetype="audio/mpeg")
+    except Exception as e:
+        print(f"[Paradise AI TTS Error] {str(e)}")
+        return f"Error generating TTS: {str(e)}", 500
+
 @app.after_request
 def add_header(response):
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
