@@ -898,9 +898,19 @@
             <div class="brand-logo">
                 <i class="fa-solid fa-book-open"></i>
             </div>
-            <div class="brand-title">Gerador de Livros Pro</div>
+            <div class="brand-title" id="book-brand-title">Gerador de Livros Pro</div>
         </div>
         <div style="display: flex; align-items: center; gap: 1rem;">
+            <!-- Language Dropdown -->
+            <div class="language-selector" style="display: flex; align-items: center; gap: 0.5rem; background: #1e293b; border: 2.5px solid var(--border-cartoon); border-radius: 12px; padding: 0.3rem 0.6rem; box-shadow: 3px 3px 0px var(--border-cartoon);">
+                <i class="fa-solid fa-globe" style="color: #cbd5e1; font-size: 0.85rem;"></i>
+                <select id="global-lang-select" class="lang-select" style="background: transparent; border: none; color: white; padding: 0.1rem 0.3rem; border-radius: 6px; font-family: inherit; font-size: 0.8rem; cursor: pointer; outline: none;">
+                    <option value="pt" style="background: #1e293b; color: white;">Português 🇧🇷</option>
+                    <option value="en" style="background: #1e293b; color: white;">English 🇺🇸</option>
+                    <option value="es" style="background: #1e293b; color: white;">Español 🇪🇸</option>
+                </select>
+            </div>
+
             <!-- Connection Status -->
             <div class="status-badge-container" id="session-check-btn" style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; background: #1e293b; border: 2.5px solid var(--border-cartoon); border-radius: 12px; padding: 0.4rem 0.8rem; font-size: 0.85rem; box-shadow: 3px 3px 0px var(--border-cartoon);" title="Recarregar Status">
                 <span id="status-dot" class="dot" style="width: 8px; height: 8px; border-radius: 50%; background-color: #ef4444; display: inline-block;"></span>
@@ -1996,6 +2006,144 @@
                 localStorage.setItem('book_bg_opacity', val);
             });
         }
+
+        // Global Language Selection & UI Translation System
+        const bookTranslations = {
+            pt: {
+                brandTitle: "Gerador de Livros Pro",
+                panelTitle: "Crie seu Livro de Desenho Animado!",
+                panelDesc: "Preencha os dados abaixo e assista ao seu livro ganhar vida com áudio e belas imagens.",
+                lblTheme: "Qual será a história?",
+                placeholderTheme: "Ex: Um pequeno dinossauro azul que perdeu seu brinquedo, O mistério do castelo voador...",
+                lblLevel: "Nível de Leitura",
+                lblLang: "Idioma do Livro",
+                btnGenerate: "<i class='fa-solid fa-wand-magic-sparkles'></i> Escrever e Ilustrar Livro!",
+                lblSavedBooks: "Seus Livros Salvos",
+                descSavedBooks: "Clique para ler novamente qualquer um dos livros já gerados neste navegador.",
+                connectionChecking: "Verificando...",
+                connectionOnline: "Conexão Pro Ativa",
+                connectionOffline: "Sem Conexão Pro",
+                langOptionPt: "Português",
+                langOptionEn: "Inglês",
+                langOptionEs: "Espanhol"
+            },
+            en: {
+                brandTitle: "Book Generator Pro",
+                panelTitle: "Create your Cartoon Book!",
+                panelDesc: "Fill in the fields below and watch your book come to life with audio and beautiful images.",
+                lblTheme: "What will the story be about?",
+                placeholderTheme: "E.g. A small blue dinosaur who lost his toy, The mystery of the flying castle...",
+                lblLevel: "Reading Level",
+                lblLang: "Book Language",
+                btnGenerate: "<i class='fa-solid fa-wand-magic-sparkles'></i> Write and Illustrate Book!",
+                lblSavedBooks: "Your Saved Books",
+                descSavedBooks: "Click to read again any of the books already generated in this browser.",
+                connectionChecking: "Checking...",
+                connectionOnline: "Active Pro Connection",
+                connectionOffline: "No Pro Connection",
+                langOptionPt: "Portuguese",
+                langOptionEn: "English",
+                langOptionEs: "Spanish"
+            },
+            es: {
+                brandTitle: "Generador de Libros Pro",
+                panelTitle: "¡Cree su Libro de Dibujos Animados!",
+                panelDesc: "Complete los campos a continuación y vea cómo su libro cobra vida con audio y hermosas imágenes.",
+                lblTheme: "¿De qué tratará la historia?",
+                placeholderTheme: "Ej: Un pequeño dinosaurio azul que perdió su juguete, El misterio del castillo volador...",
+                lblLevel: "Nivel de Lectura",
+                lblLang: "Idioma del Libro",
+                btnGenerate: "<i class='fa-solid fa-wand-magic-sparkles'></i> ¡Escribir e Ilustrar Libro!",
+                lblSavedBooks: "Sus Libros Guardados",
+                descSavedBooks: "Haga clic para leer nuevamente cualquiera de los libros ya generados en este navegador.",
+                connectionChecking: "Verificando...",
+                connectionOnline: "Conexión Pro Activa",
+                connectionOffline: "Sin Conexión Pro",
+                langOptionPt: "Portugués",
+                langOptionEn: "Inglés",
+                langOptionEs: "Español"
+            }
+        };
+
+        function applyLanguage(lang) {
+            localStorage.setItem("paradise_language", lang);
+            document.cookie = `paradise_language=${lang}; path=/; max-age=31536000; SameSite=Lax`;
+            
+            const t = bookTranslations[lang] || bookTranslations.pt;
+            
+            const brandTitle = document.getElementById('book-brand-title');
+            if (brandTitle) brandTitle.textContent = t.brandTitle;
+            
+            const panelTitle = document.querySelector('.config-form .form-title h2');
+            if (panelTitle) panelTitle.textContent = t.panelTitle;
+            
+            const panelDesc = document.querySelector('.config-form .form-title p');
+            if (panelDesc) panelDesc.textContent = t.panelDesc;
+            
+            const lblTheme = document.querySelector('label[for="book-theme"]');
+            if (lblTheme) lblTheme.textContent = t.lblTheme;
+            
+            const inputTheme = document.getElementById('book-theme');
+            if (inputTheme) inputTheme.placeholder = t.placeholderTheme;
+            
+            const lblLevel = document.querySelector('label[for="book-level"]');
+            if (lblLevel) lblLevel.textContent = t.lblLevel;
+            
+            const lblLang = document.querySelector('label[for="book-lang"]');
+            if (lblLang) lblLang.textContent = t.lblLang;
+            
+            const btnGen = document.getElementById('btn-generate-book');
+            if (btnGen) btnGen.innerHTML = t.btnGenerate;
+            
+            const lblSaved = document.querySelector('.history-panel .form-title h3');
+            if (lblSaved) lblSaved.innerHTML = `<i class="fa-solid fa-book-open"></i> ${t.lblSavedBooks}`;
+            
+            const descSaved = document.querySelector('.history-panel .form-title p');
+            if (descSaved) descSaved.textContent = t.descSavedBooks;
+            
+            // Connection Status Label
+            const statusLabel = document.getElementById('status-label');
+            if (statusLabel) {
+                if (statusLabel.textContent === 'Verificando...' || statusLabel.textContent === 'Checking...') {
+                    statusLabel.textContent = t.connectionChecking;
+                } else if (statusLabel.textContent.includes('Ativa') || statusLabel.textContent.includes('Active')) {
+                    statusLabel.textContent = t.connectionOnline;
+                } else {
+                    statusLabel.textContent = t.connectionOffline;
+                }
+            }
+            
+            // Auto-select corresponding option in the book-lang selector
+            const bookLangSelect = document.getElementById('book-lang');
+            if (bookLangSelect) {
+                if (lang === 'pt') {
+                    bookLangSelect.value = 'Português';
+                } else if (lang === 'en') {
+                    bookLangSelect.value = 'Inglês';
+                } else if (lang === 'es') {
+                    bookLangSelect.value = 'Espanhol';
+                }
+            }
+            
+            // Set option display text in book-lang select dynamically if needed
+            const ptOpt = bookLangSelect ? bookLangSelect.querySelector('option[value="Português"]') : null;
+            if (ptOpt) ptOpt.textContent = t.langOptionPt;
+            const enOpt = bookLangSelect ? bookLangSelect.querySelector('option[value="Inglês"]') : null;
+            if (enOpt) enOpt.textContent = t.langOptionEn;
+            const esOpt = bookLangSelect ? bookLangSelect.querySelector('option[value="Espanhol"]') : null;
+            if (esOpt) esOpt.textContent = t.langOptionEs;
+            
+            const langSelect = document.getElementById('global-lang-select');
+            if (langSelect) langSelect.value = lang;
+        }
+
+        document.getElementById('global-lang-select').addEventListener('change', (e) => {
+            applyLanguage(e.target.value);
+        });
+
+        // Initialize Page Language
+        const currentLang = localStorage.getItem('paradise_language') || 'pt';
+        applyLanguage(currentLang);
     </script>
 </body>
 </html>

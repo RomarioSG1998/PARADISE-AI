@@ -390,10 +390,16 @@ def pcm_to_wav(pcm_data, sample_rate=24000, num_channels=1, sample_width=2):
     wav_buf.seek(0)
     return wav_buf.read()
 
-async def generate_edge_tts_async(text: str) -> bytes:
+async def generate_edge_tts_async(text: str, lang_code: str = "pt") -> bytes:
     import edge_tts
-    # AntonioNeural is a highly natural, male Portuguese voice matching a premium virtual assistant
-    voice = "pt-BR-AntonioNeural"
+    if lang_code == "en":
+        voice = "en-US-EmmaNeural"
+    elif lang_code == "es":
+        voice = "es-ES-ElviraNeural"
+    else:
+        # AntonioNeural is a highly natural, male Portuguese voice matching a premium virtual assistant
+        voice = "pt-BR-AntonioNeural"
+        
     communicate = edge_tts.Communicate(text, voice)
     data = b""
     async for chunk in communicate.stream():
@@ -409,6 +415,7 @@ def text_to_speech():
         
     load_dotenv(ENV_PATH, override=True)
     gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    lang_code = request.cookies.get("paradise_language", "pt")
     
     # 1. Official Gemini API Audio Generation
     if gemini_api_key:
@@ -435,7 +442,7 @@ def text_to_speech():
         from flask import send_file
         
         # Generate neural speech in background event loop
-        audio_data = run_in_background(generate_edge_tts_async(text))
+        audio_data = run_in_background(generate_edge_tts_async(text, lang_code))
         
         fp = io.BytesIO(audio_data)
         fp.seek(0)
@@ -447,7 +454,10 @@ def text_to_speech():
             import io
             from flask import send_file
             
-            tts = gTTS(text=text, lang='pt', tld='com.br')
+            gtts_lang = "en" if lang_code == "en" else ("es" if lang_code == "es" else "pt")
+            gtts_tld = "com" if lang_code == "en" else ("es" if lang_code == "es" else "com.br")
+            
+            tts = gTTS(text=text, lang=gtts_lang, tld=gtts_tld)
             fp = io.BytesIO()
             tts.write_to_fp(fp)
             fp.seek(0)
@@ -615,7 +625,13 @@ def explain_word():
     if not word or not sentence or not book_lang:
         return jsonify({"error": "Word, sentence, and book language are required"}), 400
         
-    target_lang = "Português" if book_lang != "Português" else "Inglês"
+    lang_code = request.cookies.get("paradise_language", "pt")
+    lang_names = {
+        "pt": "Português",
+        "en": "Inglês",
+        "es": "Espanhol"
+    }
+    target_lang = lang_names.get(lang_code, "Português")
     
     result, err = run_in_background(explain_word_async(word, sentence, book_lang, target_lang))
     if err:
@@ -670,28 +686,37 @@ def generate_classroom():
     if not content:
         return jsonify({"error": "Conteúdo ou tema não especificado"}), 400
         
+    lang_code = request.cookies.get("paradise_language", "pt")
+    lang_names = {
+        "pt": "Português (Brasil)",
+        "en": "Inglês",
+        "es": "Espanhol"
+    }
+    target_lang_name = lang_names.get(lang_code, "Português (Brasil)")
+
     # Build prompt for structuring classroom lecture
     prompt = f"""Crie uma aula completa, didática e estruturada sobre o assunto a seguir.
 O assunto/conteúdo é: {content[:8000]}
 
+A aula inteira (incluindo título geral, títulos dos slides, narração do professor e tópicos da lousa) deve ser escrita exclusivamente no idioma "{target_lang_name}".
 A aula deve ser dividida em 3 a 5 partes/telas sequenciais (slides) que explicam o conceito de forma lógica.
 Para cada parte/tela da aula, você deve fornecer:
 1. Um título curto do quadro (máximo de 50 caracteres).
-2. Um texto explicativo dinâmico e natural que o professor (avatar) falará para explicar esse slide (de 3 a 5 frases em português brasileiro).
-3. De 3 a 5 tópicos (bullet points) sintéticos que serão exibidos no quadro negro/lousa.
+2. Um texto explicativo dinâmico e natural que o professor (avatar) falará para explicar esse slide (de 3 a 5 frases no idioma "{target_lang_name}").
+3. De 3 a 5 tópicos (bullet points) sintéticos que serão exibidos no quadro negro/lousa no idioma "{target_lang_name}".
 4. Um prompt detalhado em inglês para gerar uma ilustração/diagrama técnico estilo desenho de giz (chalk sketch, technical blueprint on dark board) que apoie a explicação dessa parte.
 
 Retorne a resposta EXCLUSIVAMENTE em formato JSON (envolvido por ```json ... ```) seguindo exatamente este modelo:
 {{
-  "subject": "Título Geral da Aula",
+  "subject": "Título Geral da Aula no idioma {target_lang_name}",
   "slides": [
     {{
       "slide_number": 1,
-      "title": "Introdução ao Assunto",
-      "narration": "Texto que o professor irá falar nesta parte...",
+      "title": "Título do Slide no idioma {target_lang_name}",
+      "narration": "Texto que o professor irá falar nesta parte no idioma {target_lang_name}...",
       "bullets": [
-        "Tópico sintético 1",
-        "Tópico sintético 2"
+        "Tópico sintético 1 no idioma {target_lang_name}",
+        "Tópico sintético 2 no idioma {target_lang_name}"
       ],
       "image_prompt": "A clean chalkboard style diagram showing the base concept of..."
     }}

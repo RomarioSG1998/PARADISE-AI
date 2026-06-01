@@ -829,14 +829,26 @@
     </div>
 
     <!-- Header -->
-    <header>
+    <header style="display: flex; justify-content: space-between; align-items: center;">
         <a href="/" class="brand">
             <div class="brand-logo">
                 <i class="fa-solid fa-graduation-cap"></i>
             </div>
             <div class="brand-title">Paradise AI</div>
         </a>
-        <a href="/" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Painel Geral</a>
+        
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <!-- Language Dropdown -->
+            <div class="language-selector" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-globe" style="color: var(--text-secondary); font-size: 0.95rem;"></i>
+                <select id="global-lang-select" class="lang-select" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 0.4rem 0.8rem; border-radius: 8px; font-family: inherit; font-size: 0.85rem; cursor: pointer; outline: none;">
+                    <option value="pt" style="background: #120f26; color: white;">Português 🇧🇷</option>
+                    <option value="en" style="background: #120f26; color: white;">English 🇺🇸</option>
+                    <option value="es" style="background: #120f26; color: white;">Español 🇪🇸</option>
+                </select>
+            </div>
+            <a href="/" class="back-btn" id="back-to-panel-btn"><i class="fa-solid fa-arrow-left"></i> Painel Geral</a>
+        </div>
     </header>
 
     <!-- Main Container -->
@@ -1538,6 +1550,110 @@
         fsOverlay.addEventListener('click', () => {
             fsOverlay.classList.remove('active');
         });
+
+        // Global Language Selection & UI Translation System
+        const classTranslations = {
+            pt: {
+                backBtn: "<i class='fa-solid fa-arrow-left'></i> Painel Geral",
+                panelTitle: "Crie sua Aula Inteligente",
+                panelDesc: "Estruture uma explicação interativa e ilustrada utilizando a Inteligência Artificial",
+                tabTheme: "<i class='fa-solid fa-wand-magic-sparkles'></i> Tema/Assunto",
+                tabText: "<i class='fa-solid fa-paragraph'></i> Texto Manual",
+                tabPdf: "<i class='fa-solid fa-file-pdf'></i> Arquivo PDF",
+                btnGenerate: "<i class='fa-solid fa-graduation-cap'></i> Gerar Aula com IA",
+                themePlaceholder: "Ex: Como funciona a fotossíntese?, A história da internet, etc.",
+                textPlaceholder: "Cole o texto da sua aula aqui para que a IA crie a explicação em slides...",
+                themeLabel: "Digite o Tema ou Assunto",
+                textLabel: "Texto Completo da Aula",
+                pdfLabel: "Selecione o Arquivo PDF",
+                pdfHelp: "O sistema extrairá o texto de todas as páginas do PDF para estruturar os slides da aula."
+            },
+            en: {
+                backBtn: "<i class='fa-solid fa-arrow-left'></i> General Dashboard",
+                panelTitle: "Create your Smart Class",
+                panelDesc: "Structure an interactive and illustrated explanation using Artificial Intelligence",
+                tabTheme: "<i class='fa-solid fa-wand-magic-sparkles'></i> Theme/Subject",
+                tabText: "<i class='fa-solid fa-paragraph'></i> Manual Text",
+                tabPdf: "<i class='fa-solid fa-file-pdf'></i> PDF File",
+                btnGenerate: "<i class='fa-solid fa-graduation-cap'></i> Generate Class with AI",
+                themePlaceholder: "E.g. How photosynthesis works, The history of the internet, etc.",
+                textPlaceholder: "Paste your class text here for the AI to structure the slides...",
+                themeLabel: "Type the Theme or Subject",
+                textLabel: "Full Class Text",
+                pdfLabel: "Select PDF File",
+                pdfHelp: "The system will extract text from all PDF pages to structure the classroom slides."
+            },
+            es: {
+                backBtn: "<i class='fa-solid fa-arrow-left'></i> Panel General",
+                panelTitle: "Cree su Aula Inteligente",
+                panelDesc: "Estructura una explicación interactiva e ilustrada utilizando Inteligencia Artificial",
+                tabTheme: "<i class='fa-solid fa-wand-magic-sparkles'></i> Tema/Asunto",
+                tabText: "<i class='fa-solid fa-paragraph'></i> Texto Manual",
+                tabPdf: "<i class='fa-solid fa-file-pdf'></i> Archivo PDF",
+                btnGenerate: "<i class='fa-solid fa-graduation-cap'></i> Generar Clase con IA",
+                themePlaceholder: "Ej: ¿Cómo funciona la fotosíntesis?, La historia de internet, etc.",
+                textPlaceholder: "Pegue el texto de su clase aquí para que la IA estructure las diapositivas...",
+                themeLabel: "Escriba el Tema o Asunto",
+                textLabel: "Texto Completo de la Clase",
+                pdfLabel: "Seleccione el Archivo PDF",
+                pdfHelp: "El sistema extraerá el texto de todas as páginas del PDF para estructurar las diapositivas de la clase."
+            }
+        };
+
+        function applyLanguage(lang) {
+            localStorage.setItem("paradise_language", lang);
+            document.cookie = `paradise_language=${lang}; path=/; max-age=31536000; SameSite=Lax`;
+            
+            const t = classTranslations[lang] || classTranslations.pt;
+            
+            const backBtn = document.getElementById('back-to-panel-btn');
+            if (backBtn) backBtn.innerHTML = t.backBtn;
+            
+            const panelTitle = document.querySelector('.panel-header h2');
+            if (panelTitle) panelTitle.textContent = t.panelTitle;
+            
+            const panelDesc = document.querySelector('.panel-header p');
+            if (panelDesc) panelDesc.textContent = t.panelDesc;
+            
+            const tabs = document.querySelectorAll('.type-tab');
+            if (tabs.length >= 3) {
+                tabs[0].innerHTML = t.tabTheme;
+                tabs[1].innerHTML = t.tabText;
+                tabs[2].innerHTML = t.tabPdf;
+            }
+            
+            const btnGen = document.getElementById('btn-generate-classroom');
+            if (btnGen) btnGen.innerHTML = t.btnGenerate;
+            
+            const themeInput = document.getElementById('theme-input');
+            if (themeInput) themeInput.placeholder = t.themePlaceholder;
+            
+            const textInput = document.getElementById('text-input');
+            if (textInput) textInput.placeholder = t.textPlaceholder;
+            
+            const themeLabel = document.querySelector('label[for="theme-input"]');
+            if (themeLabel) themeLabel.textContent = t.themeLabel;
+            
+            const textLabel = document.querySelector('label[for="text-input"]');
+            if (textLabel) textLabel.textContent = t.textLabel;
+            
+            const pdfLabel = document.querySelector('label[for="pdf-file"]');
+            if (pdfLabel) pdfLabel.textContent = t.pdfLabel;
+            
+            const pdfHelp = document.querySelector('.input-group.pdf-group p');
+            if (pdfHelp) pdfHelp.textContent = t.pdfHelp;
+            
+            const langSelect = document.getElementById('global-lang-select');
+            if (langSelect) langSelect.value = lang;
+        }
+
+        document.getElementById('global-lang-select').addEventListener('change', (e) => {
+            applyLanguage(e.target.value);
+        });
+
+        // Initialize Page Language
+        const currentLang = localStorage.getItem('paradise_language') || 'pt';
+        applyLanguage(currentLang);
     </script>
 </body>
 </html>
