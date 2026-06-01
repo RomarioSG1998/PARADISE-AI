@@ -110,7 +110,7 @@ async def chat_async(message):
 
 @app.before_request
 def check_auth():
-    allowed_routes = ["login", "static"]
+    allowed_routes = ["login", "static", "get_status"]
     if request.endpoint and request.endpoint not in allowed_routes:
         if not session.get("authenticated"):
             if request.path.startswith("/api/"):
