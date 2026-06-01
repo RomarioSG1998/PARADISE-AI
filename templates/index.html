@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jala Pro Client — Gemini Advanced API Proxy</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for beautiful code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
+
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-base: #06050f;
+            --bg-surface: rgba(18, 15, 38, 0.6);
+            --bg-surface-hover: rgba(26, 22, 54, 0.8);
+            --border-glow: rgba(147, 51, 234, 0.2);
+            --border-glow-active: rgba(147, 51, 234, 0.6);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --gemini-blue: #1e3a8a;
+            --gemini-purple: #581c87;
+            --gemini-pink: #db2777;
+            --gemini-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            --accent-glow: 0 0 20px rgba(139, 92, 246, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar Design */
+        aside {
+            width: 320px;
+            background: rgba(10, 8, 22, 0.85);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            backdrop-filter: blur(20px);
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .brand-logo {
+            width: 38px;
+            height: 38px;
+            background: var(--gemini-gradient);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--accent-glow);
+            animation: pulse-glow 3s infinite;
+        }
+
+        .brand-logo i {
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .brand-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Connection Status */
+        .status-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .status-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #ef4444; /* red default */
+            display: inline-block;
+        }
+
+        .dot.active {
+            background-color: #10b981; /* green */
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+        }
+
+        .dot.warning {
+            background-color: #f59e0b; /* yellow */
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+        }
+
+        /* Sidebar Scrollable Area */
+        .sidebar-scroll {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            padding-right: 0.25rem;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .nav-section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .cookie-step {
+            background: rgba(255, 255, 255, 0.01);
+            border-left: 2px solid rgba(139, 92, 246, 0.3);
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: var(--text-secondary);
+        }
+
+        .cookie-step strong {
+            color: var(--text-primary);
+        }
+
+        .action-btn {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            margin-top: 0.5rem;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .action-btn.primary {
+            background: var(--gemini-gradient);
+            border: none;
+            font-weight: 600;
+        }
+
+        .action-btn.primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: var(--accent-glow);
+        }
+
+        /* Main Workspace Design */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
+
+        /* Top Header */
+        header {
+            height: 70px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            background: rgba(6, 5, 15, 0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-title-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .chat-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Chat Window */
+        .chat-window {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .chat-window::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-window::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            max-width: 650px;
+            margin: auto;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            padding: 2rem 0;
+        }
+
+        .welcome-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-desc {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .feature-card {
+            background: var(--bg-surface);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-card:hover {
+            background: var(--bg-surface-hover);
+            border-color: var(--border-glow-active);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.15);
+        }
+
+        .feature-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(139, 92, 246, 0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a78bfa;
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        .feature-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .feature-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Message Bubbles */
+        .message {
+            display: flex;
+            gap: 1rem;
+            max-width: 80%;
+            animation: slide-up 0.3s ease-out;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .message.user .avatar {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .message.ai .avatar {
+            background: var(--gemini-gradient);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+            color: white;
+        }
+
+        .bubble {
+            padding: 1rem 1.25rem;
+            border-radius: 16px;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .message.user .bubble {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-top-right-radius: 2px;
+            color: var(--text-primary);
+        }
+
+        .message.ai .bubble {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-top-left-radius: 2px;
+            color: var(--text-primary);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Markdown Styling inside Bubble */
+        .bubble p {
+            margin-bottom: 0.75rem;
+        }
+        .bubble p:last-child {
+            margin-bottom: 0;
+        }
+        .bubble ul, .bubble ol {
+            margin-left: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .bubble code {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #f472b6;
+        }
+        .bubble pre {
+            margin: 0.75rem 0;
+            background: #111019;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            overflow: auto;
+            padding: 0.85rem;
+        }
+        .bubble pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+            font-size: 0.85rem;
+        }
+
+        /* Image outputs */
+        .output-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 0.75rem;
+        }
+        
+        .output-img-container {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            aspect-ratio: 1;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .output-img-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .output-img-container img:hover {
+            transform: scale(1.05);
+        }
+
+        .img-download-btn {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 6px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+
+        .img-download-btn:hover {
+            background: var(--gemini-gradient);
+        }
+
+        /* Loading Animation */
+        .loading-dots {
+            display: flex;
+            gap: 0.3rem;
+            align-items: center;
+            height: 20px;
+        }
+
+        .loading-dots div {
+            width: 8px;
+            height: 8px;
+            background-color: var(--text-secondary);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dots div:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots div:nth-child(2) { animation-delay: -0.16s; }
+
+        /* Input Controls Area */
+        .controls-container {
+            padding: 1.5rem 2rem;
+            background: linear-gradient(to top, var(--bg-base) 80%, transparent);
+            position: relative;
+        }
+
+        .input-bar {
+            max-width: 800px;
+            margin: auto;
+            background: rgba(20, 16, 43, 0.7);
+            border: 1px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: flex-end;
+            gap: 0.75rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .input-bar:focus-within {
+            border-color: var(--border-glow-active);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+        }
+
+        .input-bar textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: none;
+            max-height: 200px;
+            height: 24px;
+            line-height: 1.5;
+            padding: 2px 0;
+        }
+
+        .input-bar textarea::placeholder {
+            color: rgba(255, 255, 255, 0.35);
+        }
+
+        .send-btn {
+            background: var(--gemini-gradient);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: var(--accent-glow);
+        }
+
+        .send-btn:disabled {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .disclaimer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(6, 5, 15, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fade-in 0.25s ease-out;
+        }
+
+        .modal {
+            width: 520px;
+            background: rgba(18, 15, 38, 0.95);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            position: relative;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-modal:hover {
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .form-group input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: rgba(139, 92, 246, 0.6);
+        }
+
+        .form-error {
+            color: #ef4444;
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        /* Keyframes */
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(139, 92, 246, 0.6); }
+            100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+
+        @keyframes slide-up {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Section -->
+    <aside>
+        <div class="brand">
+            <div class="brand-logo">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div class="brand-title">Jala Pro Client</div>
+        </div>
+
+        <div class="status-card">
+            <div class="status-header">
+                <span>CONEXÃO COM GEMINI</span>
+                <span id="session-check-btn" style="cursor:pointer;" title="Recarregar Status"><i class="fa-solid fa-rotate-right"></i></span>
+            </div>
+            <div class="status-indicator">
+                <span id="status-dot" class="dot"></span>
+                <span id="status-label">Verificando...</span>
+            </div>
+        </div>
+
+        <div class="sidebar-scroll">
+            <div class="nav-section-title">Como Configurar</div>
+            
+            <div class="cookie-step">
+                <strong>1.</strong> Acesse <a href="https://gemini.google.com" target="_blank" style="color: #60a5fa; text-decoration: none;">gemini.google.com</a> no seu navegador (com sua conta Pro logada).
+            </div>
+            <div class="cookie-step">
+                <strong>2.</strong> Aperte <strong>F12</strong> (DevTools) e acesse a aba <strong>Application</strong> (ou <strong>Armazenamento/Rede</strong> no Firefox) > <strong>Cookies</strong>.
+            </div>
+            <div class="cookie-step">
+                <strong>3.</strong> Copie o valor dos cookies <strong>__Secure-1PSID</strong> e <strong>__Secure-1PSIDTS</strong>.
+            </div>
+            <div class="cookie-step">
+                <strong>4.</strong> Clique no botão "Configurar Cookies" abaixo para salvá-los no servidor.
+            </div>
+        </div>
+
+        <button class="action-btn primary" id="open-config-btn">
+            <i class="fa-solid fa-key"></i> Configurar Cookies
+        </button>
+        <button class="action-btn" id="new-chat-btn">
+            <i class="fa-solid fa-plus"></i> Nova Conversa
+        </button>
+        <a href="/admin" class="action-btn" style="text-decoration: none; border-color: rgba(139, 92, 246, 0.3); color: #a78bfa; margin-top: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <i class="fa-solid fa-network-wired"></i> Painel do Hub Admin
+        </a>
+    </aside>
+
+    <!-- Main Workspace Section -->
+    <main>
+        <!-- Top Header -->
+        <header>
+            <div class="chat-title-container">
+                <div class="chat-title">Gemini Advanced Pro Proxy</div>
+                <div class="chat-subtitle">Bypass de Créditos via cookies da conta Google One AI Premium</div>
+            </div>
+            <div class="header-actions">
+                <a href="/admin" class="action-btn" style="width: auto; margin: 0; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.3); color: #a78bfa;" title="Console do Hub Admin">
+                    <i class="fa-solid fa-network-wired"></i> Painel do Hub Admin
+                </a>
+                <button class="action-btn" style="width: auto; margin:0;" id="clear-chat-top-btn" title="Limpar Chat">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat Feed -->
+        <div class="chat-window" id="chat-window">
+            <div class="welcome-screen" id="welcome-screen">
+                <h1 class="welcome-title">Bem-vindo ao Jala Pro Client</h1>
+                <p class="welcome-desc">
+                    Esta interface conecta-se diretamente à sua conta Gemini Pro por baixo dos panos. 
+                    Todas as requisições utilizam seu plano de assinatura ilimitado, permitindo que você use o Gemini livremente no seu app sem se preocupar com créditos do AI Studio!
+                </p>
+                <div class="features-grid">
+                    <div class="feature-card" data-prompt="Me dê 3 ideias brilhantes para automatizar tarefas cotidianas usando Python.">
+                        <div class="feature-icon"><i class="fa-solid fa-code"></i></div>
+                        <div class="feature-title">Assistente de Código</div>
+                        <div class="feature-desc">Escreva, debugue e otimize códigos em qualquer linguagem.</div>
+                    </div>
+                    <div class="feature-card" data-prompt="Gere uma imagem de um laboratório futurista ultra tecnológico com hologramas azuis, cyberpunk, 8k.">
+                        <div class="feature-icon"><i class="fa-solid fa-image"></i></div>
+                        <div class="feature-title">Geração de Imagens</div>
+                        <div class="feature-desc">Peça imagens diretamente (o app usará o ImageFx do Gemini Pro).</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Controls -->
+        <div class="controls-container">
+            <div class="input-bar">
+                <textarea id="prompt-input" placeholder="Pergunte ao Gemini Pro..." rows="1"></textarea>
+                <button id="send-btn" class="send-btn" disabled>
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="disclaimer">
+                Desenvolvido com fins didáticos para bypass de billing do AI Studio via Cookies de Sessão.
+            </div>
+        </div>
+    </main>
+
+    <!-- Config Modal -->
+    <div class="modal-overlay" id="config-modal">
+        <div class="modal">
+            <button class="close-modal" id="close-config-btn">&times;</button>
+            <h2 class="modal-title">Configurar Cookies da Sessão Pro</h2>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">
+                Seus cookies serão salvos de forma segura no arquivo <code style="color:var(--text-primary); font-family: monospace;">.env</code> no backend da aplicação para autenticar as chamadas diretamente no Gemini.
+            </p>
+            
+            <div class="form-group">
+                <label for="secure-1psid-input">Cookie __Secure-1PSID</label>
+                <input type="password" id="secure-1psid-input" placeholder="Digite o valor completo de __Secure-1PSID">
+            </div>
+
+            <div class="form-group">
+                <label for="secure-1psidts-input">Cookie __Secure-1PSIDTS</label>
+                <input type="password" id="secure-1psidts-input" placeholder="Digite o valor completo de __Secure-1PSIDTS">
+            </div>
+
+            <div class="form-error" id="config-error">Erro ao autenticar. Verifique os valores informados.</div>
+
+            <button class="action-btn primary" id="save-config-btn" style="margin-top: 0.5rem;">
+                <i class="fa-solid fa-floppy-disk"></i> Salvar e Autenticar
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const chatWindow = document.getElementById('chat-window');
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const promptInput = document.getElementById('prompt-input');
+        const sendBtn = document.getElementById('send-btn');
+        const statusDot = document.getElementById('status-dot');
+        const statusLabel = document.getElementById('status-label');
+        const openConfigBtn = document.getElementById('open-config-btn');
+        const closeConfigBtn = document.getElementById('close-config-btn');
+        const configModal = document.getElementById('config-modal');
+        const saveConfigBtn = document.getElementById('save-config-btn');
+        const secure1psidInput = document.getElementById('secure-1psid-input');
+        const secure1psidtsInput = document.getElementById('secure-1psidts-input');
+        const configError = document.getElementById('config-error');
+        const sessionCheckBtn = document.getElementById('session-check-btn');
+        const newChatBtn = document.getElementById('new-chat-btn');
+        const clearChatTopBtn = document.getElementById('clear-chat-top-btn');
+        const featureCards = document.querySelectorAll('.feature-card');
+
+        // State variables
+        let isConfigured = false;
+        let isActive = false;
+
+        // Auto-resize textarea
+        promptInput.addEventListener('input', () => {
+            promptInput.style.height = '24px';
+            promptInput.style.height = (promptInput.scrollHeight - 6) + 'px';
+            sendBtn.disabled = promptInput.value.trim() === '';
+        });
+
+        // Initialize marked with highlight.js syntax highlighting
+        marked.setOptions({
+            highlight: function(code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            },
+            langPrefix: 'hljs language-'
+        });
+
+        // Check Backend Status on Boot
+        async function checkStatus() {
+            try {
+                const resp = await fetch('/api/status');
+                const data = await resp.json();
+                
+                isConfigured = data.configured;
+                isActive = data.active;
+
+                if (isActive) {
+                    statusDot.className = 'dot active';
+                    statusLabel.textContent = 'Conectado (Pro Ativo)';
+                } else if (isConfigured) {
+                    statusDot.className = 'dot warning';
+                    statusLabel.textContent = 'Cookies Salvos (Inativo/Erro)';
+                } else {
+                    statusDot.className = 'dot';
+                    statusLabel.textContent = 'Não configurado';
+                }
+            } catch (err) {
+                statusDot.className = 'dot';
+                statusLabel.textContent = 'Servidor Offline';
+            }
+        }
+
+        // Open Modal
+        openConfigBtn.addEventListener('click', () => {
+            configError.style.display = 'none';
+            configModal.style.display = 'flex';
+        });
+
+        // Close Modal
+        closeConfigBtn.addEventListener('click', () => {
+            configModal.style.display = 'none';
+        });
+
+        // Save Config Cookies
+        saveConfigBtn.addEventListener('click', async () => {
+            const sid = secure1psidInput.value.trim();
+            const ts = secure1psidtsInput.value.trim();
+
+            if (!sid || !ts) {
+                configError.textContent = 'Preencha ambos os cookies!';
+                configError.style.display = 'block';
+                return;
+            }
+
+            saveConfigBtn.disabled = true;
+            saveConfigBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testando conexão...';
+            configError.style.display = 'none';
+
+            try {
+                const resp = await fetch('/api/save-cookies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secure_1psid: sid, secure_1psidts: ts })
+                });
+                
+                const data = await resp.json();
+                if (data.success) {
+                    configModal.style.display = 'none';
+                    secure1psidInput.value = '';
+                    secure1psidtsInput.value = '';
+                    await checkStatus();
+                } else {
+                    configError.textContent = data.error || 'Erro ao inicializar sessão com os cookies fornecidos.';
+                    configError.style.display = 'block';
+                }
+            } catch (err) {
+                configError.textContent = 'Erro ao enviar dados para o servidor.';
+                configError.style.display = 'block';
+            } finally {
+                saveConfigBtn.disabled = false;
+                saveConfigBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar e Autenticar';
+            }
+        });
+
+        // Reset Conversation
+        function clearChat() {
+            // Keep welcome screen and delete the rest
+            const welcome = welcomeScreen.cloneNode(true);
+            chatWindow.innerHTML = '';
+            chatWindow.appendChild(welcome);
+            
+            // Re-attach card click listeners
+            const cards = chatWindow.querySelectorAll('.feature-card');
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const promptText = card.getAttribute('data-prompt');
+                    promptInput.value = promptText;
+                    promptInput.style.height = '24px';
+                    promptInput.style.height = (promptInput.scrollHeight - 6) + 'px';
+                    sendBtn.disabled = false;
+                    promptInput.focus();
+                });
+            });
+        }
+
+        newChatBtn.addEventListener('click', clearChat);
+        clearChatTopBtn.addEventListener('click', clearChat);
+
+        // Feature cards quick prompts
+        featureCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const promptText = card.getAttribute('data-prompt');
+                promptInput.value = promptText;
+                promptInput.style.height = '24px';
+                promptInput.style.height = (promptInput.scrollHeight - 6) + 'px';
+                sendBtn.disabled = false;
+                promptInput.focus();
+            });
+        });
+
+        // Render message in chat window
+        function appendMessage(sender, text, images = []) {
+            // Hide welcome screen if showing
+            const welcome = document.getElementById('welcome-screen');
+            if (welcome) welcome.remove();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'avatar';
+            avatarDiv.innerHTML = sender === 'user' ? '<i class="fa-regular fa-user"></i>' : '<i class="fa-solid fa-wand-magic-sparkles"></i>';
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'bubble';
+            
+            if (sender === 'ai') {
+                bubbleDiv.innerHTML = marked.parse(text);
+                
+                // If there are images
+                if (images.length > 0) {
+                    const gallery = document.createElement('div');
+                    gallery.className = 'output-gallery';
+                    
+                    images.forEach(imgUrl => {
+                        const container = document.createElement('div');
+                        container.className = 'output-img-container';
+                        
+                        const img = document.createElement('img');
+                        img.src = imgUrl;
+                        img.alt = 'Imagem gerada';
+                        img.onclick = () => window.open(imgUrl, '_blank');
+                        
+                        const dl = document.createElement('a');
+                        dl.href = imgUrl;
+                        dl.download = 'gemini-output.png';
+                        dl.target = '_blank';
+                        dl.className = 'img-download-btn';
+                        dl.innerHTML = '<i class="fa-solid fa-download"></i>';
+                        
+                        container.appendChild(img);
+                        container.appendChild(dl);
+                        gallery.appendChild(container);
+                    });
+                    
+                    bubbleDiv.appendChild(gallery);
+                }
+            } else {
+                bubbleDiv.textContent = text;
+            }
+
+            messageDiv.appendChild(avatarDiv);
+            messageDiv.appendChild(bubbleDiv);
+            chatWindow.appendChild(messageDiv);
+            
+            // Auto scroll to bottom
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        // Render Loading Indicator
+        function showLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message ai loading-indicator';
+            
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'avatar';
+            avatarDiv.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i>';
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'bubble';
+            bubbleDiv.innerHTML = `
+                <div class="loading-dots">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+            `;
+            
+            loadingDiv.appendChild(avatarDiv);
+            loadingDiv.appendChild(bubbleDiv);
+            chatWindow.appendChild(loadingDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            return loadingDiv;
+        }
+
+        // Send Message
+        async function sendMessage() {
+            const text = promptInput.value.trim();
+            if (!text) return;
+
+            promptInput.value = '';
+            promptInput.style.height = '24px';
+            sendBtn.disabled = true;
+
+            appendMessage('user', text);
+            const loader = showLoading();
+
+            try {
+                const resp = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+
+                loader.remove();
+
+                const data = await resp.json();
+                
+                if (resp.ok) {
+                    appendMessage('ai', data.text, data.images);
+                } else {
+                    appendMessage('ai', `⚠️ **Erro:** ${data.error || 'Não foi possível processar a requisição.'}`);
+                    if (data.needs_config) {
+                        isConfigured = false;
+                        isActive = false;
+                        statusDot.className = 'dot';
+                        statusLabel.textContent = 'Não configurado (Erro/Expirado)';
+                        // Prompt cookie modal
+                        configModal.style.display = 'flex';
+                    }
+                }
+            } catch (err) {
+                loader.remove();
+                appendMessage('ai', `⚠️ **Erro de Conexão:** Falha ao comunicar com o servidor proxy.`);
+            }
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        sessionCheckBtn.addEventListener('click', checkStatus);
+
+        // Boot
+        checkStatus();
+    </script>
+</body>
+</html>

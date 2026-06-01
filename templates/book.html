@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Livros Pro — Jala AI Hub</title>
+    
+    <!-- Google Fonts: Cartoon/Comic styles -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-base: #0c0a21;
+            --bg-surface: #1e1b4b;
+            --border-cartoon: #111827;
+            --paper-color: #fcf8ee;
+            --paper-dark: #e8ddc4;
+            --accent-yellow: #fde047;
+            --accent-pink: #f472b6;
+            --accent-blue: #60a5fa;
+            --text-dark: #1e293b;
+            --text-light: #f3f4f6;
+            --gemini-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Strict prevention of page scroll */
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 40%);
+            color: var(--text-light);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Header */
+        header {
+            height: 80px;
+            border-bottom: 4px solid var(--border-cartoon);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 3rem;
+            background: #1e1b4b;
+            z-index: 100;
+            box-shadow: 0 4px 0px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-yellow);
+            border: 3px solid var(--border-cartoon);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 3px 3px 0px var(--border-cartoon);
+            transform: rotate(-3deg);
+        }
+
+        .brand-logo i {
+            color: var(--border-cartoon);
+            font-size: 1.25rem;
+        }
+
+        .brand-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 3px 3px 0px var(--border-cartoon);
+            letter-spacing: -0.5px;
+        }
+
+        /* Main Workspace */
+        .workspace {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden; /* Prevent workspace scroll */
+        }
+
+        /* Cartoon Panels */
+        .cartoon-panel {
+            background: var(--bg-surface);
+            border: 4px solid var(--border-cartoon);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 8px 8px 0px var(--border-cartoon);
+            position: relative;
+        }
+
+        /* Config Form */
+        .config-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 650px;
+            margin: 0 auto;
+        }
+
+        .form-title {
+            text-align: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .form-title h2 {
+            font-size: 2.1rem;
+            font-weight: 700;
+            color: var(--accent-yellow);
+            text-shadow: 3px 3px 0px var(--border-cartoon);
+        }
+
+        .form-title p {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            margin-top: 0.4rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            color: white;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input, .form-group select {
+            background: #0f172a;
+            border: 3px solid var(--border-cartoon);
+            border-radius: 14px;
+            padding: 0.85rem 1.15rem;
+            color: white;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5);
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--accent-pink);
+            background: #1e1b4b;
+        }
+
+        /* Cartoon Buttons */
+        .btn {
+            background: #f8fafc;
+            border: 3px solid var(--border-cartoon);
+            border-radius: 14px;
+            padding: 0.85rem 1.75rem;
+            color: var(--border-cartoon);
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 4px 4px 0px var(--border-cartoon);
+            transition: all 0.15s ease-in-out;
+            text-decoration: none;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translate(-3px, -3px);
+            box-shadow: 7px 7px 0px var(--border-cartoon);
+            background: #ffffff;
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--border-cartoon);
+        }
+
+        .btn.primary {
+            background: var(--accent-yellow);
+        }
+
+        .btn.primary:hover:not(:disabled) {
+            background: #ffeb3b;
+        }
+
+        .btn.pink {
+            background: var(--accent-pink);
+            color: white;
+        }
+
+        .btn.pink:hover:not(:disabled) {
+            background: #f43f5e;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: 4px 4px 0px var(--border-cartoon) !important;
+        }
+
+        /* Loader Panel */
+        .loader-panel {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            padding: 3rem 2rem;
+        }
+
+        .spinner-wrapper {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+
+        .spinner-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 6px solid rgba(253, 224, 71, 0.15);
+            border-top: 6px solid var(--accent-yellow);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .spinner-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: var(--accent-yellow);
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        .loader-steps {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 0.85rem 1.15rem;
+            background: #0f172a;
+            border: 3px solid var(--border-cartoon);
+            border-radius: 14px;
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+        }
+
+        .step-item.active {
+            color: white;
+            border-color: var(--accent-pink);
+            background: #312e81;
+        }
+
+        .step-item.done {
+            color: #4ade80;
+            border-color: #22c55e;
+            background: #064e3b;
+        }
+
+        .step-icon {
+            width: 24px;
+            display: flex;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        /* PHYSICAL BOOK VIEW */
+        .book-outer-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+            max-height: calc(100vh - 130px);
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .book-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--paper-color);
+            border: 4px solid var(--border-cartoon);
+            border-radius: 28px;
+            box-shadow: 10px 10px 0px var(--border-cartoon);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Readable page */
+        .book-page-body {
+            flex: 1;
+            padding: 2.25rem 2.5rem;
+            overflow-y: auto;
+            color: var(--text-dark);
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        /* ONLY atmospheric blur, NO solid color covering, allowing background illustration to fully render */
+        .book-page-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            backdrop-filter: blur(4px);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .book-content-wrapper {
+            position: relative;
+            z-index: 2; /* Sits above the page overlay */
+        }
+
+        /* HEADER - Contoured with cartoon box styling */
+        .book-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 3px solid var(--border-cartoon);
+            padding: 0.6rem 1.25rem;
+            margin-bottom: 1.5rem;
+            background: rgba(252, 248, 238, 0.92);
+            border-radius: 14px;
+            box-shadow: 3px 3px 0 var(--border-cartoon);
+        }
+
+        .book-meta {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #475569;
+        }
+
+        /* CHAPTER TITLE - Contoured with cartoon speech bubble styling */
+        .chapter-title {
+            font-size: 1.85rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 1.25rem;
+            background: rgba(252, 248, 238, 0.94);
+            padding: 0.6rem 1.25rem;
+            border-radius: 14px;
+            border: 3px solid var(--border-cartoon);
+            box-shadow: 3px 3px 0 var(--border-cartoon);
+            display: inline-block; /* Fit title contour */
+        }
+
+        /* STRATEGIC CORNER ILLUSTRATION FRAME */
+        .illustration-frame {
+            float: right;
+            margin-left: 2.5rem;
+            margin-bottom: 1.5rem;
+            width: 400px;
+            height: 400px;
+            border: 4px solid var(--border-cartoon);
+            border-radius: 24px;
+            box-shadow: 7px 7px 0px var(--border-cartoon);
+            background: var(--paper-dark);
+            overflow: hidden;
+            position: relative;
+            z-index: 5;
+        }
+
+        .illustration-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #111827;
+        }
+
+        .illustration-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .illustration-container img.loading {
+            filter: blur(5px) grayscale(50%);
+            opacity: 0.6;
+        }
+
+        .illustration-overlay-btn {
+            position: absolute;
+            bottom: 0.75rem;
+            right: 0.75rem;
+            background: #ffffff;
+            border: 2.5px solid var(--border-cartoon);
+            color: var(--border-cartoon);
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 2.5px 2.5px 0px var(--border-cartoon);
+            transition: all 0.1s;
+            z-index: 10;
+        }
+
+        .illustration-overlay-btn:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 3.5px 3.5px 0px var(--border-cartoon);
+            background: var(--accent-yellow);
+        }
+
+        /* Book Text */
+        .book-text {
+            font-family: 'Comic Neue', sans-serif;
+            font-size: 1.3rem;
+            line-height: 1.7;
+            color: #27272a;
+            text-align: justify;
+        }
+
+        /* PARAGRAPHS - Contoured individually with comic borders and shadows */
+        .book-text p {
+            margin-bottom: 1.25rem;
+            padding: 1rem 1.5rem;
+            border-radius: 16px;
+            background: rgba(252, 248, 238, 0.94);
+            border: 3px solid var(--border-cartoon);
+            box-shadow: 4px 4px 0px var(--border-cartoon);
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .book-text p.speaking-highlight {
+            background: #fef08a !important; /* Yellow pop for speaking */
+            border-color: var(--accent-pink);
+            box-shadow: 4px 4px 0px var(--accent-pink);
+        }
+
+        .word-span {
+            position: relative;
+            display: inline-block;
+            transition: all 0.12s ease-in-out;
+            border-radius: 4px;
+            padding: 0 2px;
+            cursor: pointer;
+        }
+
+        .word-span:hover {
+            background: rgba(253, 224, 71, 0.35);
+            transform: scale(1.08);
+        }
+
+        .word-highlight {
+            background-color: var(--accent-pink) !important;
+            color: white !important;
+            font-weight: 700;
+            transform: scale(1.18) rotate(-1deg) !important;
+            box-shadow: 3px 3px 0px var(--border-cartoon);
+            border: 2px solid var(--border-cartoon);
+            z-index: 10;
+        }
+
+        .paragraph-tools {
+            display: inline-flex;
+            vertical-align: middle;
+            margin-left: 0.5rem;
+            gap: 0.3rem;
+        }
+
+        .tool-btn {
+            background: #ffffff;
+            border: 2px solid var(--border-cartoon);
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            color: var(--border-cartoon);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            cursor: pointer;
+            box-shadow: 1.5px 1.5px 0px var(--border-cartoon);
+            transition: all 0.1s;
+        }
+
+        .tool-btn:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 2px 2px 0px var(--border-cartoon);
+            background: var(--accent-yellow);
+        }
+
+        /* BOTTOM MENU BAR */
+        .autonomous-book-menu {
+            height: 75px;
+            background: #ffffff;
+            border-top: 4px solid var(--border-cartoon);
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 20;
+            flex-shrink: 0;
+        }
+
+        .audio-bar-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: #f1f5f9;
+            border: 2px solid var(--border-cartoon);
+            padding: 0.35rem 0.85rem;
+            border-radius: 12px;
+            box-shadow: 2.5px 2.5px 0px var(--border-cartoon);
+        }
+
+        .audio-buttons {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .audio-btn {
+            background: #ffffff;
+            border: 2px solid var(--border-cartoon);
+            color: var(--border-cartoon);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 1.5px 1.5px 0px var(--border-cartoon);
+            transition: all 0.1s;
+        }
+
+        .audio-btn:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 2px 2px 0px var(--border-cartoon);
+            background: var(--accent-yellow);
+        }
+
+        .audio-settings {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+            color: var(--border-cartoon);
+            font-weight: 700;
+        }
+
+        .audio-settings select {
+            background: #ffffff;
+            border: 2px solid var(--border-cartoon);
+            border-radius: 6px;
+            color: var(--border-cartoon);
+            padding: 0.15rem 0.35rem;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 0.8rem;
+            outline: none;
+            font-weight: 700;
+        }
+
+        .page-navigation {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .page-navigation .btn, .btn.new-book-btn {
+            padding: 0.55rem 1.25rem;
+            font-size: 0.9rem;
+            border-radius: 10px;
+            box-shadow: 3px 3px 0px var(--border-cartoon);
+        }
+
+        /* Comic Speech Balloon */
+        .translation-bubble {
+            position: absolute;
+            background: #ffffff;
+            border: 3px solid var(--border-cartoon);
+            border-radius: 20px;
+            padding: 1.1rem;
+            color: var(--text-dark);
+            box-shadow: 6px 6px 0px var(--border-cartoon);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 320px;
+            pointer-events: auto;
+        }
+
+        .translation-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 30px;
+            border-width: 15px 15px 0;
+            border-style: solid;
+            border-color: #ffffff transparent;
+            display: block;
+            width: 0;
+            z-index: 2;
+        }
+
+        .translation-bubble::before {
+            content: '';
+            position: absolute;
+            bottom: -19px;
+            left: 28px;
+            border-width: 17px 17px 0;
+            border-style: solid;
+            border-color: var(--border-cartoon) transparent;
+            display: block;
+            width: 0;
+            z-index: 1;
+        }
+
+        .translation-bubble-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.08);
+            padding-bottom: 0.35rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--accent-pink);
+        }
+
+        .translation-bubble-text {
+            line-height: 1.4;
+            font-family: 'Comic Neue', sans-serif;
+            font-weight: 700;
+        }
+
+        .translation-bubble-close {
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .word-explorer-content {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            margin-top: 0.25rem;
+        }
+
+        .word-info {
+            flex: 1;
+        }
+
+        .word-micro-img {
+            width: 90px;
+            height: 90px;
+            border: 3px solid var(--border-cartoon);
+            border-radius: 12px;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 3px 3px 0 var(--border-cartoon);
+            flex-shrink: 0;
+        }
+
+        .word-micro-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(12, 10, 33, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal {
+            width: 490px;
+            background: var(--bg-surface);
+            border: 4px solid var(--border-cartoon);
+            border-radius: 24px;
+            padding: 2.25rem;
+            box-shadow: 8px 8px 0px var(--border-cartoon);
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            position: relative;
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-yellow);
+            text-shadow: 2px 2px 0px var(--border-cartoon);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1.25rem;
+            right: 1.25rem;
+            background: none;
+            border: none;
+            color: #cbd5e1;
+            font-size: 1.5rem;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .close-modal:hover {
+            color: white;
+        }
+
+        .action-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            color: var(--accent-yellow);
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        /* Flip Page Transition */
+        .page-flip-animate {
+            animation: bookFlip 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes bookFlip {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.97) rotate(-0.5deg); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* RESPONSIVE DESIGN */
+        @media (max-width: 800px) {
+            body {
+                height: auto;
+                overflow: auto;
+            }
+            .book-outer-container {
+                max-height: none;
+            }
+            .book-container {
+                border-radius: 20px;
+                box-shadow: 6px 6px 0px var(--border-cartoon);
+            }
+            .book-page-body {
+                padding: 1.5rem;
+                overflow-y: visible;
+            }
+            .illustration-frame {
+                float: none;
+                margin: 0 auto 1.5rem auto;
+                width: 100%;
+                max-width: 400px;
+                height: 380px;
+            }
+            .workspace {
+                padding: 0 1rem;
+                margin: 1rem auto;
+            }
+            header {
+                padding: 0 1.5rem;
+                height: 75px;
+            }
+            .brand-title {
+                font-size: 1.3rem;
+            }
+            .autonomous-book-menu {
+                flex-direction: column;
+                height: auto;
+                padding: 1.25rem 1rem;
+                gap: 1rem;
+                align-items: center;
+            }
+            .audio-bar-menu {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .page-navigation {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .new-book-btn {
+                width: 100%;
+            }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Header -->
+    <header>
+        <div class="brand">
+            <div class="brand-logo">
+                <i class="fa-solid fa-book-open"></i>
+            </div>
+            <div class="brand-title">Gerador de Livros Pro</div>
+        </div>
+        <div>
+            <a href="/" class="btn pink" style="box-shadow: 3px 3px 0 var(--border-cartoon); padding: 0.5rem 1rem; font-size: 0.9rem;">
+                <i class="fa-solid fa-house"></i> Hub
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+        
+        <!-- Step 1: Config Form Panel -->
+        <div class="cartoon-panel" id="panel-form">
+            <div class="config-form">
+                <div class="form-title">
+                    <h2>Crie seu Livro de Desenho Animado!</h2>
+                    <p>Crie histórias sob demanda com traços de cartoon e ilustrações exclusivas em 2D. Perfeito para leitura divertida e aprendizado de línguas.</p>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="book-theme">Qual será a história?</label>
+                        <input type="text" id="book-theme" placeholder="Ex: Um pequeno dinossauro azul que perdeu seu brinquedo, O mistério do castelo voador...">
+                    </div>
+
+                    <div class="form-grid" style="grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                        <div class="form-group">
+                            <label for="book-level">Nível de Leitura</label>
+                            <select id="book-level">
+                                <option value="Infantil">Infantil (Lúdico/Fácil)</option>
+                                <option value="Iniciante">Iniciante (Simples)</option>
+                                <option value="Intermediário">Intermediário</option>
+                                <option value="Avançado">Avançado (Complexo)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="book-lang">Idioma do Livro</label>
+                            <select id="book-lang">
+                                <option value="Português">Português</option>
+                                <option value="Inglês">Inglês</option>
+                                <option value="Espanhol">Espanhol</option>
+                                <option value="Francês">Francês</option>
+                                <option value="Italiano">Italiano</option>
+                                <option value="Alemão">Alemão</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn primary" id="btn-generate-book">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Escrever e Ilustrar Livro!
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Loader Panel -->
+        <div class="cartoon-panel loader-panel" id="panel-loader">
+            <div class="spinner-wrapper">
+                <div class="spinner-ring"></div>
+                <div class="spinner-logo"><i class="fa-solid fa-pencil"></i></div>
+            </div>
+            
+            <div class="form-title" style="margin-bottom: 0;">
+                <h3 style="font-size: 1.6rem; font-weight: 700; color: var(--accent-yellow);">Esboçando sua Aventura...</h3>
+                <p id="loader-subtitle">Aguarde enquanto criamos as páginas e as artes coloridas.</p>
+            </div>
+
+            <div class="loader-steps">
+                <div class="step-item" id="step-write">
+                    <span class="step-icon" id="icon-write"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                    <span>Escrevendo enredo e capítulos no Gemini Advanced...</span>
+                </div>
+                <div class="step-item" id="step-img1">
+                    <span class="step-icon" id="icon-img1"><i class="fa-solid fa-circle"></i></span>
+                    <span>Pintando a ilustração do Capítulo 1...</span>
+                </div>
+                <div class="step-item" id="step-img2">
+                    <span class="step-icon" id="icon-img2"><i class="fa-solid fa-circle"></i></span>
+                    <span>Pintando a ilustração do Capítulo 2...</span>
+                </div>
+                <div class="step-item" id="step-img3">
+                    <span class="step-icon" id="icon-img3"><i class="fa-solid fa-circle"></i></span>
+                    <span>Pintando a ilustração do Capítulo 3 e fechando a capa...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: PHYSICAL BOOK VIEW -->
+        <div class="book-outer-container" id="panel-reader">
+            
+            <div class="book-container" id="physical-book">
+                
+                <!-- Readable Page Area -->
+                <div class="book-page-body" id="book-scroll-body">
+                    
+                    <!-- Ambient Contrast Overlay -->
+                    <div class="book-page-overlay"></div>
+                    
+                    <!-- All content sits relative to overlap the overlay -->
+                    <div class="book-content-wrapper">
+                        <div class="book-header">
+                            <div class="book-meta" id="book-meta-info">Aventura · Infantil</div>
+                            <div class="book-meta" id="page-counter">Página 1 de 3</div>
+                        </div>
+                        
+                        <!-- Strategic Corner Illustration Frame (Nice size 400x400) -->
+                        <div class="illustration-frame">
+                            <div class="illustration-container">
+                                <img id="illustration-img" src="" alt="Ilustração">
+                                <button class="illustration-overlay-btn" id="btn-reillustrate" title="Redesenhar esta cena">
+                                    <i class="fa-solid fa-paint-brush"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Story Content wrapped dynamically -->
+                        <h2 class="chapter-title" id="read-chapter-title">Título do Capítulo</h2>
+                        <div class="book-text" id="read-chapter-text">
+                            <!-- Paragraphs wrap the illustration dynamically -->
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- AUTONOMOUS BOTTOM MENU BAR -->
+                <div class="autonomous-book-menu">
+                    <!-- Left: Navigation -->
+                    <div class="page-navigation">
+                        <button class="btn" id="btn-prev-page"><i class="fa-solid fa-arrow-left"></i> Anterior</button>
+                        <button class="btn primary" id="btn-next-page">Próximo <i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+
+                    <!-- Center: Audio Bar -->
+                    <div class="audio-bar-menu">
+                        <div class="audio-buttons">
+                            <button class="audio-btn" id="audio-play" title="Ouvir Narração Guiada"><i class="fa-solid fa-play"></i></button>
+                            <button class="audio-btn" id="audio-stop" title="Parar Narração"><i class="fa-solid fa-stop"></i></button>
+                        </div>
+                        
+                        <div class="audio-settings">
+                            <label for="speech-rate"><i class="fa-solid fa-gauge"></i> Voz:</label>
+                            <select id="speech-rate">
+                                <option value="0.75">Lenta (0.75x)</option>
+                                <option value="1.0" selected>Normal (1.0x)</option>
+                                <option value="1.2">Rápida (1.2x)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Right: reset -->
+                    <button class="btn pink new-book-btn" id="btn-new-book"><i class="fa-solid fa-rotate-left"></i> Novo Livro</button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Redraw Illustration Modal -->
+    <div class="modal-overlay" id="modal-redraw">
+        <div class="modal">
+            <button class="close-modal" onclick="closeRedrawModal()">&times;</button>
+            <h2 class="modal-title">🎨 Redesenhar esta Cena</h2>
+            <p style="color: #cbd5e1; font-size: 0.9rem; line-height: 1.4;">
+                Deseja alterar a ilustração desta página? Escreva uma nova instrução cartoon (ex: "Um coelhinho feliz pulando na grama verde, estilo desenho animado 2D").
+            </p>
+            
+            <div class="form-group">
+                <label for="redraw-prompt">Instrução para o Cartoon</label>
+                <input type="text" id="redraw-prompt" placeholder="Ex: Um pequeno dinossauro roxo dormindo sobre folhas...">
+            </div>
+
+            <div class="action-loading" id="redraw-loading" style="display: none;">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Pintando novo cartoon no Imagen 3...
+            </div>
+
+            <button class="btn primary" id="btn-submit-redraw">
+                <i class="fa-solid fa-palette"></i> Gerar Novo Desenho
+            </button>
+        </div>
+    </div>
+
+    <!-- Float Translation Balloon -->
+    <div class="translation-bubble" id="translation-bubble">
+        <!-- Injected dynamically via word click -->
+    </div>
+
+    <!-- Footer -->
+    <footer style="flex-shrink: 0;">
+        Jala AI Hub © 2026. Todos os direitos reservados.
+    </footer>
+
+    <script>
+        // DOM Elements
+        const panelForm = document.getElementById('panel-form');
+        const panelLoader = document.getElementById('panel-loader');
+        const panelReader = document.getElementById('panel-reader');
+        const btnGenerate = document.getElementById('btn-generate-book');
+        const physicalBook = document.getElementById('physical-book');
+        const bookScrollBody = document.getElementById('book-scroll-body');
+
+        const stepWrite = document.getElementById('step-write');
+        const stepImg1 = document.getElementById('step-img1');
+        const stepImg2 = document.getElementById('step-img2');
+        const stepImg3 = document.getElementById('step-img3');
+
+        const iconWrite = document.getElementById('icon-write');
+        const iconImg1 = document.getElementById('icon-img1');
+        const iconImg2 = document.getElementById('icon-img2');
+        const iconImg3 = document.getElementById('icon-img3');
+
+        const readMetaInfo = document.getElementById('book-meta-info');
+        const readPageCounter = document.getElementById('page-counter');
+        const readChapterTitle = document.getElementById('read-chapter-title');
+        const readChapterText = document.getElementById('read-chapter-text');
+        const readIllustrationImg = document.getElementById('illustration-img');
+
+        const btnPrevPage = document.getElementById('btn-prev-page');
+        const btnNextPage = document.getElementById('btn-next-page');
+        const btnNewBook = document.getElementById('btn-new-book');
+        const btnReillustrate = document.getElementById('btn-reillustrate');
+
+        const audioPlay = document.getElementById('audio-play');
+        const audioStop = document.getElementById('audio-stop');
+        const speechRate = document.getElementById('speech-rate');
+
+        const modalRedraw = document.getElementById('modal-redraw');
+        const redrawPromptInput = document.getElementById('redraw-prompt');
+        const redrawLoading = document.getElementById('redraw-loading');
+        const btnSubmitRedraw = document.getElementById('btn-submit-redraw');
+
+        const translationBubble = document.getElementById('translation-bubble');
+
+        // State Variables
+        let currentBook = null;
+        let currentChapterIndex = 0;
+        
+        // Voice State Variables
+        let activeParagraphElement = null;
+        let speakingParagraphsQueue = [];
+        let currentSpeakingQueueIndex = 0;
+
+        function getProxyUrl(url) {
+            if (url && (url.includes("googleusercontent.com") || url.includes("google.com"))) {
+                return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+            }
+            return url;
+        }
+
+        function updateLoaderStep(stepId, status) {
+            const item = document.getElementById(`step-${stepId}`);
+            const icon = document.getElementById(`icon-${stepId}`);
+
+            if (status === 'active') {
+                item.className = 'step-item active';
+                icon.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+            } else if (status === 'done') {
+                item.className = 'step-item done';
+                icon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+            } else {
+                item.className = 'step-item';
+                icon.innerHTML = '<i class="fa-solid fa-circle"></i>';
+            }
+        }
+
+        // Generate Book Event
+        btnGenerate.onclick = async () => {
+            const theme = document.getElementById('book-theme').value.trim();
+            const level = document.getElementById('book-level').value;
+            const lang = document.getElementById('book-lang').value;
+
+            if (!theme) {
+                alert("Por favor, digite uma ideia ou enredo de aventura!");
+                return;
+            }
+
+            panelForm.style.display = 'none';
+            panelLoader.style.display = 'flex';
+
+            updateLoaderStep('write', 'active');
+            updateLoaderStep('img1', 'pending');
+            updateLoaderStep('img2', 'pending');
+            updateLoaderStep('img3', 'pending');
+
+            let timer1 = setTimeout(() => {
+                updateLoaderStep('write', 'done');
+                updateLoaderStep('img1', 'active');
+            }, 9000);
+
+            let timer2 = setTimeout(() => {
+                updateLoaderStep('img1', 'done');
+                updateLoaderStep('img2', 'active');
+            }, 15000);
+
+            let timer3 = setTimeout(() => {
+                updateLoaderStep('img2', 'done');
+                updateLoaderStep('img3', 'active');
+            }, 21000);
+
+            try {
+                const resp = await fetch('/api/book/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ theme, level, language: lang })
+                });
+
+                clearTimeout(timer1);
+                clearTimeout(timer2);
+                clearTimeout(timer3);
+
+                if (!resp.ok) throw new Error("Erro na geração do livro.");
+                const data = await resp.json();
+                
+                updateLoaderStep('write', 'done');
+                updateLoaderStep('img1', 'done');
+                updateLoaderStep('img2', 'done');
+                updateLoaderStep('img3', 'done');
+
+                currentBook = data;
+                currentChapterIndex = 0;
+                
+                setTimeout(() => {
+                    panelLoader.style.display = 'none';
+                    panelReader.style.display = 'flex';
+                    renderChapter();
+                }, 1000);
+
+            } catch (e) {
+                clearTimeout(timer1);
+                clearTimeout(timer2);
+                clearTimeout(timer3);
+                alert("Falha na geração do livro: " + e.message);
+                panelLoader.style.display = 'none';
+                panelForm.style.display = 'block';
+            }
+        };
+
+        // Split text into individual words wrapped in spans with character indices
+        function prepareTextForHighlighting(text) {
+            let html = "";
+            let currentOffset = 0;
+            
+            const tokens = text.split(/(\s+)/);
+            tokens.forEach(token => {
+                if (token.trim() === '') {
+                    html += token;
+                    currentOffset += token.length;
+                } else {
+                    html += `<span class="word-span" data-start="${currentOffset}" data-end="${currentOffset + token.length}">${token}</span>`;
+                    currentOffset += token.length;
+                }
+            });
+            return html;
+        }
+
+        // Render current chapter
+        function renderChapter() {
+            if (!currentBook || !currentBook.chapters) return;
+
+            stopNarration();
+
+            const chapter = currentBook.chapters[currentChapterIndex];
+            
+            readMetaInfo.textContent = `${currentBook.theme} · Nível: ${currentBook.level} · Idioma: ${currentBook.language}`;
+            readPageCounter.textContent = `Página ${chapter.chapter_number} de ${currentBook.chapters.length}`;
+            readChapterTitle.textContent = chapter.title;
+
+            // Reset text scroll position to top
+            bookScrollBody.scrollTop = 0;
+
+            // Dynamic background illustration setting wrapped in double quotes
+            if (chapter.image_url) {
+                const proxyBg = getProxyUrl(chapter.image_url);
+                console.log("[Jala Hub] Setting background image to:", proxyBg);
+                bookScrollBody.style.backgroundImage = `url("${proxyBg}")`;
+            } else {
+                bookScrollBody.style.backgroundImage = 'none';
+            }
+
+            readChapterText.innerHTML = '';
+            
+            const paragraphs = chapter.text.split('\n').filter(p => p.trim() !== '');
+            paragraphs.forEach((pText, pIdx) => {
+                const p = document.createElement('p');
+                p.setAttribute('data-idx', pIdx);
+                p.setAttribute('data-raw-text', pText);
+
+                p.innerHTML = prepareTextForHighlighting(pText);
+
+                // Word clicks
+                p.querySelectorAll('.word-span').forEach(wordSpan => {
+                    wordSpan.onclick = (e) => {
+                        e.stopPropagation();
+                        const word = wordSpan.textContent.trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g,"");
+                        if (word.length > 0) {
+                            explainWordDetail(word, pText, e.clientX, e.clientY);
+                        }
+                    };
+                });
+
+                // Paragraph tools
+                const tools = document.createElement('span');
+                tools.className = 'paragraph-tools';
+                
+                const playBtn = document.createElement('button');
+                playBtn.className = 'tool-btn';
+                playBtn.title = "Ouvir este parágrafo";
+                playBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                playBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    speakParagraph(p);
+                };
+
+                tools.appendChild(playBtn);
+                p.appendChild(tools);
+
+                readChapterText.appendChild(p);
+            });
+
+            // Set Illustration (containment)
+            readIllustrationImg.className = 'loading';
+            if (chapter.image_url) {
+                const imgUrl = getProxyUrl(chapter.image_url);
+                console.log("[Jala Hub] Setting frame image src to:", imgUrl);
+                readIllustrationImg.src = imgUrl;
+                readIllustrationImg.onload = () => readIllustrationImg.className = '';
+            } else {
+                readIllustrationImg.src = '';
+                readIllustrationImg.alt = 'Sem desenho';
+                readIllustrationImg.className = '';
+            }
+
+            // Navigation buttons
+            btnPrevPage.disabled = currentChapterIndex === 0;
+            if (currentChapterIndex === currentBook.chapters.length - 1) {
+                btnNextPage.innerHTML = 'Fim <i class="fa-solid fa-flag-checkered"></i>';
+            } else {
+                btnNextPage.innerHTML = 'Próximo <i class="fa-solid fa-arrow-right"></i>';
+            }
+        }
+
+        // Page Flip Animation
+        function triggerPageFlipAnimation(callback) {
+            physicalBook.classList.remove('page-flip-animate');
+            void physicalBook.offsetWidth;
+            physicalBook.classList.add('page-flip-animate');
+            
+            setTimeout(() => {
+                callback();
+            }, 250);
+            
+            setTimeout(() => {
+                physicalBook.classList.remove('page-flip-animate');
+            }, 500);
+        }
+
+        // Navigation
+        btnPrevPage.onclick = () => {
+            if (currentChapterIndex > 0) {
+                triggerPageFlipAnimation(() => {
+                    currentChapterIndex--;
+                    renderChapter();
+                });
+            }
+        };
+
+        btnNextPage.onclick = () => {
+            if (currentChapterIndex < currentBook.chapters.length - 1) {
+                triggerPageFlipAnimation(() => {
+                    currentChapterIndex++;
+                    renderChapter();
+                });
+            } else {
+                alert("Fim da aventura ilustrada! Deseja criar mais histórias?");
+            }
+        };
+
+        btnNewBook.onclick = () => {
+            stopNarration();
+            currentBook = null;
+            panelReader.style.display = 'none';
+            panelForm.style.display = 'block';
+            document.getElementById('book-theme').value = '';
+        };
+
+        // TTS Speech Control
+        function setPlayState(isPlaying) {
+            if (isPlaying) {
+                audioPlay.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                audioPlay.title = "Pausar Narração";
+            } else {
+                audioPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
+                audioPlay.title = "Ouvir Capítulo";
+            }
+        }
+
+        function stopNarration() {
+            window.speechSynthesis.cancel();
+            setPlayState(false);
+            clearHighlights();
+            activeParagraphElement = null;
+            speakingParagraphsQueue = [];
+            currentSpeakingQueueIndex = 0;
+        }
+
+        audioPlay.onclick = () => {
+            if (window.speechSynthesis.speaking) {
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                    setPlayState(true);
+                } else {
+                    window.speechSynthesis.pause();
+                    setPlayState(false);
+                }
+            } else {
+                const pElements = Array.from(document.querySelectorAll('#read-chapter-text p'));
+                if (pElements.length > 0) {
+                    speakingParagraphsQueue = pElements;
+                    currentSpeakingQueueIndex = 0;
+                    speakQueue();
+                }
+            }
+        };
+
+        audioStop.onclick = () => {
+            stopNarration();
+        };
+
+        function speakQueue() {
+            if (currentSpeakingQueueIndex >= speakingParagraphsQueue.length) {
+                stopNarration();
+                return;
+            }
+
+            const pElement = speakingParagraphsQueue[currentSpeakingQueueIndex];
+            speakParagraph(pElement, () => {
+                currentSpeakingQueueIndex++;
+                speakQueue();
+            });
+        }
+
+        function speakParagraph(pElement, onFinishedCallback = null) {
+            window.speechSynthesis.cancel();
+            clearHighlights();
+
+            activeParagraphElement = pElement;
+            pElement.classList.add('speaking-highlight');
+
+            const rawText = pElement.getAttribute('data-raw-text');
+
+            let speechLang = 'pt-BR';
+            if (currentBook.language === 'Inglês') speechLang = 'en-US';
+            else if (currentBook.language === 'Espanhol') speechLang = 'es-ES';
+            else if (currentBook.language === 'Francês') speechLang = 'fr-FR';
+            else if (currentBook.language === 'Italiano') speechLang = 'it-IT';
+            else if (currentBook.language === 'Alemão') speechLang = 'de-DE';
+
+            const utterance = new SpeechSynthesisUtterance(rawText);
+            utterance.lang = speechLang;
+            utterance.rate = parseFloat(speechRate.value) || 1.0;
+
+            // Highlight words
+            utterance.onboundary = (event) => {
+                if (event.name === 'word') {
+                    const charIndex = event.charIndex;
+                    const spans = pElement.querySelectorAll('.word-span');
+                    
+                    spans.forEach(span => {
+                        const start = parseInt(span.getAttribute('data-start'));
+                        const end = parseInt(span.getAttribute('data-end'));
+                        
+                        if (charIndex >= start && charIndex < end) {
+                            span.classList.add('word-highlight');
+                            span.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        } else {
+                            span.classList.remove('word-highlight');
+                        }
+                    });
+                }
+            };
+
+            utterance.onend = () => {
+                pElement.classList.remove('speaking-highlight');
+                pElement.querySelectorAll('.word-span').forEach(span => {
+                    span.classList.remove('word-highlight');
+                });
+                
+                if (onFinishedCallback) {
+                    onFinishedCallback();
+                } else {
+                    stopNarration();
+                }
+            };
+
+            currentUtterance = utterance;
+            window.speechSynthesis.speak(utterance);
+            setPlayState(true);
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('#read-chapter-text p').forEach(p => {
+                p.classList.remove('speaking-highlight');
+                p.querySelectorAll('.word-span').forEach(span => {
+                    span.classList.remove('word-highlight');
+                });
+            });
+        }
+
+        // Float Word Explanation Details + Cartoon Generation
+        async function explainWordDetail(word, sentence, x, y) {
+            closeTranslationBubble();
+            
+            let bubbleLeft = x + window.scrollX - 40;
+            if (bubbleLeft + 330 > window.innerWidth) {
+                bubbleLeft = window.innerWidth - 350;
+            }
+            if (bubbleLeft < 10) bubbleLeft = 10;
+
+            let bubbleTop = y + window.scrollY - 195;
+            if (bubbleTop < 10) bubbleTop = 10;
+
+            translationBubble.style.left = `${bubbleLeft}px`;
+            translationBubble.style.top = `${bubbleTop}px`;
+            translationBubble.style.display = 'flex';
+            
+            translationBubble.innerHTML = `
+                <div class="translation-bubble-header">
+                    <span>Dicionário do Livro</span>
+                    <button class="translation-bubble-close" onclick="closeTranslationBubble()">&times;</button>
+                </div>
+                <div class="word-explorer-content">
+                    <div class="word-info">
+                        <div style="font-size: 1.15rem; font-weight: 800; color: #1e293b; text-transform: capitalize;">${word}</div>
+                        <div id="word-translation" style="margin-top: 0.3rem; font-weight: 700; color: var(--accent-pink); font-size: 0.95rem;">Traduzindo...</div>
+                        <div id="word-explanation" style="margin-top: 0.4rem; font-size: 0.82rem; color: #475569; line-height: 1.3;">Buscando significado...</div>
+                    </div>
+                    <div id="word-illustration-box" class="word-micro-img">
+                        <i class="fa-solid fa-spinner fa-spin" style="color: #64748b; font-size: 1.3rem;"></i>
+                    </div>
+                </div>
+            `;
+            
+            try {
+                const resp = await fetch('/api/book/explain-word', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        word: word,
+                        sentence: sentence,
+                        book_language: currentBook.language
+                    })
+                });
+                
+                if (!resp.ok) throw new Error();
+                const data = await resp.json();
+                
+                document.getElementById('word-translation').textContent = data.translation;
+                document.getElementById('word-explanation').textContent = data.explanation;
+                
+                const imgBox = document.getElementById('word-illustration-box');
+                if (data.image_url) {
+                    imgBox.innerHTML = `<img src="${getProxyUrl(data.image_url)}" alt="${word}">`;
+                } else {
+                    imgBox.innerHTML = `<i class="fa-solid fa-image-slash" style="color: #94a3b8; font-size: 1.1rem;"></i>`;
+                }
+            } catch (e) {
+                document.getElementById('word-translation').textContent = "Erro de conexão";
+                document.getElementById('word-explanation').textContent = "Não foi possível carregar a tradução contextual.";
+                document.getElementById('word-illustration-box').innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color: #ef4444; font-size: 1.2rem;"></i>`;
+            }
+        }
+
+        function closeTranslationBubble() {
+            translationBubble.style.display = 'none';
+        }
+
+        // On-Demand Illustration
+        btnReillustrate.onclick = () => {
+            redrawPromptInput.value = '';
+            redrawLoading.style.display = 'none';
+            btnSubmitRedraw.disabled = false;
+            modalRedraw.style.display = 'flex';
+        };
+
+        function closeRedrawModal() {
+            modalRedraw.style.display = 'none';
+        }
+
+        btnSubmitRedraw.onclick = async () => {
+            const prompt = redrawPromptInput.value.trim();
+            if (!prompt) {
+                alert("Por favor, descreva o que deseja desenhar!");
+                return;
+            }
+
+            redrawLoading.style.display = 'flex';
+            btnSubmitRedraw.disabled = true;
+
+            try {
+                const resp = await fetch('/api/book/illustrate-scene', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+
+                if (!resp.ok) throw new Error("Erro de redesenho.");
+                const data = await resp.json();
+
+                currentBook.chapters[currentChapterIndex].image_url = data.image_url;
+                
+                readIllustrationImg.className = 'loading';
+                const proxySrc = getProxyUrl(data.image_url);
+                readIllustrationImg.src = proxySrc;
+                readIllustrationImg.onload = () => readIllustrationImg.className = '';
+
+                // Also update background
+                bookScrollBody.style.backgroundImage = `url("${proxySrc}")`;
+
+                closeRedrawModal();
+            } catch (e) {
+                alert("Erro ao pintar ilustração: " + e.message);
+                redrawLoading.style.display = 'none';
+                btnSubmitRedraw.disabled = false;
+            }
+        };
+
+        // Close components
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.word-span') && !e.target.closest('#translation-bubble')) {
+                closeTranslationBubble();
+            }
+        });
+    </script>
+</body>
+</html>

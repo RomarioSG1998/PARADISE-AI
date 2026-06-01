@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Hub Console — Gateway de Administração</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-base: #06050f;
+            --bg-surface: rgba(18, 15, 38, 0.6);
+            --bg-surface-hover: rgba(26, 22, 54, 0.8);
+            --border-glow: rgba(147, 51, 234, 0.2);
+            --border-glow-active: rgba(147, 51, 234, 0.6);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --gemini-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            --accent-glow: 0 0 20px rgba(139, 92, 246, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Top Header */
+        header {
+            height: 75px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 3rem;
+            background: rgba(6, 5, 15, 0.8);
+            backdrop-filter: blur(15px);
+            z-index: 100;
+            position: sticky;
+            top: 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-logo {
+            width: 36px;
+            height: 36px;
+            background: var(--gemini-gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--accent-glow);
+        }
+
+        .brand-logo i {
+            color: white;
+            font-size: 1.15rem;
+        }
+
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--text-primary);
+        }
+
+        /* Dashboard Container */
+        .container {
+            max-width: 1300px;
+            width: 100%;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+            flex: 1;
+        }
+
+        /* Metrics grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .metric-card {
+            background: var(--bg-surface);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            transition: transform 0.2s ease, border-color 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .metric-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .metric-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            background: rgba(139, 92, 246, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a78bfa;
+            font-size: 1.3rem;
+        }
+
+        /* Section Layouts */
+        .dashboard-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        .panel {
+            background: var(--bg-surface);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .panel-title i {
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Premium Buttons */
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.10);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn.primary {
+            background: var(--gemini-gradient);
+            border: none;
+            color: white;
+            font-weight: 600;
+        }
+
+        .btn.primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: var(--accent-glow);
+        }
+
+        .btn.danger {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        .btn.danger:hover {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        /* Tables style */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge.active {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+
+        .badge.expired, .badge.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+
+        .code-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 250px;
+        }
+
+        .code-container code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #f472b6;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .code-copy-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: color 0.2s;
+        }
+
+        .code-copy-btn:hover {
+            color: var(--text-primary);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(6, 5, 15, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal {
+            width: 550px;
+            background: rgba(18, 15, 38, 0.95);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .close-modal:hover {
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .form-group input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: rgba(139, 92, 246, 0.6);
+        }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        /* Footer */
+        footer {
+            height: 60px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="brand">
+            <div class="brand-logo">
+                <i class="fa-solid fa-network-wired"></i>
+            </div>
+            <div class="brand-title">AI Hub Console</div>
+        </div>
+        <nav class="header-nav">
+            <a href="/" class="nav-link"><i class="fa-solid fa-comments"></i> Playground Chat</a>
+            <a href="/admin" class="nav-link active"><i class="fa-solid fa-gauge"></i> Admin Dashboard</a>
+        </nav>
+    </header>
+
+    <!-- Dashboard Body -->
+    <div class="container">
+        <!-- Metrics Summary Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-info">
+                    <span class="metric-label">Contas Pro Ativas</span>
+                    <span class="metric-value" id="stat-active-accounts">0</span>
+                </div>
+                <div class="metric-icon"><i class="fa-solid fa-user-check"></i></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-info">
+                    <span class="metric-label">Apps Conectados</span>
+                    <span class="metric-value" id="stat-connected-apps">0</span>
+                </div>
+                <div class="metric-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-info">
+                    <span class="metric-label">Total de Requisições</span>
+                    <span class="metric-value" id="stat-total-requests">0</span>
+                </div>
+                <div class="metric-icon"><i class="fa-solid fa-chart-line"></i></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-info">
+                    <span class="metric-label">Taxa de Sucesso</span>
+                    <span class="metric-value" id="stat-success-rate">0%</span>
+                </div>
+                <div class="metric-icon"><i class="fa-solid fa-circle-check"></i></div>
+            </div>
+        </div>
+
+        <!-- Row 1: Gemini Accounts & Client Apps -->
+        <div class="dashboard-row">
+            <!-- Gemini Account Pool -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title"><i class="fa-solid fa-key"></i> Pool de Contas Gemini Pro</h2>
+                    <button class="btn primary" id="btn-add-account"><i class="fa-solid fa-plus"></i> Adicionar Conta</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome da Conta</th>
+                                <th>Status</th>
+                                <th>Último Uso</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accounts-table-body">
+                            <!-- Populated dynamically -->
+                            <tr><td colspan="5" style="text-align:center;">Carregando contas...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Client Apps Registry -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title"><i class="fa-solid fa-shield-halved"></i> Apps do Hub</h2>
+                    <button class="btn" id="btn-add-app"><i class="fa-solid fa-plus"></i> Criar App</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>App</th>
+                                <th>Chave da API (`X-API-Key`)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="apps-table-body">
+                            <!-- Populated dynamically -->
+                            <tr><td colspan="2" style="text-align:center;">Carregando aplicativos...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2: Live Monitor logs -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title"><i class="fa-solid fa-clock-rotate-left"></i> Histórico Recente de Requisições</h2>
+                <button class="btn" onclick="refreshDashboard()"><i class="fa-solid fa-rotate"></i> Atualizar Logs</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Aplicativo</th>
+                            <th>Input (chars)</th>
+                            <th>Output (chars)</th>
+                            <th>Tempo de Resposta</th>
+                            <th>Status</th>
+                            <th>Data/Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-table-body">
+                        <!-- Populated dynamically -->
+                        <tr><td colspan="7" style="text-align:center;">Nenhuma requisição registrada ainda.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Account Modal -->
+    <div class="modal-overlay" id="modal-account">
+        <div class="modal">
+            <button class="close-modal" onclick="closeModals()">&times;</button>
+            <h2 class="modal-title">Adicionar Nova Conta Pro</h2>
+            
+            <div class="form-group">
+                <label for="acc-name">Nome Identificador (ex: Conta Principal Romário)</label>
+                <input type="text" id="acc-name" placeholder="Digite uma identificação">
+            </div>
+
+            <div class="form-group">
+                <label for="acc-psid">Cookie __Secure-1PSID</label>
+                <input type="password" id="acc-psid" placeholder="Valor do cookie __Secure-1PSID">
+            </div>
+
+            <div class="form-group">
+                <label for="acc-psidts">Cookie __Secure-1PSIDTS</label>
+                <input type="password" id="acc-psidts" placeholder="Valor do cookie __Secure-1PSIDTS">
+            </div>
+
+            <div class="error-message" id="acc-error">Preencha todos os campos corretamente.</div>
+
+            <button class="btn primary" id="btn-save-account"><i class="fa-solid fa-floppy-disk"></i> Validar e Salvar</button>
+        </div>
+    </div>
+
+    <!-- Add App Modal -->
+    <div class="modal-overlay" id="modal-app">
+        <div class="modal">
+            <button class="close-modal" onclick="closeModals()">&times;</button>
+            <h2 class="modal-title">Registrar Novo Aplicativo no Hub</h2>
+            
+            <div class="form-group">
+                <label for="app-name">Nome do Aplicativo (ex: Jala Flow Flutter App)</label>
+                <input type="text" id="app-name" placeholder="Nome do app">
+            </div>
+
+            <div class="error-message" id="app-error">O nome do aplicativo é obrigatório.</div>
+
+            <button class="btn primary" id="btn-save-app"><i class="fa-solid fa-floppy-disk"></i> Registrar Aplicativo</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        AI Hub Gateway Core © 2026. Todos os direitos reservados.
+    </footer>
+
+    <script>
+        // Modal Controls
+        const modalAccount = document.getElementById('modal-account');
+        const modalApp = document.getElementById('modal-app');
+
+        document.getElementById('btn-add-account').onclick = () => {
+            document.getElementById('acc-error').style.display = 'none';
+            modalAccount.style.display = 'flex';
+        };
+
+        document.getElementById('btn-add-app').onclick = () => {
+            document.getElementById('app-error').style.display = 'none';
+            modalApp.style.display = 'flex';
+        };
+
+        function closeModals() {
+            modalAccount.style.display = 'none';
+            modalApp.style.display = 'none';
+            
+            // Clean inputs
+            document.getElementById('acc-name').value = '';
+            document.getElementById('acc-psid').value = '';
+            document.getElementById('acc-psidts').value = '';
+            document.getElementById('app-name').value = '';
+        }
+
+        // Copy Key helper
+        function copyToClipboard(text, btnElement) {
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btnElement.querySelector('i');
+                icon.className = 'fa-solid fa-check';
+                icon.style.color = '#34d399';
+                setTimeout(() => {
+                    icon.className = 'fa-regular fa-copy';
+                    icon.style.color = '';
+                }, 2000);
+            });
+        }
+
+        // Refresh Data from APIs
+        async function refreshDashboard() {
+            try {
+                // Fetch Apps list
+                const appsResp = await fetch('/admin/api/apps');
+                const apps = await appsResp.json();
+                document.getElementById('stat-connected-apps').textContent = apps.length;
+                
+                const appsBody = document.getElementById('apps-table-body');
+                appsBody.innerHTML = '';
+                apps.forEach(app => {
+                    appsBody.innerHTML += `
+                        <tr>
+                            <td><strong>${app.name}</strong></td>
+                            <td>
+                                <div class="code-container">
+                                    <code>${app.api_key}</code>
+                                    <button class="code-copy-btn" onclick="copyToClipboard('${app.api_key}', this)"><i class="fa-regular fa-copy"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                // Fetch Accounts list
+                const accResp = await fetch('/admin/api/accounts');
+                const accounts = await accResp.json();
+                
+                const accBody = document.getElementById('accounts-table-body');
+                accBody.innerHTML = '';
+                accounts.forEach(acc => {
+                    const statusClass = acc.status === 'active' ? 'active' : 'expired';
+                    const statusText = acc.status === 'active' ? 'Ativa (Pro)' : (acc.error_message || 'Erro/Expirada');
+                    const lastUsed = acc.last_used ? new Date(acc.last_used).toLocaleString() : 'Nunca';
+                    
+                    accBody.innerHTML += `
+                        <tr>
+                            <td>${acc.id}</td>
+                            <td><strong>${acc.name}</strong></td>
+                            <td><span class="badge ${statusClass}">${statusText}</span></td>
+                            <td>${lastUsed}</td>
+                            <td>
+                                <button class="btn danger" onclick="deleteAccount(${acc.id})"><i class="fa-solid fa-trash-can"></i> Remover</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                // Fetch general Stats
+                const statsResp = await fetch('/admin/api/stats');
+                const stats = await statsResp.json();
+                
+                document.getElementById('stat-active-accounts').textContent = stats.active_accounts;
+                document.getElementById('stat-total-requests').textContent = stats.total_requests;
+                document.getElementById('stat-success-rate').textContent = stats.success_rate + '%';
+                
+                const logsBody = document.getElementById('logs-table-body');
+                logsBody.innerHTML = '';
+                if (stats.recent_logs.length === 0) {
+                    logsBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Nenhuma requisição registrada ainda.</td></tr>`;
+                } else {
+                    stats.recent_logs.forEach(log => {
+                        const statusClass = log.status_code === 200 ? 'active' : 'expired';
+                        const date = new Date(log.created_at).toLocaleString();
+                        logsBody.innerHTML += `
+                            <tr>
+                                <td>#${log.id}</td>
+                                <td><strong>${log.app_name || 'Desconhecido'}</strong></td>
+                                <td>${log.prompt_length}</td>
+                                <td>${log.response_length}</td>
+                                <td>${log.duration_ms} ms</td>
+                                <td><span class="badge ${statusClass}">${log.status_code}</span></td>
+                                <td>${date}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+            } catch (err) {
+                console.error("Failed to load dashboard data: ", err);
+            }
+        }
+
+        // API Calls: Save Account
+        document.getElementById('btn-save-account').onclick = async () => {
+            const name = document.getElementById('acc-name').value.trim();
+            const psid = document.getElementById('acc-psid').value.trim();
+            const psidts = document.getElementById('acc-psidts').value.trim();
+            const errDiv = document.getElementById('acc-error');
+
+            if (!name || !psid || !psidts) {
+                errDiv.textContent = "Preencha todos os campos!";
+                errDiv.style.display = 'block';
+                return;
+            }
+
+            document.getElementById('btn-save-account').disabled = true;
+            document.getElementById('btn-save-account').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testando Conexão...';
+
+            try {
+                const resp = await fetch('/admin/api/accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, secure_1psid: psid, secure_1psidts: psidts })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    closeModals();
+                    refreshDashboard();
+                } else {
+                    errDiv.textContent = data.error || "Erro ao conectar conta.";
+                    errDiv.style.display = 'block';
+                }
+            } catch (e) {
+                errDiv.textContent = "Erro na requisição.";
+                errDiv.style.display = 'block';
+            } finally {
+                document.getElementById('btn-save-account').disabled = false;
+                document.getElementById('btn-save-account').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Validar e Salvar';
+            }
+        };
+
+        // API Calls: Save App
+        document.getElementById('btn-save-app').onclick = async () => {
+            const name = document.getElementById('app-name').value.trim();
+            const errDiv = document.getElementById('app-error');
+
+            if (!name) {
+                errDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const resp = await fetch('/admin/api/apps', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await resp.json();
+                if (data.api_key) {
+                    closeModals();
+                    refreshDashboard();
+                } else {
+                    errDiv.textContent = data.error || "Erro ao registrar.";
+                    errDiv.style.display = 'block';
+                }
+            } catch (e) {
+                errDiv.textContent = "Erro de conexão.";
+                errDiv.style.display = 'block';
+            }
+        };
+
+        // API Calls: Delete Account
+        async function deleteAccount(id) {
+            if (!confirm("Tem certeza que deseja remover esta conta Pro do Hub?")) return;
+            try {
+                await fetch(`/admin/api/accounts/${id}`, { method: 'DELETE' });
+                refreshDashboard();
+            } catch (e) {
+                alert("Erro ao excluir conta.");
+            }
+        }
+
+        // Boot
+        window.onload = () => {
+            refreshDashboard();
+            // Refresh logs every 30 seconds
+            setInterval(refreshDashboard, 30000);
+        };
+    </script>
+</body>
+</html>
