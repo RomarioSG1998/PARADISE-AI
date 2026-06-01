@@ -236,6 +236,17 @@ def proxy_image():
     except Exception as e:
         return f"Error proxying image: {str(e)}", 500
 
+async def generate_edge_tts_async(text: str) -> bytes:
+    import edge_tts
+    # AntonioNeural is a highly natural, male Portuguese voice matching a premium virtual assistant
+    voice = "pt-BR-AntonioNeural"
+    communicate = edge_tts.Communicate(text, voice)
+    data = b""
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            data += chunk["data"]
+    return data
+
 @app.route("/api/tts")
 def text_to_speech():
     text = request.args.get("text", "").strip()
@@ -243,18 +254,31 @@ def text_to_speech():
         return "Text is required", 400
         
     try:
-        from gtts import gTTS
         import io
         from flask import send_file
         
-        tts = gTTS(text=text, lang='pt', tld='com.br')
-        fp = io.BytesIO()
-        tts.write_to_fp(fp)
+        # Generate neural speech in background event loop
+        audio_data = run_in_background(generate_edge_tts_async(text))
+        
+        fp = io.BytesIO(audio_data)
         fp.seek(0)
         return send_file(fp, mimetype="audio/mpeg")
     except Exception as e:
-        print(f"[Paradise AI TTS Error] {str(e)}")
-        return f"Error generating TTS: {str(e)}", 500
+        print(f"[Paradise AI Edge-TTS Error] {str(e)}. Falling back to gTTS...")
+        try:
+            from gtts import gTTS
+            import io
+            from flask import send_file
+            
+            tts = gTTS(text=text, lang='pt', tld='com.br')
+            fp = io.BytesIO()
+            tts.write_to_fp(fp)
+            fp.seek(0)
+            return send_file(fp, mimetype="audio/mpeg")
+        except Exception as ge:
+            print(f"[Paradise AI TTS Error] Fallback failed: {str(ge)}")
+            return f"Error generating TTS: {str(ge)}", 500
+
 
 @app.after_request
 def add_header(response):
