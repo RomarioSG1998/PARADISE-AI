@@ -426,23 +426,12 @@
     <!-- Main Container -->
     <div class="container">
         <div class="welcome-text">
-            <h1>Seu Portal de Aplicativos IA</h1>
+            <h1>Olá, <span id="user-greeting-name">{{ session.get('username', 'Usuário') }}</span>!</h1>
             <p>Selecione um aplicativo abaixo para interagir. Todas as ferramentas utilizam a conexão Pro ilimitada e gratuita do hub.</p>
         </div>
 
         <!-- Grid of Apps -->
         <div class="hub-grid">
-            <!-- App 1: Chat Advanced Pro -->
-            <a href="/chat" class="app-card">
-                <div class="app-header">
-                    <div class="app-icon"><i class="fa-solid fa-comments"></i></div>
-                    <span class="app-badge active">Disponível</span>
-                </div>
-                <div class="app-info">
-                    <h2 class="app-name">Mr.Robot</h2>
-                    <p class="app-desc">Conversação de texto avançada com o Gemini Pro. Suporte completo a explicações de código, markdown e respostas elaboradas.</p>
-                </div>
-            </a>
 
             <!-- App 2: Gerador de Livros Pro -->
             <a href="/book" class="app-card">

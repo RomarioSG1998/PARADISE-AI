@@ -216,12 +216,13 @@ def check_auth():
 def login():
     error = None
     if request.method == "POST":
-        password = request.form.get("password")
-        if password == "vilmika":
+        username = request.form.get("username")
+        if username and username.strip():
             session["authenticated"] = True
+            session["username"] = username.strip()
             return redirect(url_for("index_hub"))
         else:
-            error = "Senha incorreta!"
+            error = "Por favor, insira o seu nome!"
     return render_template("login.html", error=error)
 
 # ----------------- PORTAL ROUTES -----------------
