@@ -734,6 +734,37 @@
             0% { height: 4px; }
             100% { height: 22px; }
         }
+
+        .teacher-role:focus {
+            outline: none;
+            background: rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+        }
+
+        .avatar-upload-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.65);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            color: #ffffff;
+            font-size: 0.75rem;
+            font-weight: 600;
+            gap: 0.35rem;
+            pointer-events: none;
+            border-radius: 50%;
+        }
+
+        .teacher-avatar:hover .avatar-upload-overlay {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -846,12 +877,20 @@
                 <!-- Teacher avatar panel -->
                 <div class="avatar-container">
                     
-                    <!-- Human Realistic Avatar -->
-                    <div class="teacher-avatar" id="teacher-avatar">
-                        <img src="/static/images/professor.png" alt="Professor" class="avatar-img">
+                    <!-- Human Realistic Avatar / Custom Uploadable Wall-E -->
+                    <div class="teacher-avatar" id="teacher-avatar" onclick="document.getElementById('avatar-upload').click();" style="cursor: pointer;" title="Clique para alterar a foto do avatar">
+                        <img src="/static/images/walle.png" alt="Professor" class="avatar-img" id="avatar-display-img">
+                        <div class="avatar-upload-overlay">
+                            <i class="fa-solid fa-camera"></i>
+                            <span>Alterar Foto</span>
+                        </div>
                     </div>
+                    <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
 
-                    <div class="teacher-role">Dr. A. J. Bennett (Professor IA)</div>
+                    <div class="teacher-role-container" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <div class="teacher-role" id="teacher-role-name" contenteditable="true" spellcheck="false" title="Clique para editar o nome do professor">Dr. A. J. Bennett (Professor IA)</div>
+                        <i class="fa-solid fa-pen" style="font-size: 0.7rem; color: #3b82f6; cursor: pointer; opacity: 0.7;" onclick="document.getElementById('teacher-role-name').focus();"></i>
+                    </div>
 
                     <!-- Simple legend box directly below the avatar -->
                     <div class="simple-subtitle-box" id="teleprompter-subtitles">
@@ -1361,6 +1400,54 @@
             const s = Math.floor(secs % 60);
             return `${m}:${s < 10 ? '0' : ''}${s}`;
         }
+
+        // Editable Avatar Name and Custom Photo Upload Persistence (LocalStorage)
+        const roleNameEl = document.getElementById('teacher-role-name');
+        const avatarUpload = document.getElementById('avatar-upload');
+        const avatarDisplayImg = document.getElementById('avatar-display-img');
+
+        // Load persisted avatar name and image from localStorage
+        const savedName = localStorage.getItem('classroom_avatar_name');
+        if (savedName) {
+            roleNameEl.textContent = savedName;
+        }
+
+        const savedImg = localStorage.getItem('classroom_avatar_image');
+        if (savedImg) {
+            avatarDisplayImg.src = savedImg;
+        }
+
+        // Save name on blur/lose focus
+        roleNameEl.addEventListener('blur', () => {
+            const newName = roleNameEl.textContent.trim();
+            if (newName) {
+                localStorage.setItem('classroom_avatar_name', newName);
+            } else {
+                roleNameEl.textContent = 'Professor IA';
+            }
+        });
+
+        // Trigger blur when pressing Enter key on editable name
+        roleNameEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                roleNameEl.blur();
+            }
+        });
+
+        // Handle profile photo upload and convert to base64 DataURL
+        avatarUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const dataUrl = event.target.result;
+                    avatarDisplayImg.src = dataUrl;
+                    localStorage.setItem('classroom_avatar_image', dataUrl);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
     </script>
 </body>
 </html>
