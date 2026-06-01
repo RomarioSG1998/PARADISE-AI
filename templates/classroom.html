@@ -765,9 +765,68 @@
         .teacher-avatar:hover .avatar-upload-overlay {
             opacity: 1;
         }
+
+        /* Fullscreen Board Image Hover Zoom */
+        .fullscreen-img-hover-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(10, 7, 24, 0.96);
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .fullscreen-img-hover-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .fullscreen-img-hover-overlay img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 12px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transform: scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .fullscreen-img-hover-overlay.active img {
+            transform: scale(1);
+        }
+
+        .overlay-tip {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.75);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            pointer-events: none;
+            letter-spacing: 0.5px;
+        }
     </style>
 </head>
 <body>
+
+    <!-- Fullscreen Board Image Hover Zoom -->
+    <div id="board-image-fullscreen-overlay" class="fullscreen-img-hover-overlay">
+        <img id="fullscreen-overlay-img" src="" alt="Zoom da Ilustração">
+        <div class="overlay-tip">Mova o mouse para fora da imagem para fechar</div>
+    </div>
 
     <!-- Header -->
     <header>
@@ -1447,6 +1506,37 @@
                 };
                 reader.readAsDataURL(file);
             }
+        });
+
+        // Fullscreen Board Image Hover Zoom Event Listeners
+        const boardImg = document.getElementById('board-image');
+        const fsOverlay = document.getElementById('board-image-fullscreen-overlay');
+        const fsOverlayImg = document.getElementById('fullscreen-overlay-img');
+
+        boardImg.addEventListener('mouseenter', () => {
+            // Only trigger if image is loaded and is not a blank slide
+            if (boardImg.src && !boardImg.src.endsWith('/classroom') && boardImg.style.display !== 'none' && !boardImg.className.includes('loading')) {
+                fsOverlayImg.src = boardImg.src;
+                fsOverlay.classList.add('active');
+            }
+        });
+
+        fsOverlay.addEventListener('mousemove', (e) => {
+            const rect = fsOverlayImg.getBoundingClientRect();
+            // Close if mouse moves outside the bounds of the image (plus 20px padding buffer)
+            if (
+                e.clientX < rect.left - 20 ||
+                e.clientX > rect.right + 20 ||
+                e.clientY < rect.top - 20 ||
+                e.clientY > rect.bottom + 20
+            ) {
+                fsOverlay.classList.remove('active');
+            }
+        });
+
+        // Allow closing by clicking anywhere on the overlay
+        fsOverlay.addEventListener('click', () => {
+            fsOverlay.classList.remove('active');
         });
     </script>
 </body>
