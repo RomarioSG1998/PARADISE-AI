@@ -13,8 +13,7 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Three.js CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
 
     <style>
         :root {
@@ -517,7 +516,7 @@
             position: relative;
         }
 
-        /* 3D WebGL Teacher Avatar */
+        /* Realistic Human Teacher Avatar */
         .teacher-avatar {
             position: relative;
             width: 160px;
@@ -526,61 +525,68 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 4px solid var(--border-glow);
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
-            transition: all 0.3s ease;
+            border: 4px solid var(--accent-purple);
+            box-shadow: 0 0 25px rgba(139, 92, 246, 0.3);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
-            background: radial-gradient(circle, #100b2b 0%, #06050f 100%);
+            background: #0f172a;
         }
 
         .teacher-avatar.speaking {
-            border-color: #a78bfa;
-            box-shadow: 0 0 30px rgba(167, 139, 250, 0.7);
+            border-color: var(--accent-pink);
+            box-shadow: 0 0 35px rgba(236, 72, 153, 0.7);
+            transform: scale(1.05);
         }
 
-        /* Subtitles Panel Word-by-Word style */
-        .subtitles-panel {
-            background: var(--bg-surface);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 1.25rem 2.5rem;
-            height: 100px;
-            max-height: 100px;
-            overflow-y: auto;
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s ease;
+        }
+
+        .teacher-avatar.speaking .avatar-img {
+            animation: breathe 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes breathe {
+            0% { transform: scale(1.0); }
+            100% { transform: scale(1.08); }
+        }
+
+        /* Simple Subtitle Box directly below avatar */
+        .simple-subtitle-box {
+            width: 100%;
+            min-height: 80px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            font-size: 0.95rem;
+            color: #cbd5e1;
+            text-align: center;
+            line-height: 1.5;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
+            box-sizing: border-box;
+            font-style: italic;
             margin-top: 0.5rem;
-            scroll-behavior: smooth;
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+            max-width: 240px;
         }
 
-        .subtitles-panel::-webkit-scrollbar {
-            display: none; /* Hide scrollbars for a clean look */
-        }
-
-        .subtitles-content {
-            font-size: 1.35rem;
-            line-height: 1.7;
-            text-align: center;
-            max-width: 950px;
-            color: rgba(255, 255, 255, 0.3);
-        }
-
-        .sub-word {
+        .simple-subtitle-box .sub-word {
             display: inline-block;
-            margin: 0 4px;
-            transition: all 0.15s ease;
+            margin: 0 3px;
+            transition: color 0.15s ease, transform 0.15s ease;
         }
 
-        .sub-word.highlighted {
-            color: #f3f4f6;
-            text-shadow: 0 0 15px rgba(167, 139, 250, 0.9);
-            font-weight: 600;
+        .simple-subtitle-box .sub-word.highlighted {
+            color: var(--accent-pink);
+            font-weight: 700;
+            font-style: normal;
             transform: scale(1.08);
+            text-shadow: 0 0 10px rgba(236, 72, 153, 0.6);
         }
 
         .teacher-role {
@@ -836,17 +842,15 @@
                     
                     <!-- Human Realistic Avatar -->
                     <div class="teacher-avatar" id="teacher-avatar">
-                        <canvas id="avatar-3d-canvas" style="width: 100%; height: 100%; border-radius: 50%;"></canvas>
+                        <img src="/static/images/professor.png" alt="Professor" class="avatar-img">
                     </div>
 
                     <div class="teacher-role">Dr. A. J. Bennett (Professor IA)</div>
-                </div>
-            </div>
 
-            <!-- Word-by-word Teleprompter Subtitles Panel -->
-            <div class="subtitles-panel">
-                <div class="subtitles-content" id="teleprompter-subtitles">
-                    Selecione ou crie uma aula para iniciar o teleprompter.
+                    <!-- Simple legend box directly below the avatar -->
+                    <div class="simple-subtitle-box" id="teleprompter-subtitles">
+                        Selecione ou crie uma aula para iniciar.
+                    </div>
                 </div>
             </div>
 
@@ -888,160 +892,7 @@
     <audio id="lesson-audio" style="display: none;"></audio>
 
     <script>
-        // 3D Avatar Scene Variables
-        let scene, camera, renderer, headGroup, coreMesh, wireframeMesh, mouthMesh, torus1, torus2;
         let isSpeaking3D = false;
-
-        function init3DAvatar() {
-            const canvas = document.getElementById('avatar-3d-canvas');
-            if (!canvas) return;
-
-            const width = 160;
-            const height = 160;
-
-            // Scene & Camera
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-            camera.position.z = 4.8;
-
-            // Renderer
-            renderer = new THREE.WebGLRenderer({
-                canvas: canvas,
-                alpha: true,
-                antialias: true
-            });
-            renderer.setSize(width, height);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-            // Head Group
-            headGroup = new THREE.Group();
-            scene.add(headGroup);
-
-            // Core Geometry (Realistic Professor texture mapped to 3D plane)
-            const textureLoader = new THREE.TextureLoader();
-            const faceTexture = textureLoader.load('/static/images/professor.png');
-            const coreGeom = new THREE.PlaneGeometry(2.3, 2.3);
-            const coreMat = new THREE.MeshStandardMaterial({
-                map: faceTexture,
-                transparent: true,
-                roughness: 0.4,
-                metalness: 0.15,
-                side: THREE.DoubleSide
-            });
-            coreMesh = new THREE.Mesh(coreGeom, coreMat);
-            headGroup.add(coreMesh);
-
-            // Wireframe outer sphere (adds tech feel to the realistic face)
-            const wireGeom = new THREE.IcosahedronGeometry(1.35, 2);
-            const wireMat = new THREE.MeshBasicMaterial({
-                color: 0x8b5cf6,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.2
-            });
-            wireframeMesh = new THREE.Mesh(wireGeom, wireMat);
-            headGroup.add(wireframeMesh);
-
-            // Voice Wave Overlay (glowing sound waveform under the face)
-            const waveGeom = new THREE.TorusGeometry(0.8, 0.02, 8, 32, Math.PI);
-            const waveMat = new THREE.MeshBasicMaterial({
-                color: 0x00f2fe,
-                transparent: true,
-                opacity: 0.65
-            });
-            mouthMesh = new THREE.Mesh(waveGeom, waveMat);
-            mouthMesh.position.set(0, -0.6, 0.05);
-            headGroup.add(mouthMesh);
-
-            // Saturn Synapse Rings
-            const torusGeom1 = new THREE.TorusGeometry(1.7, 0.015, 8, 48);
-            const torusMat1 = new THREE.MeshBasicMaterial({
-                color: 0x8b5cf6,
-                transparent: true,
-                opacity: 0.4
-            });
-            torus1 = new THREE.Mesh(torusGeom1, torusMat1);
-            torus1.rotation.x = Math.PI / 2.2;
-            scene.add(torus1);
-
-            const torusGeom2 = new THREE.TorusGeometry(1.9, 0.012, 8, 48);
-            const torusMat2 = new THREE.MeshBasicMaterial({
-                color: 0x3b82f6,
-                transparent: true,
-                opacity: 0.2
-            });
-            torus2 = new THREE.Mesh(torusGeom2, torusMat2);
-            torus2.rotation.x = Math.PI / 3.5;
-            scene.add(torus2);
-
-            // Lights
-            const ambient = new THREE.AmbientLight(0xffffff, 0.35);
-            scene.add(ambient);
-
-            const l1 = new THREE.PointLight(0x8b5cf6, 2, 12);
-            l1.position.set(4, 4, 4);
-            scene.add(l1);
-
-            const l2 = new THREE.PointLight(0x00f2fe, 1.5, 12);
-            l2.position.set(-4, -3, 3);
-            scene.add(l2);
-
-            // Interactive Mouse Follow Coordinates
-            let tX = 0, tY = 0;
-            window.addEventListener('mousemove', (e) => {
-                const normX = (e.clientX / window.innerWidth) * 2 - 1;
-                const normY = -(e.clientY / window.innerHeight) * 2 + 1;
-                tX = normX * 0.35;
-                tY = normY * 0.25;
-            });
-
-            // Anim Loop
-            let clock = new THREE.Clock();
-
-            function animate() {
-                requestAnimationFrame(animate);
-                const time = clock.getElapsedTime();
-
-                // Rotate meshes
-                if (wireframeMesh) {
-                    wireframeMesh.rotation.y = time * 0.12;
-                    wireframeMesh.rotation.z = time * 0.04;
-                }
-                if (coreMesh) {
-                    coreMesh.rotation.y = time * 0.03;
-                }
-                if (torus1) torus1.rotation.z = time * 0.15;
-                if (torus2) torus2.rotation.z = -time * 0.08;
-
-                // Breath float
-                if (headGroup) {
-                    headGroup.position.y = Math.sin(time * 2.2) * 0.06;
-                    // Track cursor rotation
-                    headGroup.rotation.y += (tX - headGroup.rotation.y) * 0.05;
-                    headGroup.rotation.x += (tY - headGroup.rotation.x) * 0.05;
-                }
-
-                // Deform mouth / scale glow on speech
-                if (mouthMesh) {
-                    if (isSpeaking3D) {
-                        mouthMesh.scale.y = 1 + Math.abs(Math.sin(time * 26)) * 2.8;
-                        mouthMesh.scale.x = 1 + Math.sin(time * 12) * 0.12;
-                        l1.intensity = 2.5 + Math.sin(time * 28) * 1.0;
-                        const scaleFactor = 1.0 + Math.sin(time * 35) * 0.02;
-                        coreMesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
-                    } else {
-                        mouthMesh.scale.y = 1;
-                        mouthMesh.scale.x = 1;
-                        l1.intensity = 1.6;
-                        coreMesh.scale.set(1, 1, 1);
-                    }
-                }
-
-                renderer.render(scene, camera);
-            }
-            animate();
-        }
-        window.addEventListener('DOMContentLoaded', init3DAvatar);
 
         // DOM Elements
         const setupPanel = document.getElementById('setup-panel');
