@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aula Inteligente — Paradise AI</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-base: #06050f;
+            --bg-surface: rgba(18, 15, 38, 0.6);
+            --bg-surface-hover: rgba(26, 22, 54, 0.85);
+            --border-glow: rgba(147, 51, 234, 0.2);
+            --border-glow-active: rgba(147, 51, 234, 0.6);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --gemini-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            --accent-glow: 0 0 20px rgba(139, 92, 246, 0.4);
+            --blackboard-bg: #102a1e;
+            --blackboard-border: #8b5a2b;
+            --chalk-white: rgba(255, 255, 255, 0.85);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.06) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.06) 0%, transparent 40%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Top Header */
+        header {
+            height: 70px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            background: rgba(6, 5, 15, 0.8);
+            backdrop-filter: blur(15px);
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+        }
+
+        .brand-logo {
+            width: 32px;
+            height: 32px;
+            background: var(--gemini-gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--accent-glow);
+        }
+
+        .brand-logo i {
+            color: white;
+            font-size: 1.05rem;
+        }
+
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            flex: 1;
+        }
+
+        /* Config / Input Area */
+        .input-panel {
+            background: var(--bg-surface);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .panel-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .panel-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .input-types {
+            display: flex;
+            gap: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.75rem;
+        }
+
+        .type-tab {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .type-tab.active {
+            color: var(--text-primary);
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+        }
+
+        .input-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 0.85rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        /* File Upload */
+        .file-drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 2.5rem;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.15);
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .file-drop-zone:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            background: rgba(139, 92, 246, 0.02);
+        }
+
+        .file-drop-zone i {
+            font-size: 2.25rem;
+            color: #a78bfa;
+        }
+
+        .file-drop-zone .filename {
+            font-size: 0.9rem;
+            color: #a78bfa;
+            font-weight: 600;
+        }
+
+        .generate-btn {
+            background: var(--gemini-gradient);
+            border: none;
+            border-radius: 8px;
+            padding: 1rem;
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: var(--accent-glow);
+            transition: opacity 0.2s;
+        }
+
+        .generate-btn:hover {
+            opacity: 0.95;
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Loading Panel */
+        .loading-panel {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            padding: 4rem 2rem;
+            background: var(--bg-surface);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .loading-spinner {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+
+        .loading-spinner::before,
+        .loading-spinner::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: #3b82f6;
+            animation: spin 1.5s linear infinite;
+        }
+
+        .loading-spinner::after {
+            border-top-color: #ec4899;
+            transform: scale(0.85);
+            animation: spin 1s linear reverse infinite;
+        }
+
+        .loading-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .loading-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .loading-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 300px;
+        }
+
+        /* Stage Panel (Classroom Arena) */
+        .stage-panel {
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .classroom-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .classroom-subject {
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: #a78bfa;
+        }
+
+        .reset-classroom-btn {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: all 0.2s;
+        }
+
+        .reset-classroom-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .classroom-board-area {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 1.5rem;
+            min-height: 480px;
+        }
+
+        /* Blackboard/Whiteboard Screen */
+        .blackboard {
+            background-color: var(--blackboard-bg);
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 100%),
+                radial-gradient(circle at 10% 20%, rgba(255,255,255,0.01) 0%, transparent 50%);
+            border: 14px solid var(--blackboard-border);
+            border-radius: 12px;
+            box-shadow: 
+                inset 0 0 40px rgba(0, 0, 0, 0.8),
+                0 10px 30px rgba(0, 0, 0, 0.4);
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Chalk Dust Overlay */
+        .blackboard::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .board-title {
+            font-family: 'Caveat', cursive;
+            font-size: 2.2rem;
+            color: var(--chalk-white);
+            border-bottom: 2px dashed rgba(255, 255, 255, 0.2);
+            padding-bottom: 0.5rem;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+        }
+
+        .board-content {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2rem;
+            flex: 1;
+            align-items: center;
+        }
+
+        .bullets-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            font-family: 'Caveat', cursive;
+            font-size: 1.6rem;
+            color: var(--chalk-white);
+            list-style: none;
+            padding-left: 0.5rem;
+        }
+
+        .bullets-list li {
+            position: relative;
+            padding-left: 1.75rem;
+            line-height: 1.3;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.5s ease;
+        }
+
+        .bullets-list li.reveal {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .bullets-list li::before {
+            content: '➢';
+            position: absolute;
+            left: 0;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* AI Chalkboard Drawing */
+        .board-illustration {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 250px;
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .board-illustration img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.85;
+            filter: contrast(1.1) brightness(0.95) grayscale(0.2);
+            mix-blend-mode: screen; /* Blends nicely with the green blackboard */
+            transition: opacity 0.5s ease;
+        }
+
+        .board-illustration img.loading {
+            opacity: 0.2;
+        }
+
+        .board-illustration::after {
+            content: 'Quadro de Ilustração';
+            position: absolute;
+            bottom: 0.5rem;
+            right: 0.5rem;
+            font-family: 'Caveat', cursive;
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Avatar Container (Teacher Panel) */
+        .avatar-container {
+            background: var(--bg-surface);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        /* Animated Teacher Avatar (HTML/CSS) */
+        .teacher-avatar {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: sway 4s ease-in-out infinite;
+        }
+
+        /* Teacher's physical structure */
+        .avatar-head {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            background: #ffdbac; /* Skin color */
+            border-radius: 50% 50% 45% 45%;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border: 2px solid #5a3d28;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-hair {
+            position: absolute;
+            top: -5px;
+            width: 98px;
+            height: 35px;
+            background: #503d33; /* Hair color */
+            border-radius: 50px 50px 0 0;
+            border-bottom: 2px solid #5a3d28;
+        }
+
+        .avatar-glasses {
+            position: absolute;
+            top: 30px;
+            display: flex;
+            gap: 6px;
+            z-index: 5;
+        }
+
+        .glasses-lens {
+            width: 26px;
+            height: 26px;
+            border: 3px solid #1a1a1a;
+            border-radius: 50%;
+            background: rgba(0, 242, 254, 0.15);
+            position: relative;
+        }
+
+        .glasses-bridge {
+            width: 8px;
+            height: 3px;
+            background: #1a1a1a;
+            align-self: center;
+        }
+
+        .avatar-eyes {
+            position: absolute;
+            top: 38px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .eye {
+            width: 8px;
+            height: 8px;
+            background: #2b2b2b;
+            border-radius: 50%;
+            animation: blink 5s infinite;
+        }
+
+        .avatar-mouth {
+            position: absolute;
+            bottom: 18px;
+            width: 14px;
+            height: 4px;
+            background: #a52a2a;
+            border-radius: 2px;
+            transition: all 0.15s ease;
+        }
+
+        /* Mouth speech animation triggered by Javascript */
+        .teacher-avatar.speaking .avatar-mouth {
+            animation: talk 0.18s ease-in-out infinite alternate;
+            background: #4a0000;
+        }
+
+        .avatar-suit {
+            position: absolute;
+            bottom: -15px;
+            width: 80px;
+            height: 30px;
+            background: #1e293b;
+            border-radius: 10px 10px 0 0;
+            border: 2px solid #0f172a;
+            display: flex;
+            justify-content: center;
+        }
+
+        .avatar-tie {
+            width: 10px;
+            height: 18px;
+            background: #ef4444;
+            clip-path: polygon(0 0, 100% 0, 80% 100%, 50% 80%, 20% 100%);
+            margin-top: 4px;
+        }
+
+        .teacher-role {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #3b82f6;
+            font-weight: 700;
+            background: rgba(59, 130, 246, 0.1);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+        }
+
+        .teacher-bubble {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.4;
+            max-height: 80px;
+            overflow-y: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 0.75rem;
+            width: 100%;
+        }
+
+        /* Control Panel (Audio / Navigation) */
+        .control-panel {
+            background: var(--bg-surface);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.25rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .playback-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .control-btn.play-pause {
+            background: var(--gemini-gradient);
+            border: none;
+            width: 50px;
+            height: 50px;
+            font-size: 1.25rem;
+            box-shadow: var(--accent-glow);
+        }
+
+        .control-btn.play-pause:hover {
+            opacity: 0.95;
+            transform: scale(1.08);
+        }
+
+        /* Timeline Slider */
+        .timeline-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+        }
+
+        .timeline-time {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            min-width: 35px;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #a78bfa;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(139, 92, 246, 0.5);
+            transition: transform 0.1s;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+        }
+
+        /* Speed Control */
+        .speed-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 160px;
+        }
+
+        .speed-container label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Keyframes Animations */
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes sway {
+            0%, 100% { transform: rotate(0deg) translateY(0); }
+            50% { transform: rotate(2deg) translateY(-2px); }
+        }
+
+        @keyframes blink {
+            0%, 90%, 100% { transform: scaleY(1); }
+            95% { transform: scaleY(0.1); }
+        }
+
+        @keyframes talk {
+            0% {
+                height: 3px;
+                border-radius: 2px;
+            }
+            100% {
+                height: 12px;
+                width: 18px;
+                border-radius: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <a href="/" class="brand">
+            <div class="brand-logo">
+                <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div class="brand-title">Paradise AI</div>
+        </a>
+        <a href="/" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Painel Geral</a>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        
+        <!-- Config/Generation Panel -->
+        <div class="input-panel" id="setup-panel">
+            <div class="panel-header">
+                <h2>Crie sua Aula Inteligente</h2>
+                <p>Estruture uma explicação interativa e ilustrada utilizando a Inteligência Artificial</p>
+            </div>
+
+            <!-- Tab Selection -->
+            <div class="input-types">
+                <button class="type-tab active" data-type="theme"><i class="fa-solid fa-wand-magic-sparkles"></i> Tema/Assunto</button>
+                <button class="type-tab" data-type="text"><i class="fa-solid fa-paragraph"></i> Texto Manual</button>
+                <button class="type-tab" data-type="pdf"><i class="fa-solid fa-file-pdf"></i> Arquivo PDF</button>
+            </div>
+
+            <div class="input-content">
+                
+                <!-- Form Inputs -->
+                <form id="classroom-form" onsubmit="event.preventDefault();">
+                    
+                    <!-- Theme Group -->
+                    <div class="form-group" id="group-theme">
+                        <label for="theme-input">O que você gostaria de aprender hoje?</label>
+                        <input type="text" id="theme-input" placeholder="Ex: Como funciona o motor de dobra espacial ou a fotossíntese">
+                    </div>
+
+                    <!-- Text Group -->
+                    <div class="form-group" id="group-text" style="display: none;">
+                        <label for="text-input">Cole o texto explicativo da aula</label>
+                        <textarea id="text-input" rows="6" placeholder="Insira o texto base. A IA irá sintetizar, dividir em slides e ilustrar o conteúdo..."></textarea>
+                    </div>
+
+                    <!-- PDF Group -->
+                    <div class="form-group" id="group-pdf" style="display: none;">
+                        <label>Envie o arquivo PDF para servir de matéria base</label>
+                        <div class="file-drop-zone" id="pdf-drop-zone">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p>Arraste seu arquivo PDF aqui ou <span style="text-decoration: underline; color:#a78bfa;">clique para escolher</span></p>
+                            <span class="filename" id="selected-filename" style="display: none;"></span>
+                            <input type="file" id="pdf-file-input" accept="application/pdf" style="display: none;">
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <button class="generate-btn" id="btn-generate-lesson" disabled>
+                <i class="fa-solid fa- chalkboard-user"></i> Estruturar Aula
+            </button>
+        </div>
+
+        <!-- Loading Screen -->
+        <div class="loading-panel" id="loading-panel">
+            <div class="loading-spinner"></div>
+            <div class="loading-steps">
+                <span class="loading-title" id="loading-step-title">Processando Matéria Base...</span>
+                <span class="loading-desc" id="loading-step-desc">Extraindo conteúdos e preparando a estrutura dos slides.</span>
+            </div>
+        </div>
+
+        <!-- Stage Panel (Classroom View) -->
+        <div class="stage-panel" id="stage-panel">
+            
+            <div class="classroom-header">
+                <div class="classroom-subject" id="classroom-subject-title">Título da Aula</div>
+                <button class="reset-classroom-btn" id="btn-reset-classroom">
+                    <i class="fa-solid fa-arrow-rotate-left"></i> Nova Aula
+                </button>
+            </div>
+
+            <!-- Blackboard and Teacher -->
+            <div class="classroom-board-area">
+                
+                <!-- Green Board -->
+                <div class="blackboard">
+                    <div class="board-title" id="board-slide-title">1. Introdução</div>
+                    
+                    <div class="board-content">
+                        <!-- Left: Bullet points -->
+                        <ul class="bullets-list" id="board-bullets">
+                            <!-- Injected dynamically -->
+                        </ul>
+
+                        <!-- Right: Schematic illustration -->
+                        <div class="board-illustration">
+                            <img src="" alt="Ilustração do quadro" id="board-image" class="loading">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Teacher avatar panel -->
+                <div class="avatar-container">
+                    
+                    <!-- CSS Animated avatar -->
+                    <div class="teacher-avatar" id="teacher-avatar">
+                        <div class="avatar-hair"></div>
+                        <div class="avatar-head">
+                            <div class="avatar-glasses">
+                                <div class="glasses-lens"></div>
+                                <div class="glasses-bridge"></div>
+                                <div class="glasses-lens"></div>
+                            </div>
+                            <div class="avatar-eyes">
+                                <div class="eye"></div>
+                                <div class="eye"></div>
+                            </div>
+                            <div class="avatar-mouth"></div>
+                        </div>
+                        <div class="avatar-suit">
+                            <div class="avatar-tie"></div>
+                        </div>
+                    </div>
+
+                    <div class="teacher-role">Professor IA</div>
+                    <div class="teacher-bubble" id="teacher-subtitles">Prepare-se para começar! Clique no botão Play para iniciar a explicação.</div>
+                </div>
+            </div>
+
+            <!-- Audio Controls and Timeline -->
+            <div class="control-panel">
+                
+                <!-- Playback Navigation Buttons -->
+                <div class="playback-controls">
+                    <button class="control-btn" id="btn-prev-slide" title="Slide Anterior">
+                        <i class="fa-solid fa-backward-step"></i>
+                    </button>
+                    <button class="control-btn play-pause" id="btn-play-audio" title="Play/Pause">
+                        <i class="fa-solid fa-play" id="play-icon"></i>
+                    </button>
+                    <button class="control-btn" id="btn-next-slide" title="Próximo Slide">
+                        <i class="fa-solid fa-forward-step"></i>
+                    </button>
+                </div>
+
+                <!-- Audio progress bar -->
+                <div class="timeline-container">
+                    <span class="timeline-time" id="current-time">0:00</span>
+                    <input type="range" class="slider" id="progress-bar" value="0" min="0" max="100">
+                    <span class="timeline-time" id="duration-time">0:00</span>
+                </div>
+
+                <!-- Speed Control -->
+                <div class="speed-container">
+                    <label for="speed-slider" id="speed-label">Velocidade: 1.0x</label>
+                    <input type="range" class="slider" id="speed-slider" value="10" min="5" max="20">
+                </div>
+
+                <div class="timeline-time" id="slide-indicator" style="min-width: 80px; text-align: right; font-weight: 600;">Slide 1 / 3</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden HTML5 Audio Element -->
+    <audio id="lesson-audio" style="display: none;"></audio>
+
+    <script>
+        // DOM Elements
+        const setupPanel = document.getElementById('setup-panel');
+        const loadingPanel = document.getElementById('loading-panel');
+        const stagePanel = document.getElementById('stage-panel');
+        const typeTabs = document.querySelectorAll('.type-tab');
+        
+        const groupTheme = document.getElementById('group-theme');
+        const groupText = document.getElementById('group-text');
+        const groupPdf = document.getElementById('group-pdf');
+        
+        const themeInput = document.getElementById('theme-input');
+        const textInput = document.getElementById('text-input');
+        const pdfFileInput = document.getElementById('pdf-file-input');
+        const pdfDropZone = document.getElementById('pdf-drop-zone');
+        const selectedFilename = document.getElementById('selected-filename');
+        
+        const btnGenerate = document.getElementById('btn-generate-lesson');
+        const btnReset = document.getElementById('btn-reset-classroom');
+        const loadingStepTitle = document.getElementById('loading-step-title');
+        const loadingStepDesc = document.getElementById('loading-step-desc');
+        
+        // Stage Elements
+        const classroomSubjectTitle = document.getElementById('classroom-subject-title');
+        const boardSlideTitle = document.getElementById('board-slide-title');
+        const boardBullets = document.getElementById('board-bullets');
+        const boardImage = document.getElementById('board-image');
+        const teacherAvatar = document.getElementById('teacher-avatar');
+        const teacherSubtitles = document.getElementById('teacher-subtitles');
+        
+        // Control Bar Elements
+        const btnPlay = document.getElementById('btn-play-audio');
+        const playIcon = document.getElementById('play-icon');
+        const btnPrev = document.getElementById('btn-prev-slide');
+        const btnNext = document.getElementById('btn-next-slide');
+        const progressBar = document.getElementById('progress-bar');
+        const currentTimeEl = document.getElementById('current-time');
+        const durationTimeEl = document.getElementById('duration-time');
+        const speedSlider = document.getElementById('speed-slider');
+        const speedLabel = document.getElementById('speed-label');
+        const slideIndicator = document.getElementById('slide-indicator');
+        
+        const audioEl = document.getElementById('lesson-audio');
+
+        // State Variables
+        let currentType = 'theme'; // theme, text, pdf
+        let selectedPdfFile = null;
+        let lessonData = null; // Generated classroom data
+        let currentSlideIdx = 0;
+        let audioDuration = 0;
+        let audioLoading = false;
+
+        // Check if generate button should be enabled
+        function checkInputs() {
+            let valid = false;
+            if (currentType === 'theme' && themeInput.value.trim() !== '') {
+                valid = true;
+            } else if (currentType === 'text' && textInput.value.trim() !== '') {
+                valid = true;
+            } else if (currentType === 'pdf' && selectedPdfFile !== null) {
+                valid = true;
+            }
+            btnGenerate.disabled = !valid;
+        }
+
+        themeInput.addEventListener('input', checkInputs);
+        textInput.addEventListener('input', checkInputs);
+
+        // Tab selection change
+        typeTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                typeTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentType = tab.getAttribute('data-type');
+                
+                // Toggle forms
+                groupTheme.style.display = currentType === 'theme' ? 'flex' : 'none';
+                groupText.style.display = currentType === 'text' ? 'flex' : 'none';
+                groupPdf.style.display = currentType === 'pdf' ? 'flex' : 'none';
+                
+                checkInputs();
+            });
+        });
+
+        // PDF Drag and Drop Events
+        pdfDropZone.addEventListener('click', () => pdfFileInput.click());
+        pdfFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleSelectedFile(e.target.files[0]);
+            }
+        });
+
+        pdfDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            pdfDropZone.style.borderColor = 'rgba(139, 92, 246, 0.7)';
+        });
+
+        pdfDropZone.addEventListener('dragleave', () => {
+            pdfDropZone.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+        });
+
+        pdfDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            pdfDropZone.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+            if (e.dataTransfer.files.length > 0) {
+                handleSelectedFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        function handleSelectedFile(file) {
+            if (file.type !== 'application/pdf') {
+                alert('Apenas arquivos PDF são aceitos!');
+                return;
+            }
+            selectedPdfFile = file;
+            selectedFilename.textContent = `PDF Selecionado: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            selectedFilename.style.display = 'block';
+            checkInputs();
+        }
+
+        // Generate Lesson
+        btnGenerate.addEventListener('click', async () => {
+            setupPanel.style.display = 'none';
+            loadingPanel.style.display = 'flex';
+            
+            // Set loading step texts
+            loadingStepTitle.textContent = 'Extraindo e Estruturando...';
+            loadingStepDesc.textContent = 'Analisando os conceitos base e separando o roteiro em slides didáticos.';
+            
+            const formData = new FormData();
+            formData.append('type', currentType);
+            
+            if (currentType === 'theme') {
+                formData.append('content', themeInput.value.trim());
+            } else if (currentType === 'text') {
+                formData.append('content', textInput.value.trim());
+            } else if (currentType === 'pdf') {
+                formData.append('file', selectedPdfFile);
+                loadingStepTitle.textContent = 'Lendo Documento PDF...';
+                loadingStepDesc.textContent = 'Processando páginas e extraindo conteúdo de texto acadêmico.';
+            }
+
+            try {
+                // Change description step slightly in progress
+                setTimeout(() => {
+                    if (loadingPanel.style.display === 'flex') {
+                        loadingStepTitle.textContent = 'Ilustrando o Quadro...';
+                        loadingStepDesc.textContent = 'Desenhando diagramas técnicos estilizados sobre o assunto no quadro verde.';
+                    }
+                }, 7000);
+                
+                const resp = await fetch('/api/classroom/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!resp.ok) {
+                    throw new Error(await resp.text());
+                }
+                
+                lessonData = await resp.json();
+                
+                // Success - render the lesson!
+                loadingPanel.style.display = 'none';
+                stagePanel.style.display = 'flex';
+                
+                renderLesson();
+            } catch (err) {
+                alert(`Falha ao gerar aula: ${err.message || err}`);
+                loadingPanel.style.display = 'none';
+                setupPanel.style.display = 'flex';
+            }
+        });
+
+        // Reset Classroom
+        btnReset.addEventListener('click', () => {
+            // Stop audio
+            audioEl.pause();
+            audioEl.src = '';
+            teacherAvatar.classList.remove('speaking');
+            
+            stagePanel.style.display = 'none';
+            setupPanel.style.display = 'flex';
+            
+            // Clear fields
+            themeInput.value = '';
+            textInput.value = '';
+            selectedPdfFile = null;
+            pdfFileInput.value = '';
+            selectedFilename.style.display = 'none';
+            btnGenerate.disabled = true;
+        });
+
+        // Play/Pause Audio
+        btnPlay.addEventListener('click', () => {
+            if (audioLoading) return;
+            
+            if (audioEl.paused) {
+                audioEl.play();
+                playIcon.className = 'fa-solid fa-pause';
+                teacherAvatar.classList.add('speaking');
+            } else {
+                audioEl.pause();
+                playIcon.className = 'fa-solid fa-play';
+                teacherAvatar.classList.remove('speaking');
+            }
+        });
+
+        // Change slide page
+        btnPrev.addEventListener('click', () => {
+            if (currentSlideIdx > 0) {
+                currentSlideIdx--;
+                loadSlide(currentSlideIdx);
+            }
+        });
+
+        btnNext.addEventListener('click', () => {
+            if (lessonData && currentSlideIdx < lessonData.slides.length - 1) {
+                currentSlideIdx++;
+                loadSlide(currentSlideIdx);
+            }
+        });
+
+        // Set Slide Content
+        function renderLesson() {
+            if (!lessonData) return;
+            classroomSubjectTitle.textContent = lessonData.subject || "Aula Paradise AI";
+            currentSlideIdx = 0;
+            loadSlide(currentSlideIdx);
+        }
+
+        async function loadSlide(idx) {
+            if (!lessonData || !lessonData.slides || idx < 0 || idx >= lessonData.slides.length) return;
+            
+            const slide = lessonData.slides[idx];
+            
+            // UI Navigation availability
+            btnPrev.disabled = idx === 0;
+            btnNext.disabled = idx === lessonData.slides.length - 1;
+            slideIndicator.textContent = `Slide ${idx + 1} / ${lessonData.slides.length}`;
+            
+            // Render text
+            boardSlideTitle.textContent = `${idx + 1}. ${slide.title}`;
+            teacherSubtitles.textContent = slide.narration;
+            
+            // Render bullet points
+            boardBullets.innerHTML = '';
+            slide.bullets.forEach((bullet, i) => {
+                const li = document.createElement('li');
+                li.textContent = bullet;
+                boardBullets.appendChild(li);
+                // Stagger reveal animation for chalk board bullet points
+                setTimeout(() => {
+                    li.classList.add('reveal');
+                }, i * 600 + 400);
+            });
+            
+            // Render green chalkboard drawing
+            boardImage.className = 'loading';
+            if (slide.image_url) {
+                boardImage.src = slide.image_url;
+                boardImage.onload = () => boardImage.className = '';
+            } else {
+                boardImage.src = '';
+            }
+            
+            // Reset Audio
+            audioEl.pause();
+            audioEl.src = '';
+            teacherAvatar.classList.remove('speaking');
+            playIcon.className = 'fa-solid fa-play';
+            progressBar.value = 0;
+            currentTimeEl.textContent = '0:00';
+            durationTimeEl.textContent = '0:00';
+            
+            // Fetch Audio
+            audioLoading = true;
+            btnPlay.disabled = true;
+            teacherSubtitles.textContent = "Preparando a voz do professor para este quadro...";
+            
+            try {
+                // Synthesize the narration text using standard proxy TTS
+                audioEl.src = `/api/tts?text=${encodeURIComponent(slide.narration)}`;
+                audioEl.load();
+                
+                audioEl.oncanplaythrough = () => {
+                    audioLoading = false;
+                    btnPlay.disabled = false;
+                    teacherSubtitles.textContent = slide.narration;
+                    
+                    // Set speed rate
+                    const speed = speedSlider.value / 10;
+                    audioEl.playbackRate = speed;
+                    
+                    // Auto-start play when slide loaded
+                    audioEl.play().then(() => {
+                        playIcon.className = 'fa-solid fa-pause';
+                        teacherAvatar.classList.add('speaking');
+                    }).catch(() => {
+                        // Browser blocked autoplay, wait for user
+                        playIcon.className = 'fa-solid fa-play';
+                        teacherAvatar.classList.remove('speaking');
+                    });
+                };
+            } catch (e) {
+                console.error("Failed to load audio for slide", e);
+                teacherSubtitles.textContent = slide.narration + " (Áudio indisponível)";
+                audioLoading = false;
+            }
+        }
+
+        // Timeline Progress updates
+        audioEl.addEventListener('timeupdate', () => {
+            if (audioEl.duration) {
+                const current = audioEl.currentTime;
+                const duration = audioEl.duration;
+                audioDuration = duration;
+                
+                const pct = (current / duration) * 100;
+                progressBar.value = pct;
+                
+                currentTimeEl.textContent = formatTime(current);
+                durationTimeEl.textContent = formatTime(duration);
+            }
+        });
+
+        // On audio end, auto transition
+        audioEl.addEventListener('ended', () => {
+            teacherAvatar.classList.remove('speaking');
+            playIcon.className = 'fa-solid fa-play';
+            
+            // Auto transition to next slide after 2 seconds if available
+            if (lessonData && currentSlideIdx < lessonData.slides.length - 1) {
+                setTimeout(() => {
+                    // Check that we didn't play another slide or restarted
+                    if (audioEl.paused && !audioEl.currentTime) return; 
+                    currentSlideIdx++;
+                    loadSlide(currentSlideIdx);
+                }, 2000);
+            }
+        });
+
+        // Seek Audio progress
+        progressBar.addEventListener('input', () => {
+            if (audioEl.duration) {
+                const pct = progressBar.value;
+                audioEl.currentTime = (pct / 100) * audioEl.duration;
+            }
+        });
+
+        // Speed Slider changes
+        speedSlider.addEventListener('input', () => {
+            const speed = speedSlider.value / 10;
+            speedLabel.textContent = `Velocidade: ${speed.toFixed(1)}x`;
+            audioEl.playbackRate = speed;
+        });
+
+        function formatTime(secs) {
+            const m = Math.floor(secs / 60);
+            const s = Math.floor(secs % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+    </script>
+</body>
+</html>

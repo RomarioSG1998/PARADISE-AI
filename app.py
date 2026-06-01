@@ -79,6 +79,80 @@ def enhance_prompt_for_images(message: str) -> str:
         return message + enhancement
     return message
 
+image_cache = {}
+
+@app.route("/api/image-cache/<img_id>")
+def get_cached_image(img_id):
+    from flask import Response
+    if img_id in image_cache:
+        return Response(image_cache[img_id], mimetype="image/jpeg")
+    return "Image not found", 404
+
+async def generate_text_unified_async(prompt):
+    load_dotenv(ENV_PATH, override=True)
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    
+    if gemini_api_key:
+        from google import genai
+        official_client = genai.Client(api_key=gemini_api_key)
+        # Use gemini-2.5-flash for text generation tasks
+        response = official_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+        text = response.text if hasattr(response, "text") else str(response)
+        return text, None
+        
+    client, err = await get_or_create_client_async()
+    if err:
+        return None, err
+    try:
+        response = await client.generate_content(prompt)
+        text = response.text if hasattr(response, "text") else str(response)
+        return text, None
+    except Exception as e:
+        return None, str(e)
+
+async def generate_image_unified_async(prompt):
+    load_dotenv(ENV_PATH, override=True)
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    
+    if gemini_api_key:
+        try:
+            from google import genai
+            official_client = genai.Client(api_key=gemini_api_key)
+            print(f"[Paradise AI] Generating image via Imagen 3: {prompt}")
+            result = official_client.models.generate_images(
+                model='imagen-3.0-generate-002',
+                prompt=prompt,
+                config=dict(
+                    number_of_images=1,
+                    output_mime_type="image/jpeg"
+                )
+            )
+            if result.generated_images:
+                import uuid
+                img_bytes = result.generated_images[0].image.image_bytes
+                img_id = str(uuid.uuid4())
+                image_cache[img_id] = img_bytes
+                return f"/api/image-cache/{img_id}", None
+            return None, "Nenhuma imagem foi retornada pelo modelo Imagen 3."
+        except Exception as e:
+            return None, f"Erro de geração de imagem oficial: {str(e)}"
+            
+    client, err = await get_or_create_client_async()
+    if err:
+        return None, err
+    try:
+        response = await client.generate_content(prompt)
+        if hasattr(response, "images") and response.images:
+            for img in response.images:
+                if hasattr(img, "url") and img.url:
+                    return img.url, None
+        return None, "Nenhuma imagem retornada pelo cliente."
+    except Exception as e:
+        return None, str(e)
+
 async def chat_async(message):
     client, err = await get_or_create_client_async()
     if err:
@@ -392,10 +466,6 @@ def add_header(response):
 # ----------------- BOOK GENERATOR ENDPOINTS -----------------
 
 async def generate_book_async(theme, level, language):
-    client, err = await get_or_create_client_async()
-    if err:
-        return None, err
-        
     prompt = f"""Escreva um livro curto personalizado no seguinte formato JSON. O livro deve ser escrito no idioma "{language}", com nível de leitura "{level}" e sobre o tema "{theme}".
 O JSON retornado deve seguir exatamente esta estrutura:
 {{
@@ -426,10 +496,11 @@ O JSON retornado deve seguir exatamente esta estrutura:
 }}
 Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcação adicional ou texto fora do bloco de código json. Envolva o JSON em um bloco de código markdown (iniciando com ```json e finalizando com ```)."""
 
-    try:
-        response = await client.generate_content(prompt)
-        text_resp = response.text if hasattr(response, "text") else str(response)
+    text_resp, err = await generate_text_unified_async(prompt)
+    if err:
+        return None, err
         
+    try:
         # Clean and parse JSON
         import json
         book_data = {}
@@ -446,43 +517,22 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
             img_prompt = chapter.get("illustration_prompt", f"A beautiful scene depicting {theme}")
             full_img_prompt = f"Gere uma imagem de: {img_prompt}. (2D cartoon style illustration, thick outlines, vibrant colors, comic drawing style, playful animation art, no text, no letters, no labels)"
             
-            try:
-                img_response = await client.generate_content(full_img_prompt)
-                if hasattr(img_response, "images") and img_response.images:
-                    for img in img_response.images:
-                        if hasattr(img, "url") and img.url:
-                            chapter["image_url"] = img.url
-                            break
-                    else:
-                        chapter["image_error"] = "Nenhuma imagem válida encontrada no retorno do Gemini."
-                else:
-                    err_msg = img_response.text if hasattr(img_response, "text") and img_response.text else "Nenhuma imagem retornada pelo Gemini."
-                    chapter["image_error"] = err_msg
-            except Exception as img_err:
-                print(f"[Book Gen Error] Failed to generate image for chapter {idx+1}: {img_err}")
-                chapter["image_error"] = str(img_err)
+            img_url, img_err = await generate_image_unified_async(full_img_prompt)
+            if img_url:
+                chapter["image_url"] = img_url
+            else:
+                chapter["image_error"] = img_err or "Nenhuma imagem retornada"
                 
         return book_data, None
     except Exception as e:
         return None, f"Failed to generate book: {str(e)}"
 
 async def illustrate_scene_async(prompt):
-    client, err = await get_or_create_client_async()
-    if err:
-        return None, err
-        
     full_prompt = f"Gere uma imagem de: {prompt}. (2D cartoon style illustration, thick outlines, vibrant colors, comic drawing style, playful animation art, no text, no letters)"
-    try:
-        img_response = await client.generate_content(full_prompt)
-        if hasattr(img_response, "images") and img_response.images:
-            for img in img_response.images:
-                if hasattr(img, "url") and img.url:
-                    return {"image_url": img.url}, None
-        
-        err_msg = img_response.text if hasattr(img_response, "text") and img_response.text else "Nenhuma imagem retornada pelo Gemini."
-        return None, err_msg
-    except Exception as e:
-        return None, f"Falha na geração da ilustração: {str(e)}"
+    img_url, img_err = await generate_image_unified_async(full_prompt)
+    if img_url:
+        return {"image_url": img_url}, None
+    return None, img_err or "Nenhuma imagem retornada"
 
 @app.route("/book")
 def index_book():
@@ -520,13 +570,9 @@ def illustrate_scene():
     return jsonify(result)
 
 async def explain_word_async(word, sentence, book_lang, target_lang):
-    client, err = await get_or_create_client_async()
-    if err:
-        return None, err
-        
     prompt = f"""Explique a palavra ou expressão "{word}" que aparece na seguinte frase: "{sentence}".
 O livro está escrito no idioma {book_lang}.
-Retorne a resposta EXCLUSIVAMENTE em formato JSON (envolvido por ```json ... ```) seguindo exatamente este modelo:
+O JSON retornado deve seguir exatamente este modelo:
 {{
   "word": "{word}",
   "translation": "Tradução direta da palavra/expressão para o idioma {target_lang}",
@@ -535,10 +581,11 @@ Retorne a resposta EXCLUSIVAMENTE em formato JSON (envolvido por ```json ... ```
 }}
 Não adicione explicações extras fora do bloco JSON. Retorne apenas o JSON válido."""
 
-    try:
-        response = await client.generate_content(prompt)
-        text_resp = response.text if hasattr(response, "text") else str(response)
+    text_resp, err = await generate_text_unified_async(prompt)
+    if err:
+        return None, err
         
+    try:
         import json
         cleaned_text = text_resp.strip()
         if "```json" in cleaned_text:
@@ -550,17 +597,8 @@ Não adicione explicações extras fora do bloco JSON. Retorne apenas o JSON vá
         
         # Generate the micro-illustration for this word!
         img_prompt = data.get("illustration_prompt", f"A simple vector cartoon icon of {word}")
-        img_url = None
-        try:
-            img_response = await client.generate_content(img_prompt)
-            if hasattr(img_response, "images") and img_response.images:
-                for img in img_response.images:
-                    if hasattr(img, "url") and img.url:
-                        img_url = img.url
-                        break
-        except Exception as img_err:
-            print(f"[Word Gen Error] Failed to generate micro-illustration: {img_err}")
-            
+        img_url, img_err = await generate_image_unified_async(img_prompt)
+        
         data["image_url"] = img_url
         return data, None
     except Exception as e:
@@ -583,6 +621,114 @@ def explain_word():
         return jsonify({"error": err}), 500
         
     return jsonify(result)
+
+# ----------------- CLASSROOM ENDPOINTS -----------------
+
+@app.route("/classroom")
+def index_classroom():
+    # Renders the Classroom App
+    return render_template("classroom.html")
+
+@app.route("/api/classroom/generate", methods=["POST"])
+def generate_classroom():
+    import json
+    
+    # We can handle text inputs or PDF file uploads
+    input_type = "theme"
+    content = ""
+    
+    if request.is_json:
+        data = request.get_json() or {}
+        input_type = data.get("type", "theme")
+        content = data.get("content", "").strip()
+    else:
+        input_type = request.form.get("type", "theme")
+        if input_type == "pdf":
+            if "file" not in request.files:
+                return jsonify({"error": "Nenhum arquivo enviado"}), 400
+            file = request.files["file"]
+            if file.filename == "":
+                return jsonify({"error": "Nome do arquivo vazio"}), 400
+                
+            try:
+                from pypdf import PdfReader
+                reader = PdfReader(file.stream)
+                extracted_text = []
+                for page in reader.pages:
+                    text_page = page.extract_text()
+                    if text_page:
+                        extracted_text.append(text_page)
+                content = "\n".join(extracted_text)
+                if not content.strip():
+                    return jsonify({"error": "Não foi possível extrair texto do PDF"}), 400
+            except Exception as e:
+                return jsonify({"error": f"Erro ao processar PDF: {str(e)}"}), 500
+        else:
+            content = request.form.get("content", "").strip()
+            
+    if not content:
+        return jsonify({"error": "Conteúdo ou tema não especificado"}), 400
+        
+    # Build prompt for structuring classroom lecture
+    prompt = f"""Crie uma aula completa, didática e estruturada sobre o assunto a seguir.
+O assunto/conteúdo é: {content[:8000]}
+
+A aula deve ser dividida em 3 a 5 partes/telas sequenciais (slides) que explicam o conceito de forma lógica.
+Para cada parte/tela da aula, você deve fornecer:
+1. Um título curto do quadro (máximo de 50 caracteres).
+2. Um texto explicativo dinâmico e natural que o professor (avatar) falará para explicar esse slide (de 3 a 5 frases em português brasileiro).
+3. De 3 a 5 tópicos (bullet points) sintéticos que serão exibidos no quadro negro/lousa.
+4. Um prompt detalhado em inglês para gerar uma ilustração/diagrama técnico estilo desenho de giz (chalk sketch, technical blueprint on dark board) que apoie a explicação dessa parte.
+
+Retorne a resposta EXCLUSIVAMENTE em formato JSON (envolvido por ```json ... ```) seguindo exatamente este modelo:
+{{
+  "subject": "Título Geral da Aula",
+  "slides": [
+    {{
+      "slide_number": 1,
+      "title": "Introdução ao Assunto",
+      "narration": "Texto que o professor irá falar nesta parte...",
+      "bullets": [
+        "Tópico sintético 1",
+        "Tópico sintético 2"
+      ],
+      "image_prompt": "A clean chalkboard style diagram showing the base concept of..."
+    }}
+  ]
+}}
+Retorne apenas o bloco JSON válido, sem texto adicional antes ou depois. Envolva o JSON em um bloco de código markdown (iniciando com ```json e finalizando com ```)."""
+
+    # Generate lesson script
+    text_resp, err = run_in_background(generate_text_unified_async(prompt))
+    if err:
+        return jsonify({"error": f"Falha ao gerar roteiro da aula: {err}"}), 500
+        
+    try:
+        cleaned_text = text_resp.strip()
+        if "```json" in cleaned_text:
+            cleaned_text = cleaned_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in cleaned_text:
+            cleaned_text = cleaned_text.split("```")[1].split("```")[0].strip()
+            
+        lesson_data = json.loads(cleaned_text)
+    except Exception as parse_err:
+        print(f"[Classroom Parser Error] {parse_err}. Response text was: {text_resp}")
+        return jsonify({"error": "Erro ao interpretar resposta do modelo. Tente novamente."}), 500
+
+    # Generate illustrations for slides in background
+    slides = lesson_data.get("slides", [])
+    for idx, slide in enumerate(slides):
+        img_prompt = slide.get("image_prompt", f"A technical chalkboard drawing about {lesson_data.get('subject', 'education')}")
+        # Inject standard style modifiers to guarantee nice classroom drawings
+        full_img_prompt = f"Gere uma imagem de: {img_prompt}. (white chalk sketch on blackboard, blackboard drawing style, schematic, educational blueprint, dark green board background, technical drawing, no letters, no text, outline drawing)"
+        
+        img_url, img_err = run_in_background(generate_image_unified_async(full_img_prompt))
+        if img_url:
+            slide["image_url"] = img_url
+        else:
+            slide["image_error"] = img_err or "Nenhuma imagem retornada"
+
+    return jsonify(lesson_data)
 
 if __name__ == "__main__":
     # Pre-initialize client on boot if cookies exist
