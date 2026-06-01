@@ -478,30 +478,36 @@ def add_header(response):
 
 async def generate_book_async(theme, level, language):
     lang_lower = language.lower()
+    print(f"[Paradise AI] Generating book. Theme: '{theme}', Level: '{level}', Target Language: '{language}'")
+    
     if "inglês" in lang_lower or "english" in lang_lower or lang_lower == "en":
-        prompt = f"""Write a custom short book in the following JSON format. The book must be written in English, with reading level "{level}" and about the theme "{theme}".
+        prompt = f"""You must write a custom short book in English.
+Translate the theme "{theme}" to English if it is in another language, and write the book about that translated theme.
+All story content, titles, and text must be written EXCLUSIVELY in English.
+The book must be written for reading level "{level}".
+
 The returned JSON must follow exactly this structure:
 {{
-  "title": "Book Title",
-  "theme": "{theme}",
+  "title": "Book Title in English",
+  "theme": "Theme in English",
   "level": "{level}",
   "language": "English",
   "chapters": [
     {{
       "chapter_number": 1,
-      "title": "Chapter 1 Title",
+      "title": "Chapter 1 Title in English",
       "text": "Full text of Chapter 1 (rich and engaging narrative of 3 to 5 paragraphs written in English).",
       "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 1 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
     }},
     {{
       "chapter_number": 2,
-      "title": "Chapter 2 Title",
+      "title": "Chapter 2 Title in English",
       "text": "Full text of Chapter 2 (rich and engaging narrative of 3 to 5 paragraphs written in English).",
       "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 2 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
     }},
     {{
       "chapter_number": 3,
-      "title": "Chapter 3 Title",
+      "title": "Chapter 3 Title in English",
       "text": "Full text of Chapter 3 (rich and exciting conclusion of 3 to 5 paragraphs written in English).",
       "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 3 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
     }}
@@ -509,29 +515,33 @@ The returned JSON must follow exactly this structure:
 }}
 Return ONLY the valid JSON block. Do not include any intro or explanation. Wrap the JSON in a markdown code block starting with ```json and ending with ```."""
     elif "espanhol" in lang_lower or "spanish" in lang_lower or "español" in lang_lower or lang_lower == "es":
-        prompt = f"""Escribe un libro corto personalizado en el siguiente formato JSON. El libro debe estar escrito en Español, con nivel de lectura "{level}" y sobre el tema "{theme}".
+        prompt = f"""Debes escribir un libro corto personalizado en Español.
+Traduce el tema "{theme}" al español si está en otro idioma, y escribe el libro sobre ese tema traducido.
+Todo el contenido de la historia, títulos y texto deben estar escritos EXCLUSIVAMENTE en Español.
+El libro debe estar escrito para el nivel de lectura "{level}".
+
 El JSON devuelto debe seguir exactamente esta estructura:
 {{
-  "title": "Título del Libro",
-  "theme": "{theme}",
+  "title": "Título del Libro en Español",
+  "theme": "Tema en Español",
   "level": "{level}",
   "language": "Español",
   "chapters": [
     {{
       "chapter_number": 1,
-      "title": "Título del Capítulo 1",
+      "title": "Título del Capítulo 1 en Español",
       "text": "Texto completo del Capítulo 1 (narrativa rica y envolvente de 3 a 5 párrafos escrita en Español).",
       "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 1 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
     }},
     {{
       "chapter_number": 2,
-      "title": "Título del Capítulo 2",
+      "title": "Título del Capítulo 2 en Español",
       "text": "Texto completo del Capítulo 2 (narrativa rica y envolvente de 3 a 5 párrafos escrita en Español).",
       "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 2 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
     }},
     {{
       "chapter_number": 3,
-      "title": "Título del Capítulo 3",
+      "title": "Título del Capítulo 3 en Español",
       "text": "Texto completo del Capítulo 3 (conclusión rica y emocionante de 3 a 5 párrafos escrita en Español).",
       "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 3 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
     }}
@@ -539,30 +549,34 @@ El JSON devuelto debe seguir exactamente esta estructura:
 }}
 Devuelve SOLO el bloque JSON válido. No incluyas explicaciones. Envuelve el JSON en un bloque de código markdown que comience con ```json y termine con ```."""
     else:
-        prompt = f"""Escreva um livro curto personalizado no seguinte formato JSON. O livro deve ser escrito no idioma "{language}", com nível de leitura "{level}" e sobre o tema "{theme}".
+        prompt = f"""Você deve escrever um livro curto personalizado no idioma "{language}".
+Traduza o tema "{theme}" para o idioma "{language}" se estiver em outro idioma, e escreva o livro sobre esse tema traduzido.
+Todo o conteúdo da história, títulos e texto devem ser escritos EXCLUSIVAMENTE no idioma "{language}".
+O livro deve ser escrito para o nível de leitura "{level}".
+
 O JSON retornado deve seguir exatamente esta estrutura:
 {{
-  "title": "Título do Livro",
-  "theme": "{theme}",
+  "title": "Título do Livro no idioma {language}",
+  "theme": "Tema no idioma {language}",
   "level": "{level}",
   "language": "{language}",
   "chapters": [
     {{
       "chapter_number": 1,
-      "title": "Título do Capítulo 1",
-      "text": "Texto completo do Capítulo 1 (narrativa rica e envolvente de 3 a 5 parágrafos no idioma {language}).",
+      "title": "Título do Capítulo 1 no idioma {language}",
+      "text": "Texto completo do Capítulo 1 (narrativa rica e envolvente de 3 a 5 parágrafos escrita no idioma {language}).",
       "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 1 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
     }},
     {{
       "chapter_number": 2,
-      "title": "Título do Capítulo 2",
-      "text": "Texto completo do Capítulo 2 (narrativa rica e envolvente de 3 a 5 parágrafos no idioma {language}).",
+      "title": "Título do Capítulo 2 no idioma {language}",
+      "text": "Texto completo do Capítulo 2 (narrativa rica e envolvente de 3 a 5 parágrafos escrita no idioma {language}).",
       "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 2 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
     }},
     {{
       "chapter_number": 3,
-      "title": "Título do Capítulo 3",
-      "text": "Texto completo do Capítulo 3 (conclusão rica e emocionante de 3 a 5 parágrafos no idioma {language}).",
+      "title": "Título do Capítulo 3 no idioma {language}",
+      "text": "Texto completo do Capítulo 3 (conclusão rica e emocionante de 3 a 5 parágrafos escrita no idioma {language}).",
       "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 3 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
     }}
   ]
@@ -767,6 +781,7 @@ def generate_classroom():
         prompt = f"""Create a complete, educational, and structured class about the following topic.
 The topic/content is: {content[:8000]}
 
+First, translate the topic/content to English if it is in another language. Write the entire class based on that translated topic/content.
 The entire class (including general title, slide titles, teacher narration, and board bullet points) MUST be written exclusively in English.
 The class must be divided into 3 to 5 sequential slides explaining the concept logically.
 For each slide, you must provide:
@@ -796,6 +811,7 @@ Return only the valid JSON block, with no additional text before or after. Wrap 
         prompt = f"""Crea una clase completa, didáctica y estructurada sobre el siguiente tema.
 El tema/contenido es: {content[:8000]}
 
+Primero, traduce el tema/contenido al español si está en otro idioma. Escribe la clase completa basándote en ese tema/contenido traducido.
 Toda la clase (incluido el título general, los títulos de las diapositivas, la narración del profesor y los puntos clave de la pizarra) DEBE estar escrita exclusivamente en Español.
 La clase debe dividirse en 3 a 5 diapositivas secuenciales que expliquen el concepto de manera lógica.
 Para cada diapositiva, debes proporcionar:
@@ -825,6 +841,7 @@ Devuelve solo el bloque JSON válido, sin texto adicional antes o después. Envu
         prompt = f"""Crie uma aula completa, didática e estruturada sobre o assunto a seguir.
 O assunto/conteúdo é: {content[:8000]}
 
+Primeiro, traduza o assunto/conteúdo para o português se estiver em outro idioma. Escreva a aula completa com base nesse assunto/conteúdo traduzido.
 A aula inteira (incluindo título geral, títulos dos slides, narração do professor e tópicos da lousa) deve ser escrita exclusivamente no idioma Português (Brasil).
 A aula deve ser dividida em 3 a 5 partes/telas sequenciais (slides) que explicam o conceito de forma lógica.
 Para cada parte/tela da aula, você deve fornecer:
