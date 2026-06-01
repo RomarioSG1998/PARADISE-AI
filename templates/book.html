@@ -1641,7 +1641,8 @@
                     body: JSON.stringify({
                         word: word,
                         sentence: sentence,
-                        book_language: currentBook.language
+                        book_language: currentBook.language,
+                        language: localStorage.getItem('paradise_language') || 'pt'
                     })
                 });
                 

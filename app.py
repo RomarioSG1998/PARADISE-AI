@@ -656,14 +656,37 @@ def illustrate_scene():
         
     return jsonify(result)
 
-async def explain_word_async(word, sentence, book_lang, target_lang):
-    prompt = f"""Explique a palavra ou expressão "{word}" que aparece na seguinte frase: "{sentence}".
+async def explain_word_async(word, sentence, book_lang, target_lang, user_lang_code):
+    if user_lang_code == "en":
+        prompt = f"""Explain the word or expression "{word}" that appears in the following sentence: "{sentence}".
+The book is written in the language {book_lang}.
+The returned JSON must follow exactly this structure:
+{{
+  "word": "{word}",
+  "translation": "Direct translation of the word/expression to {target_lang}",
+  "explanation": "A simple and brief 1-sentence explanation of the meaning within the context of the story written in English.",
+  "illustration_prompt": "A simple 2D cartoon vector icon of {word}, white background, colorful, clean outlines, child friendly, clip art style"
+}}
+Do not add any extra explanation outside the JSON block. Return ONLY the valid JSON."""
+    elif user_lang_code == "es":
+        prompt = f"""Explica la palabra o expresión "{word}" que aparece en la siguiente frase: "{sentence}".
+El libro está escrito en el idioma {book_lang}.
+El JSON devuelto debe seguir exactamente esta estructura:
+{{
+  "word": "{word}",
+  "translation": "Traducción directa de la palabra/expresión al {target_lang}",
+  "explanation": "Una explicación sencilla y breve de 1 frase sobre el significado en el contexto de la historia escrita en Español.",
+  "illustration_prompt": "A simple 2D cartoon vector icon of {word}, white background, colorful, clean outlines, child friendly, clip art style"
+}}
+No agregues explicaciones adicionales fuera del bloque JSON. Devuelve SOLO el JSON válido."""
+    else:
+        prompt = f"""Explique a palavra ou expressão "{word}" que aparece na seguinte frase: "{sentence}".
 O livro está escrito no idioma {book_lang}.
 O JSON retornado deve seguir exatamente este modelo:
 {{
   "word": "{word}",
   "translation": "Tradução direta da palavra/expressão para o idioma {target_lang}",
-  "explanation": "Explicação simples e breve de 1 frase sobre o significado no contexto da história.",
+  "explanation": "Explicação simples e breve de 1 frase sobre o significado no contexto da história escrita em Português.",
   "illustration_prompt": "A simple 2D cartoon vector icon of {word}, white background, colorful, clean outlines, child friendly, clip art style"
 }}
 Não adicione explicações extras fora do bloco JSON. Retorne apenas o JSON válido."""
@@ -701,15 +724,24 @@ def explain_word():
     if not word or not sentence or not book_lang:
         return jsonify({"error": "Word, sentence, and book language are required"}), 400
         
-    lang_code = request.cookies.get("paradise_language", "pt")
-    lang_names = {
-        "pt": "Português",
-        "en": "Inglês",
-        "es": "Espanhol"
-    }
-    target_lang = lang_names.get(lang_code, "Português")
+    user_lang_code = data.get("language") or request.cookies.get("paradise_language", "pt")
+    if user_lang_code not in ["pt", "en", "es"]:
+        user_lang_code = "pt"
+        
+    # Smart translation target based on user language vs book language
+    book_lang_lower = book_lang.lower()
+    is_book_english = "inglês" in book_lang_lower or "english" in book_lang_lower or book_lang_lower == "en"
+    is_book_spanish = "espanhol" in book_lang_lower or "spanish" in book_lang_lower or "español" in book_lang_lower or book_lang_lower == "es"
+    is_book_portuguese = "português" in book_lang_lower or "portuguese" in book_lang_lower or book_lang_lower == "pt"
     
-    result, err = run_in_background(explain_word_async(word, sentence, book_lang, target_lang))
+    if user_lang_code == "en":
+        target_lang = "Portuguese" if is_book_english else "English"
+    elif user_lang_code == "es":
+        target_lang = "Portugués" if is_book_spanish else "Español"
+    else: # pt
+        target_lang = "Inglês" if is_book_portuguese else "Português"
+        
+    result, err = run_in_background(explain_word_async(word, sentence, book_lang, target_lang, user_lang_code))
     if err:
         return jsonify({"error": err}), 500
         
