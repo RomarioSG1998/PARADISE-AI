@@ -1013,6 +1013,9 @@
                                 <button class="illustration-overlay-btn" id="btn-reillustrate" title="Redesenhar esta cena">
                                     <i class="fa-solid fa-paint-brush"></i>
                                 </button>
+                                <a class="illustration-overlay-btn" id="btn-download-illustration" href="" download="book-illustration.png" target="_blank" style="right: 3.5rem; display: none; text-decoration: none;" title="Baixar esta cena">
+                                    <i class="fa-solid fa-download"></i>
+                                </a>
                             </div>
                         </div>
 
@@ -1352,11 +1355,18 @@
 
             // Set Illustration (containment)
             readIllustrationImg.className = 'loading';
+            const dlBtn = document.getElementById('btn-download-illustration');
             if (chapter.image_url) {
                 const imgUrl = getProxyUrl(chapter.image_url);
                 console.log("[Paradise AI] Setting frame image src to:", imgUrl);
                 readIllustrationImg.src = imgUrl;
                 readIllustrationImg.style.display = 'block';
+                readIllustrationImg.style.cursor = 'pointer';
+                readIllustrationImg.onclick = () => window.open(chapter.image_url || imgUrl, '_blank');
+                
+                dlBtn.href = imgUrl;
+                dlBtn.style.display = 'flex';
+                
                 document.getElementById('illustration-error').style.display = 'none';
                 readIllustrationImg.onload = () => readIllustrationImg.className = '';
             } else {
@@ -1364,6 +1374,7 @@
                 readIllustrationImg.alt = 'Sem desenho';
                 readIllustrationImg.className = '';
                 readIllustrationImg.style.display = 'none';
+                dlBtn.style.display = 'none';
                 document.getElementById('illustration-error').style.display = 'flex';
                 if (chapter.image_error) {
                     document.getElementById('illustration-error-msg').textContent = chapter.image_error;
@@ -1601,7 +1612,12 @@
                 
                 const imgBox = document.getElementById('word-illustration-box');
                 if (data.image_url) {
-                    imgBox.innerHTML = `<img src="${getProxyUrl(data.image_url)}" alt="${word}">`;
+                    const proxyUrl = getProxyUrl(data.image_url);
+                    imgBox.innerHTML = `
+                        <div class="output-img-container" style="position: relative; width: 100%; height: 100%;">
+                            <img src="${proxyUrl}" alt="${word}" referrerpolicy="no-referrer" onclick="window.open('${data.image_url || proxyUrl}', '_blank')" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;">
+                            <a href="${proxyUrl}" download="${word}-concept.png" target="_blank" class="img-download-btn" style="position: absolute; bottom: 4px; right: 4px; background: rgba(0, 0, 0, 0.75); border: 1.5px solid rgba(255, 255, 255, 0.2); color: white; border-radius: 6px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 0.8rem; z-index: 10;" title="Baixar conceito"><i class="fa-solid fa-download"></i></a>
+                        </div>`;
                 } else {
                     imgBox.innerHTML = `<i class="fa-solid fa-image-slash" style="color: #94a3b8; font-size: 1.1rem;"></i>`;
                 }

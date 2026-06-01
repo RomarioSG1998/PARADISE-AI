@@ -822,8 +822,11 @@
                         </ul>
 
                         <!-- Right: Schematic illustration -->
-                        <div class="board-illustration">
+                        <div class="board-illustration" style="position: relative;">
                             <img src="" alt="Ilustração do quadro" id="board-image" class="loading">
+                            <a id="btn-download-board-img" href="" download="classroom-illustration.png" target="_blank" class="img-download-btn" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0, 0, 0, 0.75); border: 1px solid rgba(255, 255, 255, 0.2); color: white; border-radius: 6px; width: 36px; height: 36px; display: none; align-items: center; justify-content: center; text-decoration: none; z-index: 100;" title="Baixar Ilustração">
+                                <i class="fa-solid fa-download"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -914,45 +917,40 @@
             headGroup = new THREE.Group();
             scene.add(headGroup);
 
-            // Core Geometry (Abstract Futuristic AI Head)
-            const coreGeom = new THREE.IcosahedronGeometry(1.2, 1);
+            // Core Geometry (Realistic Professor texture mapped to 3D plane)
+            const textureLoader = new THREE.TextureLoader();
+            const faceTexture = textureLoader.load('/static/images/professor.png');
+            const coreGeom = new THREE.PlaneGeometry(2.3, 2.3);
             const coreMat = new THREE.MeshStandardMaterial({
-                color: 0x311a7a,
-                roughness: 0.1,
-                metalness: 0.9,
-                flatShading: true
+                map: faceTexture,
+                transparent: true,
+                roughness: 0.4,
+                metalness: 0.15,
+                side: THREE.DoubleSide
             });
             coreMesh = new THREE.Mesh(coreGeom, coreMat);
             headGroup.add(coreMesh);
 
-            // Wireframe outer sphere
-            const wireGeom = new THREE.IcosahedronGeometry(1.26, 2);
+            // Wireframe outer sphere (adds tech feel to the realistic face)
+            const wireGeom = new THREE.IcosahedronGeometry(1.35, 2);
             const wireMat = new THREE.MeshBasicMaterial({
-                color: 0xa78bfa,
+                color: 0x8b5cf6,
                 wireframe: true,
                 transparent: true,
-                opacity: 0.25
+                opacity: 0.2
             });
             wireframeMesh = new THREE.Mesh(wireGeom, wireMat);
             headGroup.add(wireframeMesh);
 
-            // Glowing Cyber-Eyes
-            const eyeGeom = new THREE.SphereGeometry(0.12, 16, 16);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00f2fe });
-            
-            const leftEye = new THREE.Mesh(eyeGeom, eyeMat);
-            leftEye.position.set(-0.35, 0.2, 1.05);
-            headGroup.add(leftEye);
-
-            const rightEye = new THREE.Mesh(eyeGeom, eyeMat);
-            rightEye.position.set(0.35, 0.2, 1.05);
-            headGroup.add(rightEye);
-
-            // Glowing Mouth
-            const mouthGeom = new THREE.BoxGeometry(0.4, 0.06, 0.08);
-            const mouthMat = new THREE.MeshBasicMaterial({ color: 0xec4899 });
-            mouthMesh = new THREE.Mesh(mouthGeom, mouthMat);
-            mouthMesh.position.set(0, -0.35, 1.1);
+            // Voice Wave Overlay (glowing sound waveform under the face)
+            const waveGeom = new THREE.TorusGeometry(0.8, 0.02, 8, 32, Math.PI);
+            const waveMat = new THREE.MeshBasicMaterial({
+                color: 0x00f2fe,
+                transparent: true,
+                opacity: 0.65
+            });
+            mouthMesh = new THREE.Mesh(waveGeom, waveMat);
+            mouthMesh.position.set(0, -0.6, 0.05);
             headGroup.add(mouthMesh);
 
             // Saturn Synapse Rings
@@ -1028,7 +1026,7 @@
                     if (isSpeaking3D) {
                         mouthMesh.scale.y = 1 + Math.abs(Math.sin(time * 26)) * 2.8;
                         mouthMesh.scale.x = 1 + Math.sin(time * 12) * 0.12;
-                        l1.intensity = 2.2 + Math.sin(time * 28) * 0.8;
+                        l1.intensity = 2.5 + Math.sin(time * 28) * 1.0;
                         const scaleFactor = 1.0 + Math.sin(time * 35) * 0.02;
                         coreMesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
                     } else {
@@ -1328,9 +1326,23 @@
             
             // Render green chalkboard drawing
             boardImage.className = 'loading';
+            const dlBtn = document.getElementById('btn-download-board-img');
+            dlBtn.style.display = 'none';
             if (slide.image_url) {
-                boardImage.src = slide.image_url;
-                boardImage.onload = () => boardImage.className = '';
+                let rawUrl = slide.image_url;
+                let proxyUrl = rawUrl;
+                if (rawUrl && (rawUrl.includes("googleusercontent.com") || rawUrl.includes("google.com"))) {
+                    proxyUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
+                }
+                
+                boardImage.src = proxyUrl;
+                boardImage.onclick = () => window.open(rawUrl, '_blank');
+                boardImage.style.cursor = 'pointer';
+                boardImage.onload = () => {
+                    boardImage.className = '';
+                    dlBtn.href = proxyUrl;
+                    dlBtn.style.display = 'flex';
+                };
             } else {
                 boardImage.src = '';
             }
