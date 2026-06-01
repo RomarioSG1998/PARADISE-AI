@@ -390,6 +390,49 @@
             display: none;
         }
 
+        /* Hub Tabs Styles */
+        .hub-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.75rem;
+        }
+
+        .tab-link {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .tab-link:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-link.active {
+            color: white;
+            background: var(--gemini-gradient);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
         /* Footer */
         footer {
             height: 70px;
@@ -430,42 +473,78 @@
             <p>Selecione um aplicativo abaixo para interagir. Todas as ferramentas utilizam a conexão Pro ilimitada e gratuita do hub.</p>
         </div>
 
-        <!-- Grid of Apps -->
-        <div class="hub-grid">
+        <!-- Tab Navigation Switcher -->
+        <div class="hub-tabs">
+            <button class="tab-link active" onclick="switchTab(this, 'apps-tab')"><i class="fa-solid fa-cubes"></i> Meus Aplicativos</button>
+            <button class="tab-link" onclick="switchTab(this, 'tutorial-tab')"><i class="fa-solid fa-circle-question"></i> Como Funciona & Tutorial de Cookies</button>
+        </div>
 
-            <!-- App 2: Gerador de Livros Pro -->
-            <a href="/book" class="app-card">
-                <div class="app-header">
-                    <div class="app-icon"><i class="fa-solid fa-book-open"></i></div>
-                    <span class="app-badge active">Disponível</span>
-                </div>
-                <div class="app-info">
-                    <h2 class="app-name">Gerador de Livros Pro</h2>
-                    <p class="app-desc">Crie livros personalizados com texto, ilustrações geradas por IA e leitura narrada em tempo real com tradutor integrado.</p>
-                </div>
-            </a>
+        <!-- Tab 1: Apps Grid Content -->
+        <div id="apps-tab" class="tab-content active">
+            <div class="hub-grid">
+                <!-- App 2: Gerador de Livros Pro -->
+                <a href="/book" class="app-card">
+                    <div class="app-header">
+                        <div class="app-icon"><i class="fa-solid fa-book-open"></i></div>
+                        <span class="app-badge active">Disponível</span>
+                    </div>
+                    <div class="app-info">
+                        <h2 class="app-name">Gerador de Livros Pro</h2>
+                        <p class="app-desc">Crie livros personalizados com texto, ilustrações geradas por IA e leitura narrada em tempo real com tradutor integrado.</p>
+                    </div>
+                </a>
 
-            <!-- App 3: Aula Inteligente -->
-            <a href="/classroom" class="app-card">
-                <div class="app-header">
-                    <div class="app-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
-                    <span class="app-badge active">Disponível</span>
-                </div>
-                <div class="app-info">
-                    <h2 class="app-name">Aula Inteligente (AI Classroom)</h2>
-                    <p class="app-desc">Insira um tema, texto ou PDF e gere uma aula completa com explicação falada por avatar de IA e ilustrações desenhadas em quadro negro.</p>
-                </div>
-            </a>
+                <!-- App 3: Aula Inteligente -->
+                <a href="/classroom" class="app-card">
+                    <div class="app-header">
+                        <div class="app-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+                        <span class="app-badge active">Disponível</span>
+                    </div>
+                    <div class="app-info">
+                        <h2 class="app-name">Aula Inteligente (AI Classroom)</h2>
+                        <p class="app-desc">Insira um tema, texto ou PDF e gere uma aula completa com explicação falada por avatar de IA e ilustrações desenhadas em quadro negro.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
 
-            <!-- App 4: Planejador de Estudos -->
-            <div class="app-card disabled">
-                <div class="app-header">
-                    <div class="app-icon"><i class="fa-solid fa-graduation-cap"></i></div>
-                    <span class="app-badge coming-soon">Em breve</span>
+        <!-- Tab 2: Tutorial Content -->
+        <div id="tutorial-tab" class="tab-content">
+            <div class="tutorial-wrapper" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 2.5rem; background: rgba(18, 15, 38, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); padding: 2.5rem; border-radius: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); text-align: left;">
+                <!-- Left: How to obtain and register -->
+                <div class="tutorial-steps">
+                    <h2 style="font-size: 1.5rem; font-weight: 700; color: #c084fc; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-key"></i> Passo a Passo para Obter os Cookies</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem;">
+                        Os cookies de autenticação do Google permitem que o Hub se conecte diretamente perante o Gemini Advanced, fornecendo a velocidade e inteligência ilimitadas do modelo Pro de forma gratuita. Siga o guia visual rápido:
+                    </p>
+                    <ol style="margin-left: 1.25rem; font-size: 0.95rem; line-height: 1.8; color: var(--text-primary);">
+                        <li style="margin-bottom: 0.75rem;">Acesse o <a href="https://gemini.google.com" target="_blank" style="color: #60a5fa; text-decoration: none; font-weight: 600;">Google Gemini</a> no seu navegador de preferência, com sua conta logada.</li>
+                        <li style="margin-bottom: 0.75rem;">Pressione a tecla <strong>F12</strong> do seu teclado para abrir a janela de Inspecionar Elementos (Developer Tools).</li>
+                        <li style="margin-bottom: 0.75rem;">Clique na aba superior chamada <strong>Aplicativo (Application)</strong> no Google Chrome/Edge, ou <strong>Armazenamento (Storage)</strong> no Firefox.</li>
+                        <li style="margin-bottom: 0.75rem;">Na barra lateral esquerda, clique para expandir <strong>Cookies</strong> e selecione o endereço <code>https://gemini.google.com</code>.</li>
+                        <li style="margin-bottom: 1rem;">Localize e copie os valores inteiros dos seguintes cookies de segurança:
+                            <ul style="list-style-type: circle; margin-left: 1.25rem; margin-top: 0.25rem; color: var(--text-secondary);">
+                                <li><code>__Secure-1PSID</code> (hash extenso contendo letras, números e finalizado por ponto)</li>
+                                <li><code>__Secure-1PSIDTS</code> (contém chaves temporais de sincronização do login)</li>
+                            </ul>
+                        </li>
+                        <li style="margin-bottom: 0.75rem;">Volte aqui no Hub, clique no botão <strong>Configurar Conexão</strong> no topo da página, cole os dois valores nos respectivos campos e salve!</li>
+                    </ol>
                 </div>
-                <div class="app-info">
-                    <h2 class="app-name">Assistente de Estudos</h2>
-                    <p class="app-desc">Insira suas disciplinas e tópicos de prova e receba um plano de cronograma acadêmico inteligente e personalizado.</p>
+
+                <!-- Right: Why do this and how it works -->
+                <div class="tutorial-explanation" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div>
+                        <h2 style="font-size: 1.4rem; font-weight: 700; color: #f472b6; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-brain"></i> Por que precisamos disso?</h2>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                            As chaves de API tradicionais do Google possuem limites rígidos e custos por chamada. Ao utilizar os cookies da sua própria sessão ativa, o Hub conecta-se diretamente à interface do <strong>Gemini Advanced Pro</strong>. Isso nos permite gerar redações complexas, livros inteiros e códigos sem custo algum e com a velocidade máxima do modelo Advanced.
+                        </p>
+                    </div>
+
+                    <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); padding: 1.25rem; border-radius: 16px; color: #93c5fd; font-size: 0.88rem; line-height: 1.5;">
+                        <h3 style="font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;"><i class="fa-solid fa-shield-halved"></i> Segurança e Privacidade</h3>
+                        Seus cookies de autenticação ficam armazenados apenas localmente na memória de ambiente do seu backend (.env) e nunca são compartilhados ou enviados a servidores externos. Todo o tráfego de dados é feito diretamente e de forma segura entre a sua máquina e os servidores do Google.
+                    </div>
                 </div>
             </div>
         </div>
@@ -574,6 +653,18 @@
                 document.getElementById('btn-save-cookies').innerHTML = '<i class="fa-solid fa-circle-check"></i> Validar e Salvar Conexão';
             }
         };
+
+        function switchTab(element, tabId) {
+            // Remove active class from buttons
+            document.querySelectorAll('.tab-link').forEach(btn => btn.classList.remove('active'));
+            // Add active class to clicked button
+            element.classList.add('active');
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            // Show active tab content
+            document.getElementById(tabId).classList.add('active');
+        }
 
         window.onload = checkConnection;
     </script>
