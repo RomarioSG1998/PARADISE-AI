@@ -354,10 +354,11 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: transparent;
+            background: rgba(252, 248, 238, 0.4);
             backdrop-filter: blur(4px);
             z-index: 1;
             pointer-events: none;
+            transition: background 0.1s ease;
         }
 
         .book-content-wrapper {
@@ -602,6 +603,35 @@
             font-size: 0.85rem;
             color: var(--border-cartoon);
             font-weight: 700;
+        }
+
+        .opacity-bar-menu {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #f1f5f9;
+            border: 2px solid var(--border-cartoon);
+            padding: 0.35rem 0.85rem;
+            border-radius: 12px;
+            box-shadow: 2.5px 2.5px 0px var(--border-cartoon);
+            font-size: 0.85rem;
+            color: var(--border-cartoon);
+            font-weight: 700;
+        }
+
+        .opacity-bar-menu label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        #bg-opacity-value {
+            font-size: 0.8rem;
+            font-weight: 700;
+            width: 35px;
+            text-align: right;
+            color: var(--border-cartoon);
         }
 
         .audio-settings select {
@@ -1051,6 +1081,13 @@
                                 <option value="1.2">Rápida (1.2x)</option>
                             </select>
                         </div>
+                    </div>
+
+                    <!-- Center-Right: Opacity Bar -->
+                    <div class="opacity-bar-menu">
+                        <label for="bg-opacity-range"><i class="fa-solid fa-eye-slash"></i> Contraste:</label>
+                        <input type="range" id="bg-opacity-range" min="0" max="100" value="40" style="width: 80px; accent-color: var(--accent-pink); cursor: pointer;">
+                        <span id="bg-opacity-value">40%</span>
                     </div>
 
                     <!-- Right: reset -->
@@ -1938,6 +1975,37 @@
                 saveConfigBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar e Autenticar';
             }
         };
+
+        // Persistent Background Contrast Overlay Opacity Regulator
+        const bgOpacityRange = document.getElementById('bg-opacity-range');
+        const bgOpacityValue = document.getElementById('bg-opacity-value');
+        const bookPageOverlay = document.querySelector('.book-page-overlay');
+
+        function updateBgOpacity(val) {
+            const opacity = val / 100;
+            if (bookPageOverlay) {
+                // Update overlay background color with calculated opacity
+                bookPageOverlay.style.background = `rgba(252, 248, 238, ${opacity})`;
+            }
+            if (bgOpacityValue) {
+                bgOpacityValue.textContent = `${val}%`;
+            }
+        }
+
+        // Load persisted contrast opacity setting
+        const persistedOpacity = localStorage.getItem('book_bg_opacity');
+        const defaultOpacity = persistedOpacity !== null ? parseInt(persistedOpacity, 10) : 40;
+
+        if (bgOpacityRange) {
+            bgOpacityRange.value = defaultOpacity;
+            updateBgOpacity(defaultOpacity);
+
+            bgOpacityRange.addEventListener('input', (e) => {
+                const val = e.target.value;
+                updateBgOpacity(val);
+                localStorage.setItem('book_bg_opacity', val);
+            });
+        }
     </script>
 </body>
 </html>
