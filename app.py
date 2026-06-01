@@ -31,17 +31,21 @@ gemini_client = None
 
 async def get_or_create_client_async(force_reinit=False):
     global gemini_client
+    
+    load_dotenv(ENV_PATH, override=True)
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if gemini_api_key:
+        return "api_key", None
+        
     if gemini_client is not None and not force_reinit:
         return gemini_client, None
 
-    # Load fresh env vars
-    load_dotenv(ENV_PATH, override=True)
     secure_1psid = os.getenv("GEMINI_SECURE_1PSID", "").strip()
     secure_1psidts = os.getenv("GEMINI_SECURE_1PSIDTS", "").strip()
 
     if not secure_1psid or not secure_1psidts:
         gemini_client = None
-        return None, "Cookies are not configured. Please set GEMINI_SECURE_1PSID and GEMINI_SECURE_1PSIDTS."
+        return None, "Configuração ausente: defina GEMINI_API_KEY ou os cookies GEMINI_SECURE_1PSID e GEMINI_SECURE_1PSIDTS."
 
     try:
         from gemini_webapi import GeminiClient
@@ -79,6 +83,23 @@ async def chat_async(message):
     client, err = await get_or_create_client_async()
     if err:
         return None, err, True
+
+    load_dotenv(ENV_PATH, override=True)
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+
+    if gemini_api_key:
+        try:
+            from google import genai
+            print("[Paradise AI] Using official Gemini API for chat...")
+            official_client = genai.Client(api_key=gemini_api_key)
+            response = official_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=message
+            )
+            text = response.text if hasattr(response, "text") else str(response)
+            return {"text": text, "images": []}, None, False
+        except Exception as e:
+            return None, f"Official Gemini API Error: {str(e)}", False
 
     try:
         # Enhance prompt if it contains image generation requests
@@ -146,15 +167,17 @@ def get_status():
     load_dotenv(ENV_PATH, override=True)
     secure_1psid = os.getenv("GEMINI_SECURE_1PSID", "").strip()
     secure_1psidts = os.getenv("GEMINI_SECURE_1PSIDTS", "").strip()
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
     
-    configured = bool(secure_1psid and secure_1psidts)
-    active = gemini_client is not None
+    configured = bool((secure_1psid and secure_1psidts) or gemini_api_key)
+    active = (gemini_client is not None) or bool(gemini_api_key)
     
     return jsonify({
         "configured": configured,
         "active": active,
         "has_secure_1psid": bool(secure_1psid),
-        "has_secure_1psidts": bool(secure_1psidts)
+        "has_secure_1psidts": bool(secure_1psidts),
+        "has_api_key": bool(gemini_api_key)
     })
 
 @app.route("/api/save-cookies", methods=["POST"])
@@ -162,23 +185,30 @@ def save_cookies():
     data = request.get_json() or {}
     secure_1psid = data.get("secure_1psid", "").strip()
     secure_1psidts = data.get("secure_1psidts", "").strip()
+    gemini_api_key = data.get("gemini_api_key", "").strip()
 
-    if not secure_1psid or not secure_1psidts:
-        return jsonify({"success": False, "error": "Both cookies are required"}), 400
+    if not gemini_api_key and (not secure_1psid or not secure_1psidts):
+        return jsonify({"success": False, "error": "Forneça a API Key ou ambos os cookies"}), 400
 
     try:
         with open(ENV_PATH, "w") as f:
-            f.write(f"GEMINI_SECURE_1PSID={secure_1psid}\n")
-            f.write(f"GEMINI_SECURE_1PSIDTS={secure_1psidts}\n")
+            if gemini_api_key:
+                f.write(f"GEMINI_API_KEY={gemini_api_key}\n")
+            else:
+                f.write(f"GEMINI_SECURE_1PSID={secure_1psid}\n")
+                f.write(f"GEMINI_SECURE_1PSIDTS={secure_1psidts}\n")
         
-        # Reiniciar o cliente no loop de segundo plano
-        client, err = run_in_background(get_or_create_client_async(force_reinit=True))
-        if err:
-            return jsonify({"success": False, "error": err}), 400
+        if not gemini_api_key:
+            client, err = run_in_background(get_or_create_client_async(force_reinit=True))
+            if err:
+                return jsonify({"success": False, "error": err}), 400
+        else:
+            global gemini_client
+            gemini_client = None
             
         return jsonify({"success": True})
     except Exception as e:
-        return jsonify({"success": False, "error": f"Failed to save cookies: {str(e)}"}), 500
+        return jsonify({"success": False, "error": f"Failed to save credentials: {str(e)}"}), 500
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
@@ -236,6 +266,55 @@ def proxy_image():
     except Exception as e:
         return f"Error proxying image: {str(e)}", 500
 
+async def generate_official_gemini_tts_async(text: str, api_key: str) -> tuple[bytes, str]:
+    from google import genai
+    from google.genai import types
+    
+    client = genai.Client(api_key=api_key)
+    
+    # We choose "Puck" as the native Gemini male assistant voice (highly natural)
+    config = types.GenerateContentConfig(
+        response_modalities=["AUDIO"],
+        speech_config=types.SpeechConfig(
+            voice_config=types.VoiceConfig(
+                prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                    voice_name="Puck"
+                )
+            )
+        )
+    )
+    
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=f"Leia este texto com a entonação correta do robô: {text}",
+        config=config
+    )
+    
+    audio_bytes = b""
+    mime_type = "audio/wav"
+    
+    if response.candidates and response.candidates[0].content.parts:
+        for part in response.candidates[0].content.parts:
+            if part.inline_data:
+                if part.inline_data.data:
+                    audio_bytes += part.inline_data.data
+                if part.inline_data.mime_type:
+                    mime_type = part.inline_data.mime_type
+                    
+    return audio_bytes, mime_type
+
+def pcm_to_wav(pcm_data, sample_rate=24000, num_channels=1, sample_width=2):
+    import io
+    import wave
+    wav_buf = io.BytesIO()
+    with wave.open(wav_buf, 'wb') as wav_file:
+        wav_file.setnchannels(num_channels)
+        wav_file.setsampwidth(sample_width)
+        wav_file.setframerate(sample_rate)
+        wav_file.writeframes(pcm_data)
+    wav_buf.seek(0)
+    return wav_buf.read()
+
 async def generate_edge_tts_async(text: str) -> bytes:
     import edge_tts
     # AntonioNeural is a highly natural, male Portuguese voice matching a premium virtual assistant
@@ -253,6 +332,29 @@ def text_to_speech():
     if not text:
         return "Text is required", 400
         
+    load_dotenv(ENV_PATH, override=True)
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    
+    # 1. Official Gemini API Audio Generation
+    if gemini_api_key:
+        try:
+            print("[Paradise AI] Generating native voice from Gemini API...")
+            audio_data, mime_type = run_in_background(generate_official_gemini_tts_async(text, gemini_api_key))
+            
+            if audio_data:
+                if "pcm" in mime_type.lower():
+                    audio_data = pcm_to_wav(audio_data)
+                    mime_type = "audio/wav"
+                
+                import io
+                from flask import send_file
+                fp = io.BytesIO(audio_data)
+                fp.seek(0)
+                return send_file(fp, mimetype=mime_type)
+        except Exception as e:
+            print(f"[Paradise AI] Native Gemini TTS failed: {str(e)}. Falling back to Edge TTS...")
+
+    # 2. Edge TTS Fallback
     try:
         import io
         from flask import send_file

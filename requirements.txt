@@ -5,3 +5,4 @@ requests
 pypdf
 gTTS
 edge-tts
+google-genai

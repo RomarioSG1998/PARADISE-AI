@@ -1227,27 +1227,43 @@
 
     <!-- Config Modal -->
     <div class="modal-overlay" id="config-modal">
-        <div class="modal">
+        <div class="modal" style="max-height: 90vh; overflow-y: auto;">
             <button class="close-modal" id="close-config-btn">&times;</button>
-            <h2 class="modal-title">Configurar Cookies da Sessão Pro</h2>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">
-                Seus cookies serão salvos de forma segura no arquivo <code style="color:var(--text-primary); font-family: monospace;">.env</code> no backend da aplicação para autenticar as chamadas diretamente no Gemini.
-            </p>
+            <h2 class="modal-title">Configuração do Motor Gemini</h2>
             
-            <div class="form-group">
-                <label for="secure-1psid-input">Cookie __Secure-1PSID</label>
-                <input type="password" id="secure-1psid-input" placeholder="Digite o valor completo de __Secure-1PSID">
+            <!-- Option 1: API Key -->
+            <div style="border: 1px solid rgba(0, 242, 254, 0.3); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; background: rgba(0, 0, 0, 0.2);">
+                <h3 style="margin-top: 0; color: var(--text-primary); font-size: 1rem;"><i class="fa-solid fa-key" style="color: #00f2fe;"></i> Opção A: API Key Oficial (Recomendado)</h3>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                    Use a chave de API oficial do Google AI Studio. <strong>Ativa a voz de IA nativa do Gemini</strong>.
+                </p>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="gemini-api-key-input">Gemini API Key</label>
+                    <input type="password" id="gemini-api-key-input" placeholder="AIzaSy...">
+                </div>
+            </div>
+            
+            <!-- Option 2: Cookies -->
+            <div style="border: 1px solid rgba(255, 255, 255, 0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; background: rgba(0, 0, 0, 0.1);">
+                <h3 style="margin-top: 0; color: var(--text-primary); font-size: 1rem;"><i class="fa-solid fa-cookie" style="color: #ff9900;"></i> Opção B: Cookies de Sessão (Alternativo)</h3>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                    Insira os cookies obtidos do site gemini.google.com. Utiliza a voz neural Edge TTS/gTTS.
+                </p>
+                <div class="form-group">
+                    <label for="secure-1psid-input">Cookie __Secure-1PSID</label>
+                    <input type="password" id="secure-1psid-input" placeholder="Digite o valor completo de __Secure-1PSID">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="secure-1psidts-input">Cookie __Secure-1PSIDTS</label>
+                    <input type="password" id="secure-1psidts-input" placeholder="Digite o valor completo de __Secure-1PSIDTS">
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="secure-1psidts-input">Cookie __Secure-1PSIDTS</label>
-                <input type="password" id="secure-1psidts-input" placeholder="Digite o valor completo de __Secure-1PSIDTS">
-            </div>
+            <div class="form-error" id="config-error">Erro ao salvar. Verifique as credenciais.</div>
 
-            <div class="form-error" id="config-error">Erro ao autenticar. Verifique os valores informados.</div>
-
-            <button class="action-btn primary" id="save-config-btn" style="margin-top: 0.5rem;">
-                <i class="fa-solid fa-floppy-disk"></i> Salvar e Autenticar
+            <button class="action-btn primary" id="save-config-btn" style="width: 100%; margin-top: 0.5rem;">
+                <i class="fa-solid fa-floppy-disk"></i> Salvar Configuração
             </button>
         </div>
     </div>
@@ -1264,6 +1280,7 @@
         const closeConfigBtn = document.getElementById('close-config-btn');
         const configModal = document.getElementById('config-modal');
         const saveConfigBtn = document.getElementById('save-config-btn');
+        const geminiApiKeyInput = document.getElementById('gemini-api-key-input');
         const secure1psidInput = document.getElementById('secure-1psid-input');
         const secure1psidtsInput = document.getElementById('secure-1psidts-input');
         const configError = document.getElementById('config-error');
@@ -1321,10 +1338,10 @@
 
                 if (isActive) {
                     statusDot.className = 'dot active';
-                    statusLabel.textContent = 'Conectado (Pro Ativo)';
+                    statusLabel.textContent = data.has_api_key ? 'Conectado (API Key Ativa)' : 'Conectado (Cookies Ativos)';
                 } else if (isConfigured) {
                     statusDot.className = 'dot warning';
-                    statusLabel.textContent = 'Cookies Salvos (Inativo/Erro)';
+                    statusLabel.textContent = 'Configuração Salva (Inativo/Erro)';
                 } else {
                     statusDot.className = 'dot';
                     statusLabel.textContent = 'Não configurado';
@@ -1348,34 +1365,40 @@
 
         // Save Config Cookies
         saveConfigBtn.addEventListener('click', async () => {
+            const apiKey = geminiApiKeyInput.value.trim();
             const sid = secure1psidInput.value.trim();
             const ts = secure1psidtsInput.value.trim();
 
-            if (!sid || !ts) {
-                configError.textContent = 'Preencha ambos os cookies!';
+            if (!apiKey && (!sid || !ts)) {
+                configError.textContent = 'Forneça a API Key ou ambos os cookies!';
                 configError.style.display = 'block';
                 return;
             }
 
             saveConfigBtn.disabled = true;
-            saveConfigBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testando conexão...';
+            saveConfigBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando configuração...';
             configError.style.display = 'none';
 
             try {
                 const resp = await fetch('/api/save-cookies', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ secure_1psid: sid, secure_1psidts: ts })
+                    body: JSON.stringify({ 
+                        gemini_api_key: apiKey,
+                        secure_1psid: sid, 
+                        secure_1psidts: ts 
+                    })
                 });
                 
                 const data = await resp.json();
                 if (data.success) {
                     configModal.style.display = 'none';
+                    geminiApiKeyInput.value = '';
                     secure1psidInput.value = '';
                     secure1psidtsInput.value = '';
                     await checkStatus();
                 } else {
-                    configError.textContent = data.error || 'Erro ao inicializar sessão com os cookies fornecidos.';
+                    configError.textContent = data.error || 'Erro ao inicializar sessão com as credenciais fornecidas.';
                     configError.style.display = 'block';
                 }
             } catch (err) {
@@ -1383,7 +1406,7 @@
                 configError.style.display = 'block';
             } finally {
                 saveConfigBtn.disabled = false;
-                saveConfigBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar e Autenticar';
+                saveConfigBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Configuração';
             }
         });
 
