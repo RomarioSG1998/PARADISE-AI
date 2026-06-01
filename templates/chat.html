@@ -1777,6 +1777,41 @@
             draw();
         }
 
+        function cleanMarkdownForSpeech(text) {
+            if (!text) return "";
+            
+            let clean = text;
+            
+            // 1. Remove code blocks entirely (we don't want code read aloud in voice call)
+            clean = clean.replace(/```[\s\S]*?```/g, " [bloco de código] ");
+            clean = clean.replace(/`([^`]+)`/g, "$1");
+            
+            // 2. Remove headers symbols (#, ##, etc.) at the start of lines
+            clean = clean.replace(/^#+\s+/gm, "");
+            
+            // 3. Remove bold/italic markers (*, **, _, __)
+            clean = clean.replace(/\*\*([^*]+)\*\*/g, "$1");
+            clean = clean.replace(/\*([^*]+)\*/g, "$1");
+            clean = clean.replace(/__([^_]+)__/g, "$1");
+            clean = clean.replace(/_([^_]+)_/g, "$1");
+            
+            // 4. Remove links [text](url) -> keep only text
+            clean = clean.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+            
+            // 5. Remove bullet list indicators (* or - or + or 1. at start of lines)
+            clean = clean.replace(/^[\s]*[-*+]\s+/gm, "");
+            clean = clean.replace(/^[\s]*\d+\.\s+/gm, "");
+            
+            // 6. Remove HTML tags
+            clean = clean.replace(/<[^>]*>/g, "");
+            
+            // 7. Clean up extra spaces/newlines
+            clean = clean.replace(/\n+/g, " ");
+            clean = clean.replace(/\s+/g, " ").trim();
+            
+            return clean;
+        }
+
         function speakText(text, onEndCallback) {
             if (!voiceSynth) return;
             voiceSynth.cancel();
@@ -1791,8 +1826,26 @@
             aiResponseBox.style.display = 'block';
             aiResponseBox.textContent = "";
             
-            voiceUtterance = new SpeechSynthesisUtterance(text);
+            const cleanText = cleanMarkdownForSpeech(text);
+            
+            voiceUtterance = new SpeechSynthesisUtterance(cleanText);
             voiceUtterance.lang = 'pt-BR';
+            
+            // Select the best voice (prefer Google pt-BR or Microsoft pt-BR)
+            if (typeof voiceSynth.getVoices === 'function') {
+                const voices = voiceSynth.getVoices();
+                const ptVoices = voices.filter(v => v.lang.includes('pt-BR') || v.lang.includes('pt_BR'));
+                let selectedVoice = ptVoices.find(v => v.name.toLowerCase().includes('google'));
+                if (!selectedVoice) {
+                    selectedVoice = ptVoices.find(v => v.name.toLowerCase().includes('microsoft'));
+                }
+                if (!selectedVoice) {
+                    selectedVoice = ptVoices[0];
+                }
+                if (selectedVoice) {
+                    voiceUtterance.voice = selectedVoice;
+                }
+            }
             
             // Apply speed multiplier
             const speedSlider = document.getElementById('speech-speed');
@@ -1805,7 +1858,7 @@
             voiceUtterance.onstart = () => {
                 setTimeout(() => {
                     if (!boundaryFired) {
-                        aiResponseBox.textContent = text;
+                        aiResponseBox.textContent = cleanText;
                     }
                 }, 500);
             };
@@ -1814,10 +1867,10 @@
                 if (event.name === 'word') {
                     boundaryFired = true;
                     const charIndex = event.charIndex;
-                    const remainingText = text.slice(charIndex);
+                    const remainingText = cleanText.slice(charIndex);
                     const nextSpace = remainingText.indexOf(' ');
                     const wordLength = nextSpace === -1 ? remainingText.length : nextSpace;
-                    const spokenPart = text.slice(0, charIndex + wordLength);
+                    const spokenPart = cleanText.slice(0, charIndex + wordLength);
                     aiResponseBox.textContent = spokenPart;
                     aiResponseBox.scrollTop = aiResponseBox.scrollHeight;
                 }
