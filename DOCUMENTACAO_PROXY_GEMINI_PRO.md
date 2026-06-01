@@ -1,4 +1,4 @@
-# 📑 Documentação Oficial: Jala AI Hub Portal (V2)
+# 📑 Documentação Oficial: Paradise AI Hub Portal (V2)
 
 Este portal unificado serve como a central de ferramentas inteligentes alimentadas pelo Gemini Advanced Pro. Em vez de utilizar chaves de API técnicas ou gateways complexos, o Hub oferece uma experiência de portal de aplicativos com compartilhamento de sessão e bypass de créditos.
 

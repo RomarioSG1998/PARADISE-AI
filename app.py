@@ -46,14 +46,14 @@ async def get_or_create_client_async(force_reinit=False):
     try:
         from gemini_webapi import GeminiClient
         from gemini_webapi.client import AccountStatus
-        print("[Jala Hub] Initializing GeminiClient inside background loop...")
+        print("[Paradise AI] Initializing GeminiClient inside background loop...")
         client = GeminiClient(secure_1psid, secure_1psidts)
         await client.init()
         if client.account_status != AccountStatus.AVAILABLE:
             gemini_client = None
             return None, f"Authentication failed: {client.account_status.description}"
         gemini_client = client
-        print("[Jala Hub] Client initialized successfully!")
+        print("[Paradise AI] Client initialized successfully!")
         return gemini_client, None
     except Exception as e:
         gemini_client = None
@@ -96,7 +96,7 @@ async def chat_async(message):
         return {"text": text, "images": images}, None, False
     except Exception as e:
         error_msg = str(e)
-        print(f"[Jala Hub Error] {error_msg}")
+        print(f"[Paradise AI Error] {error_msg}")
         
         needs_config = False
         if "cookie" in error_msg.lower() or "auth" in error_msg.lower() or "401" in error_msg or "403" in error_msg:
@@ -228,7 +228,7 @@ def proxy_image():
         }
         resp = requests.get(url, headers=headers, cookies=cookies, timeout=25)
         if resp.status_code != 200:
-            print(f"[Jala Hub Proxy Image Error] Failed to fetch image: status={resp.status_code}, url={url}")
+            print(f"[Paradise AI Proxy Image Error] Failed to fetch image: status={resp.status_code}, url={url}")
             return f"Failed to fetch image from Google: status {resp.status_code}", 502
             
         content_type = resp.headers.get("Content-Type", "image/png")

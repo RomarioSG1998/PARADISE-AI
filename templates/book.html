@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Livros Pro — Jala AI Hub</title>
+    <title>Gerador de Livros Pro — Paradise AI</title>
     
     <!-- Google Fonts: Cartoon/Comic styles -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1080,7 +1080,7 @@
 
     <!-- Footer -->
     <footer style="flex-shrink: 0;">
-        Jala AI Hub © 2026. Todos os direitos reservados.
+        Paradise AI © 2026. Todos os direitos reservados.
     </footer>
 
     <!-- Config Modal -->
@@ -1291,7 +1291,7 @@
             // Dynamic background illustration setting wrapped in double quotes
             if (chapter.image_url) {
                 const proxyBg = getProxyUrl(chapter.image_url);
-                console.log("[Jala Hub] Setting background image to:", proxyBg);
+                console.log("[Paradise AI] Setting background image to:", proxyBg);
                 bookScrollBody.style.backgroundImage = `url("${proxyBg}")`;
             } else {
                 bookScrollBody.style.backgroundImage = 'none';
@@ -1341,7 +1341,7 @@
             readIllustrationImg.className = 'loading';
             if (chapter.image_url) {
                 const imgUrl = getProxyUrl(chapter.image_url);
-                console.log("[Jala Hub] Setting frame image src to:", imgUrl);
+                console.log("[Paradise AI] Setting frame image src to:", imgUrl);
                 readIllustrationImg.src = imgUrl;
                 readIllustrationImg.style.display = 'block';
                 document.getElementById('illustration-error').style.display = 'none';

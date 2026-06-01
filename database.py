@@ -59,10 +59,10 @@ def init_db():
     cursor.execute("SELECT COUNT(*) FROM apps")
     if cursor.fetchone()[0] == 0:
         # Generate first API Key
-        default_key = f"jala_hub_{secrets.token_hex(16)}"
+        default_key = f"paradise_ai_{secrets.token_hex(16)}"
         cursor.execute(
             "INSERT INTO apps (name, api_key, status) VALUES (?, ?, ?)",
-            ("Jala Study Secretary Bot (Telegram)", default_key, "active")
+            ("Paradise AI Study Secretary Bot (Telegram)", default_key, "active")
         )
         print(f"[AI Hub DB] Seeded first app. API KEY: {default_key}")
 
@@ -146,7 +146,7 @@ def log_request(app_id, prompt_len, resp_len, duration_ms, status_code, error=No
     conn.close()
 
 def create_app(name):
-    api_key = f"jala_hub_{secrets.token_hex(16)}"
+    api_key = f"paradise_ai_{secrets.token_hex(16)}"
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO apps (name, api_key) VALUES (?, ?)", (name, api_key))
