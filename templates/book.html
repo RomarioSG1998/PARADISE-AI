@@ -352,14 +352,9 @@
             display: none;
         }
 
-        /* The content card sits on top of page background, holding text and images with soft adjustable backing */
         .book-content-wrapper {
             position: relative;
-            z-index: 2;
-            padding: 1.5rem;
-            border-radius: 20px;
-            background: rgba(252, 248, 238, 0.4);
-            transition: background 0.15s ease;
+            z-index: 2; /* Sits above the page overlay */
         }
 
         /* HEADER - Contoured with cartoon box styling */
@@ -370,9 +365,10 @@
             border: 3px solid var(--border-cartoon);
             padding: 0.6rem 1.25rem;
             margin-bottom: 1.5rem;
-            background: rgba(252, 248, 238, 0.92);
+            background: rgba(252, 248, 238, var(--text-box-bg-opacity, 0.92));
             border-radius: 14px;
             box-shadow: 3px 3px 0 var(--border-cartoon);
+            transition: background 0.15s ease;
         }
 
         .book-meta {
@@ -389,12 +385,13 @@
             font-weight: 700;
             color: var(--text-dark);
             margin-bottom: 1.25rem;
-            background: rgba(252, 248, 238, 0.94);
+            background: rgba(252, 248, 238, var(--text-box-bg-opacity, 0.94));
             padding: 0.6rem 1.25rem;
             border-radius: 14px;
             border: 3px solid var(--border-cartoon);
             box-shadow: 3px 3px 0 var(--border-cartoon);
             display: inline-block; /* Fit title contour */
+            transition: background 0.15s ease;
         }
 
         /* STRATEGIC CORNER ILLUSTRATION FRAME */
@@ -475,10 +472,10 @@
             margin-bottom: 1.25rem;
             padding: 1rem 1.5rem;
             border-radius: 16px;
-            background: rgba(252, 248, 238, 0.94);
+            background: rgba(252, 248, 238, var(--text-box-bg-opacity, 0.94));
             border: 3px solid var(--border-cartoon);
             box-shadow: 4px 4px 0px var(--border-cartoon);
-            transition: all 0.2s;
+            transition: all 0.2s, background 0.15s ease;
             position: relative;
         }
 
@@ -1082,8 +1079,8 @@
                     <!-- Center-Right: Opacity Bar -->
                     <div class="opacity-bar-menu">
                         <label for="bg-opacity-range"><i class="fa-solid fa-eye-slash"></i> Contraste:</label>
-                        <input type="range" id="bg-opacity-range" min="0" max="100" value="40" style="width: 80px; accent-color: var(--accent-pink); cursor: pointer;">
-                        <span id="bg-opacity-value">40%</span>
+                        <input type="range" id="bg-opacity-range" min="0" max="100" value="94" style="width: 80px; accent-color: var(--accent-pink); cursor: pointer;">
+                        <span id="bg-opacity-value">94%</span>
                     </div>
 
                     <!-- Right: reset -->
@@ -1975,22 +1972,19 @@
         // Persistent Background Contrast Overlay Opacity Regulator
         const bgOpacityRange = document.getElementById('bg-opacity-range');
         const bgOpacityValue = document.getElementById('bg-opacity-value');
-        const bookContentWrapper = document.querySelector('.book-content-wrapper');
 
         function updateBgOpacity(val) {
             const opacity = val / 100;
-            if (bookContentWrapper) {
-                // Update text backing card background color with calculated opacity
-                bookContentWrapper.style.background = `rgba(252, 248, 238, ${opacity})`;
-            }
+            // Update CSS custom property to dynamically change all text boxes background opacity
+            document.documentElement.style.setProperty('--text-box-bg-opacity', opacity);
             if (bgOpacityValue) {
                 bgOpacityValue.textContent = `${val}%`;
             }
         }
 
-        // Load persisted contrast opacity setting
+        // Load persisted contrast opacity setting (defaulting to 94%)
         const persistedOpacity = localStorage.getItem('book_bg_opacity');
-        const defaultOpacity = persistedOpacity !== null ? parseInt(persistedOpacity, 10) : 40;
+        const defaultOpacity = persistedOpacity !== null ? parseInt(persistedOpacity, 10) : 94;
 
         if (bgOpacityRange) {
             bgOpacityRange.value = defaultOpacity;
