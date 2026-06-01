@@ -283,8 +283,14 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
                         if hasattr(img, "url") and img.url:
                             chapter["image_url"] = img.url
                             break
+                    else:
+                        chapter["image_error"] = "Nenhuma imagem válida encontrada no retorno do Gemini."
+                else:
+                    err_msg = img_response.text if hasattr(img_response, "text") and img_response.text else "Nenhuma imagem retornada pelo Gemini."
+                    chapter["image_error"] = err_msg
             except Exception as img_err:
                 print(f"[Book Gen Error] Failed to generate image for chapter {idx+1}: {img_err}")
+                chapter["image_error"] = str(img_err)
                 
         return book_data, None
     except Exception as e:
@@ -302,9 +308,11 @@ async def illustrate_scene_async(prompt):
             for img in img_response.images:
                 if hasattr(img, "url") and img.url:
                     return {"image_url": img.url}, None
-        return None, "No image was returned by Gemini"
+        
+        err_msg = img_response.text if hasattr(img_response, "text") and img_response.text else "Nenhuma imagem retornada pelo Gemini."
+        return None, err_msg
     except Exception as e:
-        return None, f"Failed to generate illustration: {str(e)}"
+        return None, f"Falha na geração da ilustração: {str(e)}"
 
 @app.route("/book")
 def index_book():

@@ -877,8 +877,16 @@
             </div>
             <div class="brand-title">Gerador de Livros Pro</div>
         </div>
-        <div>
-            <a href="/" class="btn pink" style="box-shadow: 3px 3px 0 var(--border-cartoon); padding: 0.5rem 1rem; font-size: 0.9rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <!-- Connection Status -->
+            <div class="status-badge-container" id="session-check-btn" style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; background: #1e293b; border: 2.5px solid var(--border-cartoon); border-radius: 12px; padding: 0.4rem 0.8rem; font-size: 0.85rem; box-shadow: 3px 3px 0px var(--border-cartoon);" title="Recarregar Status">
+                <span id="status-dot" class="dot" style="width: 8px; height: 8px; border-radius: 50%; background-color: #ef4444; display: inline-block;"></span>
+                <span id="status-label" style="font-weight: 700; color: #cbd5e1; font-family: inherit;">Verificando...</span>
+            </div>
+            <button class="btn primary" id="open-config-btn" style="box-shadow: 3px 3px 0 var(--border-cartoon); padding: 0.5rem 1rem; font-size: 0.9rem; margin-top: 0; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <i class="fa-solid fa-key"></i> Cookies
+            </button>
+            <a href="/" class="btn pink" style="box-shadow: 3px 3px 0 var(--border-cartoon); padding: 0.5rem 1rem; font-size: 0.9rem; margin-top: 0;">
                 <i class="fa-solid fa-house"></i> Hub
             </a>
         </div>
@@ -986,6 +994,11 @@
                         <div class="illustration-frame">
                             <div class="illustration-container">
                                 <img id="illustration-img" src="" alt="Ilustração">
+                                <div id="illustration-error" class="illustration-error-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111827; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; text-align: center; box-sizing: border-box; z-index: 8;">
+                                    <i class="fa-solid fa-circle-exclamation" style="font-size: 2.5rem; margin-bottom: 0.75rem; color: #f59e0b;"></i>
+                                    <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem; color: #f3f4f6;">Erro na Ilustração</div>
+                                    <div id="illustration-error-msg" style="color: #9ca3af; line-height: 1.4; font-size: 0.8rem; overflow-y: auto; max-height: 250px;">Nenhuma imagem retornada pelo Gemini.</div>
+                                </div>
                                 <button class="illustration-overlay-btn" id="btn-reillustrate" title="Redesenhar esta cena">
                                     <i class="fa-solid fa-paint-brush"></i>
                                 </button>
@@ -1069,6 +1082,33 @@
     <footer style="flex-shrink: 0;">
         Jala AI Hub © 2026. Todos os direitos reservados.
     </footer>
+
+    <!-- Config Modal -->
+    <div class="modal-overlay" id="config-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(6, 5, 15, 0.75); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="modal" style="width: 520px; background: rgba(18, 15, 38, 0.95); border: 2.5px solid var(--border-cartoon); border-radius: 20px; padding: 2rem; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
+            <button class="close-modal" id="close-config-btn" style="position: absolute; top: 1.5rem; right: 1.5rem; background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            <h2 class="modal-title" style="font-size: 1.3rem; font-weight: 700; color: var(--accent-pink);">Configurar Cookies da Sessão Pro</h2>
+            <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.4; margin-bottom: 0.5rem;">
+                Seus cookies serão salvos de forma segura no arquivo <code style="color:#f8fafc; font-family: monospace;">.env</code> no backend da aplicação para autenticar as chamadas diretamente no Gemini.
+            </p>
+            
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="secure-1psid-input" style="font-size: 0.85rem; color: #cbd5e1; font-weight: 500;">Cookie __Secure-1PSID</label>
+                <input type="password" id="secure-1psid-input" placeholder="Digite o valor completo de __Secure-1PSID" style="background: rgba(0, 0, 0, 0.3); border: 1.5px solid var(--border-cartoon); border-radius: 8px; padding: 0.75rem; color: #f8fafc; outline: none;">
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="secure-1psidts-input" style="font-size: 0.85rem; color: #cbd5e1; font-weight: 500;">Cookie __Secure-1PSIDTS</label>
+                <input type="password" id="secure-1psidts-input" placeholder="Digite o valor completo de __Secure-1PSIDTS" style="background: rgba(0, 0, 0, 0.3); border: 1.5px solid var(--border-cartoon); border-radius: 8px; padding: 0.75rem; color: #f8fafc; outline: none;">
+            </div>
+
+            <div class="form-error" id="config-error" style="color: #ef4444; font-size: 0.85rem; display: none;">Erro ao autenticar. Verifique os valores informados.</div>
+
+            <button class="btn primary" id="save-config-btn" style="margin-top: 0.5rem; width: 100%;">
+                <i class="fa-solid fa-floppy-disk"></i> Salvar e Autenticar
+            </button>
+        </div>
+    </div>
 
     <script>
         // DOM Elements
@@ -1303,11 +1343,20 @@
                 const imgUrl = getProxyUrl(chapter.image_url);
                 console.log("[Jala Hub] Setting frame image src to:", imgUrl);
                 readIllustrationImg.src = imgUrl;
+                readIllustrationImg.style.display = 'block';
+                document.getElementById('illustration-error').style.display = 'none';
                 readIllustrationImg.onload = () => readIllustrationImg.className = '';
             } else {
                 readIllustrationImg.src = '';
                 readIllustrationImg.alt = 'Sem desenho';
                 readIllustrationImg.className = '';
+                readIllustrationImg.style.display = 'none';
+                document.getElementById('illustration-error').style.display = 'flex';
+                if (chapter.image_error) {
+                    document.getElementById('illustration-error-msg').textContent = chapter.image_error;
+                } else {
+                    document.getElementById('illustration-error-msg').textContent = 'Nenhuma imagem foi gerada pelo Gemini para este capítulo.';
+                }
             }
 
             // Navigation buttons
@@ -1583,14 +1632,20 @@
                     body: JSON.stringify({ prompt: prompt })
                 });
 
-                if (!resp.ok) throw new Error("Erro de redesenho.");
+                if (!resp.ok) {
+                    const errorData = await resp.json().catch(() => ({}));
+                    throw new Error(errorData.error || "Erro de redesenho.");
+                }
                 const data = await resp.json();
 
                 currentBook.chapters[currentChapterIndex].image_url = data.image_url;
+                delete currentBook.chapters[currentChapterIndex].image_error;
                 
                 readIllustrationImg.className = 'loading';
                 const proxySrc = getProxyUrl(data.image_url);
                 readIllustrationImg.src = proxySrc;
+                readIllustrationImg.style.display = 'block';
+                document.getElementById('illustration-error').style.display = 'none';
                 readIllustrationImg.onload = () => readIllustrationImg.className = '';
 
                 // Also update background
@@ -1599,6 +1654,13 @@
                 closeRedrawModal();
             } catch (e) {
                 alert("Erro ao pintar ilustração: " + e.message);
+                if (currentBook && currentBook.chapters && currentBook.chapters[currentChapterIndex]) {
+                    currentBook.chapters[currentChapterIndex].image_url = null;
+                    currentBook.chapters[currentChapterIndex].image_error = e.message;
+                    renderChapter();
+                }
+                closeRedrawModal();
+            } finally {
                 redrawLoading.style.display = 'none';
                 btnSubmitRedraw.disabled = false;
             }
@@ -1610,6 +1672,104 @@
                 closeTranslationBubble();
             }
         });
+
+        // Cookies management elements
+        const openConfigBtn = document.getElementById('open-config-btn');
+        const closeConfigBtn = document.getElementById('close-config-btn');
+        const configModal = document.getElementById('config-modal');
+        const saveConfigBtn = document.getElementById('save-config-btn');
+        const secure1psidInput = document.getElementById('secure-1psid-input');
+        const secure1psidtsInput = document.getElementById('secure-1psidts-input');
+        const configError = document.getElementById('config-error');
+        const statusDot = document.getElementById('status-dot');
+        const statusLabel = document.getElementById('status-label');
+        const sessionCheckBtn = document.getElementById('session-check-btn');
+
+        let isConfigured = false;
+        let isActive = false;
+
+        async function checkStatus() {
+            try {
+                const resp = await fetch('/api/status');
+                const data = await resp.json();
+                
+                isConfigured = data.configured;
+                isActive = data.active;
+
+                if (isActive) {
+                    statusDot.style.backgroundColor = '#10b981';
+                    statusLabel.textContent = 'Conectado';
+                } else if (isConfigured) {
+                    statusDot.style.backgroundColor = '#f59e0b';
+                    statusLabel.textContent = 'Inativo/Erro';
+                } else {
+                    statusDot.style.backgroundColor = '#ef4444';
+                    statusLabel.textContent = 'Desconectado';
+                }
+            } catch (err) {
+                statusDot.style.backgroundColor = '#ef4444';
+                statusLabel.textContent = 'Offline';
+            }
+        }
+
+        // Check on boot
+        checkStatus();
+
+        if (sessionCheckBtn) {
+            sessionCheckBtn.onclick = (e) => {
+                e.stopPropagation();
+                checkStatus();
+            };
+        }
+
+        openConfigBtn.onclick = () => {
+            configError.style.display = 'none';
+            configModal.style.display = 'flex';
+        };
+
+        closeConfigBtn.onclick = () => {
+            configModal.style.display = 'none';
+        };
+
+        saveConfigBtn.onclick = async () => {
+            const sid = secure1psidInput.value.trim();
+            const ts = secure1psidtsInput.value.trim();
+
+            if (!sid || !ts) {
+                configError.textContent = 'Preencha ambos os cookies!';
+                configError.style.display = 'block';
+                return;
+            }
+
+            saveConfigBtn.disabled = true;
+            saveConfigBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Autenticando...';
+            configError.style.display = 'none';
+
+            try {
+                const resp = await fetch('/api/save-cookies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secure_1psid: sid, secure_1psidts: ts })
+                });
+                
+                const data = await resp.json();
+                if (data.success) {
+                    configModal.style.display = 'none';
+                    secure1psidInput.value = '';
+                    secure1psidtsInput.value = '';
+                    await checkStatus();
+                } else {
+                    configError.textContent = data.error || 'Erro ao inicializar sessão.';
+                    configError.style.display = 'block';
+                }
+            } catch (err) {
+                configError.textContent = 'Erro ao enviar dados para o servidor.';
+                configError.style.display = 'block';
+            } finally {
+                saveConfigBtn.disabled = false;
+                saveConfigBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar e Autenticar';
+            }
+        };
     </script>
 </body>
 </html>
