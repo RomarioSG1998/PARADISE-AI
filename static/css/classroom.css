@@ -749,10 +749,6 @@
         }
 
         /* Magnifier Lens Effect */
-        .board-magnifier {
-            display: none; /* managed by JS */
-        }
-
         .magnifier-lens {
             position: fixed;
             width: 220px;
@@ -770,15 +766,15 @@
             display: none;
             background-repeat: no-repeat;
             transform: translate(-50%, -50%);
-            transition: box-shadow 0.2s ease;
+            transition: opacity 0.15s ease;
         }
 
-        /* Crosshair inside the lens */
+        /* Crosshair lines inside the lens */
         .magnifier-lens::before,
         .magnifier-lens::after {
             content: '';
             position: absolute;
-            background: rgba(167, 139, 250, 0.35);
+            background: rgba(167, 139, 250, 0.4);
             pointer-events: none;
         }
         .magnifier-lens::before {
@@ -794,33 +790,14 @@
             left: 0;
         }
 
-        /* Small icon hint that appears on the board image */
-        .magnifier-hint {
-            position: absolute;
-            bottom: 6px;
-            right: 6px;
-            background: rgba(139, 92, 246, 0.75);
-            color: white;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            pointer-events: none;
-            z-index: 10;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-        }
-
-        /* Show the hint icon when hovering on the illustration container */
-        .board-illustration:hover .magnifier-hint {
-            display: flex;
-        }
-
-        /* While magnifier is active, hide native cursor on the image */
+        /* Hide native cursor while magnifier is active */
         #board-image.magnifying {
             cursor: none;
+        }
+
+        /* Show zoom-in cursor on the loaded illustration */
+        .board-illustration #board-image:not(.loading) {
+            cursor: zoom-in;
         }
 
         /* Sidebar reservoir panel styling */
