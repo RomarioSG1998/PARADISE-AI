@@ -51,5 +51,7 @@ export const elements = {
     lblAskTitle: document.getElementById('lbl-ask-title'),
     askTeacherInput: document.getElementById('ask-teacher-input'),
     btnAskTeacher: document.getElementById('btn-ask-teacher'),
-    lblBtnAsk: document.getElementById('lbl-btn-ask')
+    lblBtnAsk: document.getElementById('lbl-btn-ask'),
+    btnMicTheme: document.getElementById('btn-mic-theme'),
+    btnMicAsk: document.getElementById('btn-mic-ask')
 };

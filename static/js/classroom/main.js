@@ -13,6 +13,7 @@ import {
     returnToLesson
 } from './player.js';
 import { initializeAvatarHandlers } from './avatar.js';
+import { attachVoiceInput } from './voice_input.js';
 
 // Check if generate button should be enabled
 function checkInputs() {
@@ -405,6 +406,16 @@ function setupEvents() {
     }
     if (elements.btnReturnLesson) {
         elements.btnReturnLesson.addEventListener('click', returnToLesson);
+    }
+
+    // Attach Voice Input to Theme and Ask Teacher input fields
+    if (elements.btnMicTheme && elements.themeInput) {
+        attachVoiceInput(elements.themeInput, elements.btnMicTheme, () => localStorage.getItem('paradise_language') || 'pt');
+        // Trigger validation check on input change via voice
+        elements.themeInput.addEventListener('change', checkInputs);
+    }
+    if (elements.btnMicAsk && elements.askTeacherInput) {
+        attachVoiceInput(elements.askTeacherInput, elements.btnMicAsk, () => localStorage.getItem('paradise_language') || 'pt');
     }
 }
 

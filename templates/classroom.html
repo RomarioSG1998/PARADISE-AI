@@ -70,7 +70,12 @@
                     <!-- Theme Group -->
                     <div class="form-group" id="group-theme">
                         <label for="theme-input">O que você gostaria de aprender hoje?</label>
-                        <input type="text" id="theme-input" placeholder="Ex: Como funciona o motor de dobra espacial ou a fotossíntese" autocomplete="off">
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="text" id="theme-input" placeholder="Ex: Como funciona o motor de dobra espacial ou a fotossíntese" autocomplete="off" style="flex: 1;">
+                            <button type="button" id="btn-mic-theme" class="mic-btn" title="Clique para falar">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Text Group -->
@@ -185,6 +190,9 @@
                     <span id="lbl-ask-title">Dúvidas?</span>
                 </div>
                 <input type="text" id="ask-teacher-input" placeholder="Faça uma pergunta sobre esta aula para o professor..." style="flex: 1; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1); color: white; padding: 0.6rem 1rem; border-radius: 8px; font-family: inherit; font-size: 0.9rem; outline: none; transition: border-color 0.2s;" />
+                <button type="button" id="btn-mic-ask" class="mic-btn" title="Clique para falar">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
                 <button class="control-btn" id="btn-ask-teacher" style="background: var(--btn-primary); color: white; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; height: 38px; width: auto; font-size: 0.85rem;">
                     <i class="fa-solid fa-paper-plane"></i> <span id="lbl-btn-ask">Perguntar</span>
                 </button>
