@@ -45,10 +45,36 @@ export function initializeAvatarHandlers() {
     });
 
     // ── Magnifying Glass Effect ──────────────────────────────────────────
-    const LENS_SIZE = 220;     // diameter in px
-    const ZOOM     = 2.8;      // magnification factor
+    const ZOOM = 2.8;  // magnification factor (fixed)
 
-    const lens = document.getElementById('magnifier-lens');
+    const lens   = document.getElementById('magnifier-lens');
+    const slider = document.getElementById('magnifier-size-slider');
+    const label  = document.getElementById('magnifier-size-label');
+
+    // Load persisted size (default 320px)
+    let LENS_SIZE = parseInt(localStorage.getItem('classroom_magnifier_size') || '320', 10);
+
+    function applyLensSize(size) {
+        LENS_SIZE = size;
+        lens.style.width  = `${size}px`;
+        lens.style.height = `${size}px`;
+        if (label)  label.textContent  = `${size}px`;
+        if (slider) slider.value = size;
+        localStorage.setItem('classroom_magnifier_size', size);
+    }
+
+    // Apply stored size immediately
+    applyLensSize(LENS_SIZE);
+
+    // Slider live update (don't close lens while dragging)
+    if (slider) {
+        slider.addEventListener('input', (e) => {
+            applyLensSize(parseInt(e.target.value, 10));
+        });
+        // Stop the mousemove on slider from firing the lens update
+        slider.addEventListener('mousemove', (e) => e.stopPropagation());
+        slider.addEventListener('mouseenter', (e) => e.stopPropagation());
+    }
 
     function isImageReady() {
         return (

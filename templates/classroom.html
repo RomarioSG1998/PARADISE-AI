@@ -142,6 +142,14 @@
                             <a id="btn-download-board-img" href="" download="classroom-illustration.png" target="_blank" class="img-download-btn" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0, 0, 0, 0.75); border: 1px solid rgba(255, 255, 255, 0.2); color: white; border-radius: 6px; width: 36px; height: 36px; display: none; align-items: center; justify-content: center; text-decoration: none; z-index: 100;" title="Baixar Ilustração">
                                 <i class="fa-solid fa-download"></i>
                             </a>
+                            <!-- Magnifier size control (only visible on hover) -->
+                            <div class="magnifier-controls" id="magnifier-controls">
+                                <i class="fa-solid fa-magnifying-glass" style="font-size: 0.75rem; color: #a78bfa; flex-shrink:0;"></i>
+                                <input type="range" id="magnifier-size-slider" min="120" max="480" value="320" step="10"
+                                    title="Tamanho da lupa"
+                                    style="flex:1; accent-color: #a78bfa; cursor: pointer; height: 4px;">
+                                <span id="magnifier-size-label" style="font-size: 0.7rem; color: #a78bfa; min-width: 36px; text-align:right;">320px</span>
+                            </div>
                         </div>
                     </div>
                 </div>

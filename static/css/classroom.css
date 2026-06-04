@@ -800,6 +800,35 @@
             cursor: zoom-in;
         }
 
+        /* Magnifier size slider pill — sits at bottom of the illustration */
+        .magnifier-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(10, 8, 25, 0.82);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(167, 139, 250, 0.35);
+            border-radius: 20px;
+            padding: 0.35rem 0.9rem;
+            width: calc(100% - 32px);
+            max-width: 320px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 20;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+
+        /* Show controls when hovering the illustration container */
+        .board-illustration:hover .magnifier-controls {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
         /* Sidebar reservoir panel styling */
         .reservoir-sidebar {
             position: fixed;
