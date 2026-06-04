@@ -14,11 +14,12 @@ def generate_book():
     theme = data.get("theme", "").strip()
     level = data.get("level", "").strip()
     language = data.get("language", "").strip()
+    visual_theme = data.get("visual_theme", "cartoon").strip()
     
     if not theme or not level or not language:
         return jsonify({"error": "Theme, level, and language are required"}), 400
 
-    result, err = run_in_background(generate_book_async(theme, level, language))
+    result, err = run_in_background(generate_book_async(theme, level, language, visual_theme))
     if err:
         return jsonify({"error": err}), 500
         
@@ -28,11 +29,12 @@ def generate_book():
 def illustrate_scene():
     data = request.get_json() or {}
     prompt = data.get("prompt", "").strip()
+    visual_theme = data.get("visual_theme", "cartoon").strip()
     
     if not prompt:
         return jsonify({"error": "Prompt is required"}), 400
         
-    result, err = run_in_background(illustrate_scene_async(prompt))
+    result, err = run_in_background(illustrate_scene_async(prompt, visual_theme))
     if err:
         return jsonify({"error": err}), 500
         

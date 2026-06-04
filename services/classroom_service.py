@@ -131,3 +131,123 @@ Retorne apenas o bloco JSON válido, sem texto adicional antes ou depois. Envolv
             slide["image_error"] = img_err or "Nenhuma imagem retornada"
 
     return lesson_data
+
+
+async def generate_classroom_explanation_async(subject: str, slide_title: str, slide_narration: str, question: str, lang_code: str):
+    lang_names = {
+        "pt": "Português (Brasil)",
+        "en": "Inglês",
+        "es": "Espanhol"
+    }
+    target_lang_name = lang_names.get(lang_code, "Português (Brasil)")
+
+    if lang_code == "en":
+        prompt = f"""You are a teacher explaining the class '{subject}'.
+The user is currently on a slide titled '{slide_title}' with this explanation:
+'{slide_narration}'
+
+The user interrupts you and asks: '{question}'
+
+Answer the question directly, concisely, and didactically as a teacher.
+Format your explanation as a single custom slide.
+The entire response (slide title, narration, and bullet points) MUST be written exclusively in English.
+Provide:
+1. A short title for the board answering/relating to the question (max 50 characters).
+2. A narration text that you (the teacher) will speak to answer this question (3 to 5 sentences in English).
+3. 3 to 5 synthetic bullet points to be displayed on the blackboard in English.
+4. A detailed prompt in English to generate a white chalk chalkboard diagram summarizing the answer.
+
+Return the response EXCLUSIVELY in JSON format (wrapped by ```json ... ```) matching exactly this model:
+{{
+  "title": "Board Title in English",
+  "narration": "Narration text answering the question in English...",
+  "bullets": [
+    "Synthetic bullet point 1",
+    "Synthetic bullet point 2"
+  ],
+  "image_prompt": "A clean chalkboard style diagram showing..."
+}}
+Return only the valid JSON block, with no additional text before or after."""
+    elif lang_code == "es":
+        prompt = f"""Eres un profesor explicando la clase '{subject}'.
+El usuario se encuentra en la diapositiva titulada '{slide_title}' con esta explicación:
+'{slide_narration}'
+
+El usuario te interrumpe y pregunta: '{question}'
+
+Responde a la pregunta de forma directa, concisa y didáctica como profesor.
+Estructura tu explicación como una sola diapositiva personalizada.
+Toda la respuesta (título de la pizarra, narración y puntos clave) DEBE estar escrita exclusivamente en Español.
+Proporciona:
+1. Un título corto para la pizarra que responda o se relacione con la pregunta (máximo de 50 caracteres).
+2. Un texto de narración que tú (el profesor) hablarás para responder a la pregunta (de 3 a 5 frases en Español).
+3. De 3 a 5 puntos clave sintéticos que se mostrarán en la pizarra en Español.
+4. Un prompt detallado en inglés para generar un diagrama de tiza blanca en pizarra verde que resuma la respuesta.
+
+Devuelve la respuesta EXCLUSIVAMENTE en formato JSON (envuelto por ```json ... ```) siguiendo exactamente este modelo:
+{{
+  "title": "Título de la Pizarra en Español",
+  "narration": "Texto de narración respondiendo a la pregunta en Español...",
+  "bullets": [
+    "Punto sintético 1",
+    "Punto sintético 2"
+  ],
+  "image_prompt": "A clean chalkboard style diagram showing..."
+}}
+Devuelve solo el bloque JSON válido, sin texto adicional antes o después."""
+    else:
+        prompt = f"""Você é um professor explicando a aula '{subject}'.
+O usuário está no slide intitulado '{slide_title}' com a seguinte explicação:
+'{slide_narration}'
+
+O usuário interrompe a aula e faz a seguinte pergunta: '{question}'
+
+Responda à pergunta de forma direta, concisa e didática como professor.
+Estruture a sua explicação em formato de um slide personalizado.
+Toda a resposta (título do quadro, narração e tópicos) deve ser escrita exclusivamente no idioma Português (Brasil).
+Forneça:
+1. Um título curto do quadro que responda ou se relacione com a pergunta (máximo de 50 caracteres).
+2. Um texto de narração que você (o professor) falará para responder a esta pergunta (de 3 a 5 frases em Português).
+3. De 3 a 5 tópicos (bullet points) sintéticos que serão exibidos no quadro negro/lousa em Português.
+4. Um prompt detalhado em inglês para gerar uma ilustração/diagrama técnico estilo desenho de giz (chalk sketch, technical blueprint on dark board) que resuma a resposta.
+
+Retorne a resposta EXCLUSIVAMENTE em formato JSON (envolvido por ```json ... ```) seguindo exatamente este modelo:
+{{
+  "title": "Título do Quadro em Português",
+  "narration": "Texto de narração respondendo à pergunta em Português...",
+  "bullets": [
+    "Tópico sintético 1",
+    "Tópico sintético 2"
+  ],
+  "image_prompt": "A clean chalkboard style diagram showing..."
+}}
+Retorne apenas o bloco JSON válido, sem texto adicional antes ou depois."""
+
+    # Generate explanation script
+    text_resp, err = await generate_text_unified_async(prompt)
+    if err:
+        raise Exception(f"Falha ao obter resposta do professor: {err}")
+
+    try:
+        cleaned_text = text_resp.strip()
+        if "```json" in cleaned_text:
+            cleaned_text = cleaned_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in cleaned_text:
+            cleaned_text = cleaned_text.split("```")[1].split("```")[0].strip()
+            
+        explanation_data = json.loads(cleaned_text)
+    except Exception as parse_err:
+        print(f"[Explanation Parser Error] {parse_err}. Response text was: {text_resp}")
+        raise Exception("Erro ao interpretar resposta do professor. Tente novamente.")
+
+    # Generate image for explanation
+    img_prompt = explanation_data.get("image_prompt", "A chalkboard technical schematic illustrating the answer")
+    full_img_prompt = f"Gere uma imagem de: {img_prompt}. (white chalk sketch on blackboard, blackboard drawing style, schematic, educational blueprint, dark green board background, technical drawing, no letters, no text, outline drawing)"
+    
+    img_url, img_err = await generate_image_unified_async(full_img_prompt)
+    if img_url:
+        explanation_data["image_url"] = img_url
+    else:
+        explanation_data["image_error"] = img_err or "Nenhuma imagem de ilustração retornada"
+
+    return explanation_data

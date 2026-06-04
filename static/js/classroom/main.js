@@ -8,9 +8,12 @@ import {
     updateAutoPlayUI,
     startSubtitleLoop,
     stopSubtitleLoop,
-    formatTime
+    formatTime,
+    loadExplanation,
+    returnToLesson
 } from './player.js';
 import { initializeAvatarHandlers } from './avatar.js';
+import { attachVoiceInput } from '../voice_input.js';
 
 // Check if generate button should be enabled
 function checkInputs() {
@@ -80,6 +83,10 @@ export function applyLanguage(lang) {
 
     if (elements.lblReservoirTitle) elements.lblReservoirTitle.textContent = t.reservoirTitle;
     if (elements.btnReservoirLabel) elements.btnReservoirLabel.textContent = t.reservoirTitle;
+    if (elements.lblAskTitle) elements.lblAskTitle.textContent = t.lblAskTitle;
+    if (elements.askTeacherInput) elements.askTeacherInput.placeholder = t.askPlaceholder;
+    if (elements.lblBtnAsk) elements.lblBtnAsk.textContent = t.lblBtnAsk;
+    if (elements.lblBtnReturn) elements.lblBtnReturn.textContent = t.lblBtnReturn;
 
     updateAutoPlayUI();
     renderHistoryList();
@@ -198,6 +205,9 @@ function setupEvents() {
         localStorage.removeItem('paradise_active_lesson');
         localStorage.removeItem('paradise_active_lesson_slide');
         
+        state.explanationActive = false;
+        if (elements.btnReturnLesson) elements.btnReturnLesson.style.display = 'none';
+        
         elements.stagePanel.style.display = 'none';
         elements.setupPanel.style.display = 'flex';
         
@@ -281,7 +291,7 @@ function setupEvents() {
         elements.playIcon.className = 'fa-solid fa-play';
         
         // Auto transition
-        if (state.autoPlayEnabled && state.lessonData && state.currentSlideIdx < state.lessonData.slides.length - 1) {
+        if (!state.explanationActive && state.autoPlayEnabled && state.lessonData && state.currentSlideIdx < state.lessonData.slides.length - 1) {
             const endedSlideIdx = state.currentSlideIdx;
             setTimeout(() => {
                 if (state.autoPlayEnabled && state.currentSlideIdx === endedSlideIdx) {
@@ -322,6 +332,94 @@ function setupEvents() {
             elements.reservoirSidebar.classList.remove('active');
             elements.reservoirOverlay.classList.remove('active');
         });
+    }
+
+    // Ask the Teacher actions
+    async function handleAskQuestion() {
+        const question = elements.askTeacherInput.value.trim();
+        const currentLang = localStorage.getItem('paradise_language') || 'pt';
+        const t = classTranslations[currentLang] || classTranslations.pt;
+        
+        if (!question) {
+            alert(t.askEmptyError);
+            return;
+        }
+
+        // Pause/stop current narration audio
+        elements.audioEl.pause();
+        elements.audioEl.src = '';
+        elements.teacherAvatar.classList.remove('speaking');
+        window.isSpeaking3D = false;
+        state.isPlaying = false;
+        stopSubtitleLoop();
+        elements.playIcon.className = 'fa-solid fa-play';
+
+        // Disable query input UI
+        elements.askTeacherInput.disabled = true;
+        elements.btnAskTeacher.disabled = true;
+
+        // Show classroom loading state on blackboard
+        elements.boardSlideTitle.textContent = question;
+        elements.boardBullets.innerHTML = `<li><span style="display:inline-block; width:1.2rem; height:1.2rem; border-radius:50%; border:2px solid rgba(255,255,255,0.2); border-top-color:#a78bfa; animation:spin 1s linear infinite; vertical-align:middle; margin-right:8px;"></span> ${t.askingTeacher}</li>`;
+        elements.boardImage.className = 'loading';
+        elements.downloadBoardBtn.style.display = 'none';
+
+        try {
+            const currentSlide = state.lessonData.slides[state.currentSlideIdx];
+            const response = await fetch('/api/classroom/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subject: state.lessonData.subject,
+                    slide_title: currentSlide.title,
+                    slide_narration: currentSlide.narration,
+                    question: question,
+                    language: currentLang
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || "Erro ao consultar o professor.");
+            }
+
+            const explanation = await response.json();
+            loadExplanation(explanation);
+            elements.askTeacherInput.value = '';
+        } catch (err) {
+            alert(err.message);
+            // Restore current slide to recover
+            loadSlide(state.currentSlideIdx);
+        } finally {
+            elements.askTeacherInput.disabled = false;
+            elements.btnAskTeacher.disabled = false;
+        }
+    }
+
+    if (elements.btnAskTeacher) {
+        elements.btnAskTeacher.addEventListener('click', handleAskQuestion);
+    }
+    if (elements.askTeacherInput) {
+        elements.askTeacherInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleAskQuestion();
+        });
+    }
+    if (elements.btnReturnLesson) {
+        elements.btnReturnLesson.addEventListener('click', returnToLesson);
+    }
+
+    // Attach Voice Input to Theme and Ask Teacher input fields
+    if (elements.btnMicTheme && elements.themeInput) {
+        attachVoiceInput(elements.themeInput, elements.btnMicTheme, () => localStorage.getItem('paradise_language') || 'pt');
+        // Trigger validation check on input change via voice
+        elements.themeInput.addEventListener('change', checkInputs);
+    }
+    if (elements.btnMicAsk && elements.askTeacherInput) {
+        attachVoiceInput(elements.askTeacherInput, elements.btnMicAsk, () => localStorage.getItem('paradise_language') || 'pt');
+    }
+    if (elements.btnMicText && elements.textInput) {
+        attachVoiceInput(elements.textInput, elements.btnMicText, () => localStorage.getItem('paradise_language') || 'pt');
+        elements.textInput.addEventListener('change', checkInputs);
     }
 }
 

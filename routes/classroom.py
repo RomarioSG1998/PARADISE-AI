@@ -57,3 +57,26 @@ def generate_classroom():
         return jsonify(lesson_data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@classroom_bp.route("/api/classroom/ask", methods=["POST"])
+def ask_teacher():
+    if not request.is_json:
+        return jsonify({"error": "Requisição deve ser JSON"}), 400
+        
+    data = request.get_json() or {}
+    subject = data.get("subject", "").strip()
+    slide_title = data.get("slide_title", "").strip()
+    slide_narration = data.get("slide_narration", "").strip()
+    question = data.get("question", "").strip()
+    lang_code = data.get("language") or request.cookies.get("paradise_language", "pt")
+    
+    if not question:
+        return jsonify({"error": "A pergunta não pode ser vazia"}), 400
+        
+    try:
+        from services.classroom_service import generate_classroom_explanation_async
+        explanation = run_in_background(generate_classroom_explanation_async(subject, slide_title, slide_narration, question, lang_code))
+        return jsonify(explanation)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

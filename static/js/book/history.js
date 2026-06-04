@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { elements } from './elements.js';
 import { renderChapter } from './player.js';
+import { applyVisualTheme } from './main.js';
 
 export function getSavedBooks() {
     const data = localStorage.getItem('paradise_books');
@@ -49,6 +50,7 @@ export function loadBookFromHistory(bookId) {
         state.currentChapterIndex = 0;
         elements.panelForm.style.display = 'none';
         elements.panelReader.style.display = 'flex';
+        applyVisualTheme(book.visual_theme || 'cartoon');
         renderChapter();
     }
 }

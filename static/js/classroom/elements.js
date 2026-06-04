@@ -37,8 +37,6 @@ export const elements = {
     roleNameEl: document.getElementById('teacher-role-name'),
     avatarUpload: document.getElementById('avatar-upload'),
     avatarDisplayImg: document.getElementById('avatar-display-img'),
-    fsOverlay: document.getElementById('board-image-fullscreen-overlay'),
-    fsOverlayImg: document.getElementById('fullscreen-overlay-img'),
     downloadBoardBtn: document.getElementById('btn-download-board-img'),
     openReservoirBtn: document.getElementById('open-reservoir-btn'),
     closeReservoirBtn: document.getElementById('close-reservoir-btn'),
@@ -46,5 +44,15 @@ export const elements = {
     reservoirOverlay: document.getElementById('reservoir-overlay'),
     reservoirList: document.getElementById('reservoir-list'),
     lblReservoirTitle: document.getElementById('lbl-reservoir-title'),
-    btnReservoirLabel: document.getElementById('btn-reservoir-label')
+    btnReservoirLabel: document.getElementById('btn-reservoir-label'),
+    btnReturnLesson: document.getElementById('btn-return-lesson'),
+    lblBtnReturn: document.getElementById('lbl-btn-return'),
+    askTeacherContainer: document.getElementById('ask-teacher-container'),
+    lblAskTitle: document.getElementById('lbl-ask-title'),
+    askTeacherInput: document.getElementById('ask-teacher-input'),
+    btnAskTeacher: document.getElementById('btn-ask-teacher'),
+    lblBtnAsk: document.getElementById('lbl-btn-ask'),
+    btnMicTheme: document.getElementById('btn-mic-theme'),
+    btnMicAsk: document.getElementById('btn-mic-ask'),
+    btnMicText: document.getElementById('btn-mic-text')
 };

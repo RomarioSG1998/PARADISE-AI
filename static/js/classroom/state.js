@@ -9,5 +9,6 @@ export const state = {
     autoPlayEnabled: localStorage.getItem('classroom_autoplay') !== 'false',
     wordRanges: [],
     isPlaying: false,
-    animationFrameId: null
+    animationFrameId: null,
+    explanationActive: false
 };
