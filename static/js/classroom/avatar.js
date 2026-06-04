@@ -44,30 +44,75 @@ export function initializeAvatarHandlers() {
         }
     });
 
-    // Fullscreen Board Image Hover Zoom Event Listeners
-    elements.boardImage.addEventListener('mouseenter', () => {
-        // Only trigger if image is loaded and is not a blank slide
-        if (elements.boardImage.src && !elements.boardImage.src.endsWith('/classroom') && elements.boardImage.style.display !== 'none' && !elements.boardImage.className.includes('loading')) {
-            elements.fsOverlayImg.src = elements.boardImage.src;
-            elements.fsOverlay.classList.add('active');
+    // ── Magnifying Glass Effect ──────────────────────────────────────────
+    const LENS_SIZE = 220;     // diameter in px
+    const ZOOM     = 2.8;      // magnification factor
+
+    const lens = document.getElementById('magnifier-lens');
+
+    function isImageReady() {
+        return (
+            elements.boardImage &&
+            elements.boardImage.src &&
+            !elements.boardImage.src.endsWith('/classroom') &&
+            !elements.boardImage.className.includes('loading') &&
+            elements.boardImage.complete &&
+            elements.boardImage.naturalWidth > 0
+        );
+    }
+
+    function updateLens(e) {
+        if (!isImageReady()) return;
+
+        const imgRect = elements.boardImage.getBoundingClientRect();
+
+        // Cursor position relative to the image
+        const cx = e.clientX - imgRect.left;
+        const cy = e.clientY - imgRect.top;
+
+        // Clamp so the zoomed region doesn't go outside the image
+        const halfW = (LENS_SIZE / ZOOM) / 2;
+        const halfH = (LENS_SIZE / ZOOM) / 2;
+        const clampedX = Math.max(halfW, Math.min(cx, imgRect.width  - halfW));
+        const clampedY = Math.max(halfH, Math.min(cy, imgRect.height - halfH));
+
+        // Background size = image rendered size × zoom factor
+        const bgW = imgRect.width  * ZOOM;
+        const bgH = imgRect.height * ZOOM;
+
+        // Background position: shifts so the point under cursor is centred in lens
+        const bgX = -(clampedX * ZOOM - LENS_SIZE / 2);
+        const bgY = -(clampedY * ZOOM - LENS_SIZE / 2);
+
+        // Use a proxy URL if needed (same logic as player.js)
+        let src = elements.boardImage.src;
+        if (src.includes('/api/proxy-image')) {
+            // already proxied
+        } else if (src.includes('googleusercontent.com') || src.includes('google.com')) {
+            src = `/api/proxy-image?url=${encodeURIComponent(src)}`;
         }
+
+        lens.style.backgroundImage  = `url("${src}")`;
+        lens.style.backgroundSize   = `${bgW}px ${bgH}px`;
+        lens.style.backgroundPosition = `${bgX}px ${bgY}px`;
+
+        // Position lens centred on cursor
+        lens.style.left = `${e.clientX}px`;
+        lens.style.top  = `${e.clientY}px`;
+    }
+
+    elements.boardImage.addEventListener('mouseenter', (e) => {
+        if (!isImageReady()) return;
+        lens.style.display = 'block';
+        elements.boardImage.classList.add('magnifying');
+        updateLens(e);
     });
 
-    elements.fsOverlay.addEventListener('mousemove', (e) => {
-        const rect = elements.fsOverlayImg.getBoundingClientRect();
-        // Close if mouse moves outside the bounds of the image (plus 20px padding buffer)
-        if (
-            e.clientX < rect.left - 20 ||
-            e.clientX > rect.right + 20 ||
-            e.clientY < rect.top - 20 ||
-            e.clientY > rect.bottom + 20
-        ) {
-            elements.fsOverlay.classList.remove('active');
-        }
-    });
+    elements.boardImage.addEventListener('mousemove', updateLens);
 
-    // Allow closing by clicking anywhere on the overlay
-    elements.fsOverlay.addEventListener('click', () => {
-        elements.fsOverlay.classList.remove('active');
+    elements.boardImage.addEventListener('mouseleave', () => {
+        lens.style.display = 'none';
+        elements.boardImage.classList.remove('magnifying');
     });
 }
+

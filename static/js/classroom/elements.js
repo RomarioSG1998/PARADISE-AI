@@ -37,8 +37,6 @@ export const elements = {
     roleNameEl: document.getElementById('teacher-role-name'),
     avatarUpload: document.getElementById('avatar-upload'),
     avatarDisplayImg: document.getElementById('avatar-display-img'),
-    fsOverlay: document.getElementById('board-image-fullscreen-overlay'),
-    fsOverlayImg: document.getElementById('fullscreen-overlay-img'),
     downloadBoardBtn: document.getElementById('btn-download-board-img'),
     openReservoirBtn: document.getElementById('open-reservoir-btn'),
     closeReservoirBtn: document.getElementById('close-reservoir-btn'),
