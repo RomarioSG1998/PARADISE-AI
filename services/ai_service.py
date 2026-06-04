@@ -9,11 +9,15 @@ load_dotenv(ENV_PATH, override=True)
 
 # Global client cache
 gemini_client = None
+current_account_id = None
 image_cache = {}
 
-async def get_or_create_client_async(force_reinit=False):
-    global gemini_client
+async def get_or_create_client_async(force_reinit=False, tried_ids=None):
+    global gemini_client, current_account_id
     
+    if tried_ids is None:
+        tried_ids = set()
+        
     load_dotenv(ENV_PATH, override=True)
     gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if gemini_api_key:
@@ -22,28 +26,69 @@ async def get_or_create_client_async(force_reinit=False):
     if gemini_client is not None and not force_reinit:
         return gemini_client, None
 
-    secure_1psid = os.getenv("GEMINI_SECURE_1PSID", "").strip()
-    secure_1psidts = os.getenv("GEMINI_SECURE_1PSIDTS", "").strip()
+    try:
+        from database import get_next_available_account, update_account_status, mark_account_used
+    except ImportError:
+        # Avoid circular dependencies if loaded in some contexts
+        import sys
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from database import get_next_available_account, update_account_status, mark_account_used
 
-    if not secure_1psid or not secure_1psidts:
+    # Query least recently used active account
+    account = get_next_available_account()
+    
+    # Fallback to .env if no accounts in DB
+    if not account:
+        secure_1psid = os.getenv("GEMINI_SECURE_1PSID", "").strip()
+        secure_1psidts = os.getenv("GEMINI_SECURE_1PSIDTS", "").strip()
+        if not secure_1psid or not secure_1psidts:
+            gemini_client = None
+            current_account_id = None
+            return None, "Configuração ausente: defina GEMINI_API_KEY ou configure uma conta ativa no banco de dados."
+        
+        # Use .env credentials as virtual account ID 0
+        account = {
+            "id": 0,
+            "name": "Fallback (.env)",
+            "secure_1psid": secure_1psid,
+            "secure_1psidts": secure_1psidts
+        }
+
+    if account["id"] in tried_ids:
+        # We tried all available accounts and all failed
         gemini_client = None
-        return None, "Configuração ausente: defina GEMINI_API_KEY ou os cookies GEMINI_SECURE_1PSID e GEMINI_SECURE_1PSIDTS."
+        current_account_id = None
+        return None, "Todas as contas disponíveis no pool falharam na autenticação."
+
+    tried_ids.add(account["id"])
 
     try:
         from gemini_webapi import GeminiClient
         from gemini_webapi.client import AccountStatus
-        print("[Paradise AI] Initializing GeminiClient inside background loop...")
-        client = GeminiClient(secure_1psid, secure_1psidts)
+        print(f"[Paradise AI] Initializing GeminiClient for account '{account['name']}' (ID: {account['id']})...")
+        client = GeminiClient(account["secure_1psid"], account["secure_1psidts"])
         await client.init()
         if client.account_status != AccountStatus.AVAILABLE:
-            gemini_client = None
-            return None, f"Authentication failed: {client.account_status.description}"
+            error_msg = f"Authentication failed: {client.account_status.description}"
+            print(f"[Paradise AI] Account ID {account['id']} failed check: {error_msg}")
+            if account["id"] != 0:
+                update_account_status(account["id"], "error", error_msg)
+            # Try next account
+            return await get_or_create_client_async(force_reinit=True, tried_ids=tried_ids)
+            
         gemini_client = client
-        print("[Paradise AI] Client initialized successfully!")
+        current_account_id = account["id"]
+        if account["id"] != 0:
+            mark_account_used(account["id"])
+        print(f"[Paradise AI] Client for account '{account['name']}' (ID: {account['id']}) initialized successfully!")
         return gemini_client, None
     except Exception as e:
-        gemini_client = None
-        return None, f"Failed to initialize client: {str(e)}"
+        error_msg = str(e)
+        print(f"[Paradise AI] Exception during client init for account {account['id']}: {error_msg}")
+        if account["id"] != 0:
+            update_account_status(account["id"], "error", error_msg)
+        # Try next account
+        return await get_or_create_client_async(force_reinit=True, tried_ids=tried_ids)
 
 def enhance_prompt_for_images(message: str) -> str:
     msg_lower = message.lower()
@@ -167,8 +212,15 @@ async def chat_async(message):
         
         needs_config = False
         if "cookie" in error_msg.lower() or "auth" in error_msg.lower() or "401" in error_msg or "403" in error_msg:
-            global gemini_client
+            global gemini_client, current_account_id
+            if current_account_id and current_account_id != 0:
+                try:
+                    from database import update_account_status
+                    update_account_status(current_account_id, "error", f"Runtime error: {error_msg}")
+                except Exception as dbe:
+                    print(f"[Paradise AI DB Error] Could not update account {current_account_id} status: {dbe}")
             gemini_client = None
+            current_account_id = None
             needs_config = True
             
         return None, f"An error occurred: {error_msg}", needs_config

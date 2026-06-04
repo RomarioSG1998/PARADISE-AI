@@ -22,19 +22,29 @@ def login():
 @auth_bp.route("/api/status", methods=["GET"])
 def get_status():
     from dotenv import load_dotenv
+    from database import get_accounts
+    
     load_dotenv(ENV_PATH, override=True)
     secure_1psid = os.getenv("GEMINI_SECURE_1PSID", "").strip()
     secure_1psidts = os.getenv("GEMINI_SECURE_1PSIDTS", "").strip()
     gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
     
-    configured = bool((secure_1psid and secure_1psidts) or gemini_api_key)
-    active = (services.ai_service.gemini_client is not None) or bool(gemini_api_key)
+    try:
+        accounts = get_accounts()
+        has_db_accounts = len(accounts) > 0
+        has_active_db_accounts = any(acc["status"] == "active" for acc in accounts)
+    except Exception:
+        has_db_accounts = False
+        has_active_db_accounts = False
+    
+    configured = bool((secure_1psid and secure_1psidts) or gemini_api_key or has_db_accounts)
+    active = (services.ai_service.gemini_client is not None) or bool(gemini_api_key) or has_active_db_accounts
     
     return jsonify({
         "configured": configured,
         "active": active,
-        "has_secure_1psid": bool(secure_1psid),
-        "has_secure_1psidts": bool(secure_1psidts),
+        "has_secure_1psid": bool(secure_1psid) or has_db_accounts,
+        "has_secure_1psidts": bool(secure_1psidts) or has_db_accounts,
         "has_api_key": bool(gemini_api_key)
     })
 
@@ -49,19 +59,31 @@ def save_cookies():
         return jsonify({"success": False, "error": "Forneça a API Key ou ambos os cookies"}), 400
 
     try:
-        with open(ENV_PATH, "w") as f:
-            if gemini_api_key:
+        from database import add_account
+        
+        # Reset current cache
+        services.ai_service.gemini_client = None
+        services.ai_service.current_account_id = None
+
+        if gemini_api_key:
+            with open(ENV_PATH, "w") as f:
                 f.write(f"GEMINI_API_KEY={gemini_api_key}\n")
-            else:
+        else:
+            # Save account to DB pool
+            from datetime import datetime
+            account_name = f"Conta Pro {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            add_account(account_name, secure_1psid, secure_1psidts)
+            
+            # Write to .env as fallback
+            with open(ENV_PATH, "w") as f:
                 f.write(f"GEMINI_SECURE_1PSID={secure_1psid}\n")
                 f.write(f"GEMINI_SECURE_1PSIDTS={secure_1psidts}\n")
         
+        # Test connection
         if not gemini_api_key:
             client, err = run_in_background(get_or_create_client_async(force_reinit=True))
             if err:
                 return jsonify({"success": False, "error": err}), 400
-        else:
-            services.ai_service.gemini_client = None
             
         return jsonify({"success": True})
     except Exception as e:
