@@ -937,6 +937,21 @@
             opacity: 1;
             visibility: visible;
         }
+
+        /* Ask Teacher bar styling */
+        .ask-teacher-bar input:focus {
+            border-color: rgba(139, 92, 246, 0.5) !important;
+            box-shadow: 0 0 8px rgba(139, 92, 246, 0.2);
+        }
+        
+        .ask-teacher-bar button:hover {
+            opacity: 0.9 !important;
+            transform: translateY(-1px);
+        }
+        
+        .ask-teacher-bar button:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
@@ -1041,9 +1056,14 @@
             
             <div class="classroom-header">
                 <div class="classroom-subject" id="classroom-subject-title">Título da Aula</div>
-                <button class="reset-classroom-btn" id="btn-reset-classroom">
-                    <i class="fa-solid fa-arrow-rotate-left"></i> Nova Aula
-                </button>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="reset-classroom-btn" id="btn-return-lesson" style="display: none; border-color: rgba(167, 139, 250, 0.4); background: rgba(167, 139, 250, 0.1); color: #c084fc;">
+                        <i class="fa-solid fa-chevron-left"></i> <span id="lbl-btn-return">Voltar para a Aula</span>
+                    </button>
+                    <button class="reset-classroom-btn" id="btn-reset-classroom">
+                        <i class="fa-solid fa-arrow-rotate-left"></i> Nova Aula
+                    </button>
+                </div>
             </div>
 
             <!-- Blackboard and Teacher -->
@@ -1091,7 +1111,18 @@
                     <div class="simple-subtitle-box" id="teleprompter-subtitles">
                         Selecione ou crie uma aula para iniciar.
                     </div>
+            </div>
+
+            <!-- Ask the Teacher Section -->
+            <div class="ask-teacher-bar" id="ask-teacher-container" style="display: flex; gap: 1rem; width: 100%; margin-top: 1rem; margin-bottom: 0.5rem; align-items: center; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.75rem 1rem; border-radius: 12px;">
+                <div style="color: #a78bfa; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; min-width: 90px;">
+                    <i class="fa-solid fa-circle-question"></i>
+                    <span id="lbl-ask-title">Dúvidas?</span>
                 </div>
+                <input type="text" id="ask-teacher-input" placeholder="Faça uma pergunta sobre esta aula para o professor..." style="flex: 1; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1); color: white; padding: 0.6rem 1rem; border-radius: 8px; font-family: inherit; font-size: 0.9rem; outline: none; transition: border-color 0.2s;" />
+                <button class="control-btn" id="btn-ask-teacher" style="background: var(--btn-primary); color: white; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; height: 38px; width: auto; font-size: 0.85rem;">
+                    <i class="fa-solid fa-paper-plane"></i> <span id="lbl-btn-ask">Perguntar</span>
+                </button>
             </div>
 
             <!-- Audio Controls and Timeline -->

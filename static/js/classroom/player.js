@@ -195,3 +195,123 @@ export function formatTime(secs) {
     const s = Math.floor(secs % 60);
     return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
+
+
+export async function loadExplanation(explanation) {
+    // Stop current audio/subtitles
+    elements.audioEl.pause();
+    elements.audioEl.src = '';
+    elements.teacherAvatar.classList.remove('speaking');
+    window.isSpeaking3D = false;
+    state.isPlaying = false;
+    stopSubtitleLoop();
+    elements.playIcon.className = 'fa-solid fa-play';
+    elements.progressBar.value = 0;
+    elements.currentTimeEl.textContent = '0:00';
+    elements.durationTimeEl.textContent = '0:00';
+
+    state.explanationActive = true;
+    
+    // Update headers and return buttons
+    if (elements.btnReturnLesson) elements.btnReturnLesson.style.display = 'block';
+    
+    // Disable slide controls
+    elements.btnPrev.disabled = true;
+    elements.btnNext.disabled = true;
+    
+    // Render explanation title
+    elements.boardSlideTitle.textContent = explanation.title || "Explicação do Professor";
+    
+    // Render explanation bullets
+    elements.boardBullets.innerHTML = '';
+    const bullets = explanation.bullets || [];
+    bullets.forEach((bullet, i) => {
+        const li = document.createElement('li');
+        li.textContent = bullet;
+        elements.boardBullets.appendChild(li);
+        setTimeout(() => {
+            li.classList.add('reveal');
+        }, i * 600 + 400);
+    });
+
+    // Render explanation illustration
+    elements.boardImage.className = 'loading';
+    elements.downloadBoardBtn.style.display = 'none';
+    if (explanation.image_url) {
+        let rawUrl = explanation.image_url;
+        let proxyUrl = rawUrl;
+        if (rawUrl && (rawUrl.includes("googleusercontent.com") || rawUrl.includes("google.com"))) {
+            proxyUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
+        }
+        elements.boardImage.src = proxyUrl;
+        elements.boardImage.onclick = () => window.open(rawUrl, '_blank');
+        elements.boardImage.style.cursor = 'pointer';
+        elements.boardImage.onload = () => {
+            elements.boardImage.className = '';
+            elements.downloadBoardBtn.href = proxyUrl;
+            elements.downloadBoardBtn.style.display = 'flex';
+        };
+    } else {
+        elements.boardImage.src = '';
+    }
+
+    // Prepare Narration
+    const narration = explanation.narration || '';
+    const words = narration.split(' ');
+    let totalChars = words.reduce((acc, w) => acc + w.length, 0);
+    let currentSum = 0;
+    state.wordRanges = words.map(w => {
+        let start = currentSum / totalChars;
+        currentSum += w.length;
+        let end = currentSum / totalChars;
+        return { start, end };
+    });
+    
+    elements.teleprompterSubtitles.innerHTML = words.map((w, wIdx) => `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ');
+
+    state.audioLoading = true;
+    elements.btnPlay.disabled = true;
+    elements.teleprompterSubtitles.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">Preparando explicação...</span>`;
+
+    try {
+        const globalLang = localStorage.getItem('paradise_language') || 'pt';
+        elements.audioEl.src = `/api/tts?text=${encodeURIComponent(narration)}&lang=${globalLang}`;
+        elements.audioEl.load();
+        
+        elements.audioEl.oncanplaythrough = () => {
+            state.audioLoading = false;
+            elements.btnPlay.disabled = false;
+            
+            // Restore words
+            elements.teleprompterSubtitles.innerHTML = words.map((w, wIdx) => `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ');
+            
+            const speed = elements.speedSlider.value / 10;
+            elements.audioEl.playbackRate = speed;
+            
+            elements.audioEl.play().then(() => {
+                elements.playIcon.className = 'fa-solid fa-pause';
+                elements.teacherAvatar.classList.add('speaking');
+                window.isSpeaking3D = true;
+                state.isPlaying = true;
+                startSubtitleLoop();
+            }).catch(() => {
+                elements.playIcon.className = 'fa-solid fa-play';
+                elements.teacherAvatar.classList.remove('speaking');
+                window.isSpeaking3D = false;
+                state.isPlaying = false;
+            });
+        };
+    } catch (e) {
+        console.error("Failed to load audio for explanation", e);
+        elements.teleprompterSubtitles.textContent = narration + " (Áudio indisponível)";
+        state.audioLoading = false;
+    }
+}
+
+export function returnToLesson() {
+    state.explanationActive = false;
+    if (elements.btnReturnLesson) elements.btnReturnLesson.style.display = 'none';
+    
+    // Reload original slide
+    loadSlide(state.currentSlideIdx);
+}

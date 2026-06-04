@@ -55,6 +55,9 @@ export function loadLessonFromHistory(lessonId) {
     if (lesson) {
         state.lessonData = lesson;
         state.currentSlideIdx = 0;
+        state.explanationActive = false;
+        if (elements.btnReturnLesson) elements.btnReturnLesson.style.display = 'none';
+        
         elements.setupPanel.style.display = 'none';
         elements.stagePanel.style.display = 'flex';
         

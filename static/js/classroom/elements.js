@@ -46,5 +46,12 @@ export const elements = {
     reservoirOverlay: document.getElementById('reservoir-overlay'),
     reservoirList: document.getElementById('reservoir-list'),
     lblReservoirTitle: document.getElementById('lbl-reservoir-title'),
-    btnReservoirLabel: document.getElementById('btn-reservoir-label')
+    btnReservoirLabel: document.getElementById('btn-reservoir-label'),
+    btnReturnLesson: document.getElementById('btn-return-lesson'),
+    lblBtnReturn: document.getElementById('lbl-btn-return'),
+    askTeacherContainer: document.getElementById('ask-teacher-container'),
+    lblAskTitle: document.getElementById('lbl-ask-title'),
+    askTeacherInput: document.getElementById('ask-teacher-input'),
+    btnAskTeacher: document.getElementById('btn-ask-teacher'),
+    lblBtnAsk: document.getElementById('lbl-btn-ask')
 };

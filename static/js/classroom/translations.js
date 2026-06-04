@@ -22,7 +22,13 @@ export const classTranslations = {
         themeText: "Tema",
         btnReservoir: "<i class='fa-solid fa-database'></i> Reservatório de Aulas",
         reservoirTitle: "Reservatório de Aulas",
-        reservoirEmpty: "Nenhuma aula produzida ainda. Crie uma aula para começar!"
+        reservoirEmpty: "Nenhuma aula produzida ainda. Crie uma aula para começar!",
+        lblAskTitle: "Dúvidas?",
+        askPlaceholder: "Faça uma pergunta sobre esta aula para o professor...",
+        lblBtnAsk: "Perguntar",
+        lblBtnReturn: "Voltar para a Aula",
+        askingTeacher: "O professor está elaborando a resposta...",
+        askEmptyError: "Por favor, digite uma pergunta."
     },
     en: {
         backBtn: "<i class='fa-solid fa-arrow-left'></i> General Dashboard",
@@ -47,7 +53,13 @@ export const classTranslations = {
         themeText: "Theme",
         btnReservoir: "<i class='fa-solid fa-database'></i> Lessons Reservoir",
         reservoirTitle: "Lessons Reservoir",
-        reservoirEmpty: "No classes produced yet. Create a class to get started!"
+        reservoirEmpty: "No classes produced yet. Create a class to get started!",
+        lblAskTitle: "Questions?",
+        askPlaceholder: "Ask the teacher a question about this lesson...",
+        lblBtnAsk: "Ask",
+        lblBtnReturn: "Back to Lesson",
+        askingTeacher: "The teacher is drafting the response...",
+        askEmptyError: "Please type a question."
     },
     es: {
         backBtn: "<i class='fa-solid fa-arrow-left'></i> Panel General",
@@ -72,6 +84,12 @@ export const classTranslations = {
         themeText: "Tema",
         btnReservoir: "<i class='fa-solid fa-database'></i> Reservorio de Clases",
         reservoirTitle: "Reservorio de Clases",
-        reservoirEmpty: "Ninguna clase producida todavía. ¡Crea una clase para comenzar!"
+        reservoirEmpty: "Ninguna clase producida todavía. ¡Crea una clase para comenzar!",
+        lblAskTitle: "¿Preguntas?",
+        askPlaceholder: "Haz una pregunta sobre esta clase al profesor...",
+        lblBtnAsk: "Preguntar",
+        lblBtnReturn: "Volver a la Clase",
+        askingTeacher: "El profesor está elaborando la respuesta...",
+        askEmptyError: "Por favor, escribe una pregunta."
     }
 };
