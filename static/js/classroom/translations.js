@@ -19,7 +19,10 @@ export const classTranslations = {
         descSavedClasses: "Clique para assistir novamente qualquer uma das aulas já geradas neste navegador.",
         deleteClassConfirm: "Tem certeza que deseja excluir esta aula do seu histórico?",
         slideCountText: "slides",
-        themeText: "Tema"
+        themeText: "Tema",
+        btnReservoir: "<i class='fa-solid fa-database'></i> Reservatório de Aulas",
+        reservoirTitle: "Reservatório de Aulas",
+        reservoirEmpty: "Nenhuma aula produzida ainda. Crie uma aula para começar!"
     },
     en: {
         backBtn: "<i class='fa-solid fa-arrow-left'></i> General Dashboard",
@@ -41,7 +44,10 @@ export const classTranslations = {
         descSavedClasses: "Click to watch again any of the classes already generated in this browser.",
         deleteClassConfirm: "Are you sure you want to delete this class from your history?",
         slideCountText: "slides",
-        themeText: "Theme"
+        themeText: "Theme",
+        btnReservoir: "<i class='fa-solid fa-database'></i> Lessons Reservoir",
+        reservoirTitle: "Lessons Reservoir",
+        reservoirEmpty: "No classes produced yet. Create a class to get started!"
     },
     es: {
         backBtn: "<i class='fa-solid fa-arrow-left'></i> Panel General",
@@ -63,6 +69,9 @@ export const classTranslations = {
         descSavedClasses: "Haga clic para ver nuevamente cualquiera de las clases ya generadas en este navegador.",
         deleteClassConfirm: "¿Está seguro de que desea eliminar esta clase de su historial?",
         slideCountText: "diapositivas",
-        themeText: "Tema"
+        themeText: "Tema",
+        btnReservoir: "<i class='fa-solid fa-database'></i> Reservorio de Clases",
+        reservoirTitle: "Reservorio de Clases",
+        reservoirEmpty: "Ninguna clase producida todavía. ¡Crea una clase para comenzar!"
     }
 };

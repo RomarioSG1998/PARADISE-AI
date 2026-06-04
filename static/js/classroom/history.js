@@ -57,34 +57,44 @@ export function loadLessonFromHistory(lessonId) {
         state.currentSlideIdx = 0;
         elements.setupPanel.style.display = 'none';
         elements.stagePanel.style.display = 'flex';
+        
+        // Hide reservoir sidebar
+        if (elements.reservoirSidebar) {
+            elements.reservoirSidebar.classList.remove('active');
+            elements.reservoirOverlay.classList.remove('active');
+        }
+        
         renderLesson();
     }
 }
 
 export function renderHistoryList() {
-    const historyPanel = document.getElementById('history-panel');
-    const historyList = document.getElementById('history-list');
-    if (!historyPanel || !historyList) return;
+    const reservoirList = elements.reservoirList;
+    if (!reservoirList) return;
     
     const lessons = getSavedLessons();
-    if (lessons.length === 0) {
-        historyPanel.style.display = 'none';
-        return;
-    }
-    
     const lang = localStorage.getItem('paradise_language') || 'pt';
     const t = classTranslations[lang] || classTranslations.pt;
     const slideCountText = t.slideCountText || "slides";
     const themeLabel = t.themeText || "Tema";
     
-    historyPanel.style.display = 'block';
-    historyList.innerHTML = '';
+    if (lessons.length === 0) {
+        reservoirList.innerHTML = `
+            <div class="reservoir-empty">
+                <i class="fa-solid fa-folder-open"></i>
+                <p>${t.reservoirEmpty || "Nenhuma aula produzida ainda. Crie uma aula para começar!"}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    reservoirList.innerHTML = '';
     
     lessons.forEach(lesson => {
         const card = document.createElement('div');
         card.style.padding = '1.25rem';
-        card.style.background = 'var(--bg-surface)';
-        card.style.border = '1px solid rgba(255, 255, 255, 0.05)';
+        card.style.background = 'rgba(255, 255, 255, 0.03)';
+        card.style.border = '1px solid rgba(255, 255, 255, 0.08)';
         card.style.borderRadius = '14px';
         card.style.boxShadow = '0 10px 20px rgba(0, 0, 0, 0.15)';
         card.style.cursor = 'pointer';
@@ -95,12 +105,14 @@ export function renderHistoryList() {
         
         card.onmouseenter = () => {
             card.style.transform = 'translateY(-3px)';
-            card.style.borderColor = 'rgba(167, 139, 250, 0.3)';
+            card.style.borderColor = 'rgba(167, 139, 250, 0.5)';
+            card.style.background = 'rgba(167, 139, 250, 0.04)';
             card.style.boxShadow = '0 15px 30px rgba(167, 139, 250, 0.08)';
         };
         card.onmouseleave = () => {
             card.style.transform = 'none';
-            card.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+            card.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+            card.style.background = 'rgba(255, 255, 255, 0.03)';
             card.style.boxShadow = '0 10px 20px rgba(0, 0, 0, 0.15)';
         };
         
@@ -164,6 +176,6 @@ export function renderHistoryList() {
         card.appendChild(meta);
         card.appendChild(footer);
         
-        historyList.appendChild(card);
+        reservoirList.appendChild(card);
     });
 }

@@ -78,10 +78,8 @@ export function applyLanguage(lang) {
     const langSelect = document.getElementById('global-lang-select');
     if (langSelect) langSelect.value = lang;
 
-    const lblSavedClasses = document.getElementById('lbl-saved-classes');
-    if (lblSavedClasses) lblSavedClasses.textContent = t.lblSavedClasses;
-    const descSavedClasses = document.getElementById('desc-saved-classes');
-    if (descSavedClasses) descSavedClasses.textContent = t.descSavedClasses;
+    if (elements.lblReservoirTitle) elements.lblReservoirTitle.textContent = t.reservoirTitle;
+    if (elements.btnReservoirLabel) elements.btnReservoirLabel.textContent = t.reservoirTitle;
 
     updateAutoPlayUI();
     renderHistoryList();
@@ -305,6 +303,26 @@ function setupEvents() {
     document.getElementById('global-lang-select').addEventListener('change', (e) => {
         applyLanguage(e.target.value);
     });
+
+    // Reservoir sidebar open/close
+    if (elements.openReservoirBtn) {
+        elements.openReservoirBtn.addEventListener('click', () => {
+            elements.reservoirSidebar.classList.add('active');
+            elements.reservoirOverlay.classList.add('active');
+        });
+    }
+    if (elements.closeReservoirBtn) {
+        elements.closeReservoirBtn.addEventListener('click', () => {
+            elements.reservoirSidebar.classList.remove('active');
+            elements.reservoirOverlay.classList.remove('active');
+        });
+    }
+    if (elements.reservoirOverlay) {
+        elements.reservoirOverlay.addEventListener('click', () => {
+            elements.reservoirSidebar.classList.remove('active');
+            elements.reservoirOverlay.classList.remove('active');
+        });
+    }
 }
 
 // Initialize application

@@ -39,5 +39,12 @@ export const elements = {
     avatarDisplayImg: document.getElementById('avatar-display-img'),
     fsOverlay: document.getElementById('board-image-fullscreen-overlay'),
     fsOverlayImg: document.getElementById('fullscreen-overlay-img'),
-    downloadBoardBtn: document.getElementById('btn-download-board-img')
+    downloadBoardBtn: document.getElementById('btn-download-board-img'),
+    openReservoirBtn: document.getElementById('open-reservoir-btn'),
+    closeReservoirBtn: document.getElementById('close-reservoir-btn'),
+    reservoirSidebar: document.getElementById('reservoir-sidebar'),
+    reservoirOverlay: document.getElementById('reservoir-overlay'),
+    reservoirList: document.getElementById('reservoir-list'),
+    lblReservoirTitle: document.getElementById('lbl-reservoir-title'),
+    btnReservoirLabel: document.getElementById('btn-reservoir-label')
 };

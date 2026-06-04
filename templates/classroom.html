@@ -818,6 +818,125 @@
             pointer-events: none;
             letter-spacing: 0.5px;
         }
+
+        /* Sidebar reservoir panel styling */
+        .reservoir-sidebar {
+            position: fixed;
+            top: 0;
+            right: -460px; /* Hidden by default */
+            width: 440px;
+            height: 100vh;
+            background: rgba(10, 8, 25, 0.96);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(167, 139, 250, 0.2);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1.5rem;
+        }
+
+        .reservoir-sidebar.active {
+            right: 0;
+        }
+
+        .reservoir-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 1rem;
+        }
+
+        .reservoir-header h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #a78bfa;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .reservoir-close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .reservoir-close-btn:hover {
+            color: #ef4444;
+        }
+
+        .reservoir-content {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            padding-right: 0.25rem;
+        }
+
+        /* Scrollbar styling for reservoir */
+        .reservoir-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .reservoir-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .reservoir-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        .reservoir-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(167, 139, 250, 0.3);
+        }
+
+        .reservoir-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            text-align: center;
+            gap: 1rem;
+            padding: 2rem;
+        }
+
+        .reservoir-empty i {
+            font-size: 3rem;
+            color: rgba(167, 139, 250, 0.2);
+        }
+
+        .reservoir-empty p {
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Sidebar Backdrop Blur Overlay */
+        .reservoir-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 998;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .reservoir-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
     </style>
 </head>
 <body>
@@ -847,6 +966,9 @@
                     <option value="es" style="background: #120f26; color: white;">Español 🇪🇸</option>
                 </select>
             </div>
+            <button class="back-btn" id="open-reservoir-btn" style="border-color: rgba(167, 139, 250, 0.3); background: rgba(167, 139, 250, 0.05); color: #c084fc; cursor: pointer; outline: none;">
+                <i class="fa-solid fa-database"></i> <span id="btn-reservoir-label">Reservatório de Aulas</span>
+            </button>
             <a href="/" class="back-btn" id="back-to-panel-btn"><i class="fa-solid fa-arrow-left"></i> Painel Geral</a>
         </div>
     </header>
@@ -902,16 +1024,7 @@
                 <i class="fa-solid fa- chalkboard-user"></i> Estruturar Aula
             </button>
 
-            <!-- Historical classes panel -->
-            <div class="history-panel" id="history-panel" style="margin-top: 2.5rem; border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 2rem; display: none;">
-                <div class="panel-header" style="text-align: left; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #a78bfa; display: flex; align-items: center; gap: 0.5rem; margin: 0;"><i class="fa-solid fa-graduation-cap"></i> <span id="lbl-saved-classes">Suas Aulas Salvas</span></h3>
-                    <p id="desc-saved-classes" style="color: var(--text-secondary); font-size: 0.85rem; margin: 0;">Clique para assistir novamente qualquer uma das aulas já geradas neste navegador.</p>
-                </div>
-                <div id="history-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
-                    <!-- Populated dynamically -->
-                </div>
-            </div>
+
         </div>
 
         <!-- Loading Screen -->
@@ -1020,6 +1133,22 @@
 
     <!-- Hidden HTML5 Audio Element -->
     <audio id="lesson-audio" style="display: none;"></audio>
+
+    <!-- Reservoir Sidebar Overlay -->
+    <div class="reservoir-overlay" id="reservoir-overlay"></div>
+
+    <!-- Reservoir Sidebar -->
+    <div class="reservoir-sidebar" id="reservoir-sidebar">
+        <div class="reservoir-header">
+            <h3><i class="fa-solid fa-database"></i> <span id="lbl-reservoir-title">Reservatório de Aulas</span></h3>
+            <button class="reservoir-close-btn" id="close-reservoir-btn">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="reservoir-content" id="reservoir-list">
+            <!-- Populated dynamically with history items -->
+        </div>
+    </div>
 
     <script type="module" src="{{ url_for('static', filename='js/classroom/main.js') }}"></script>
 </body>
