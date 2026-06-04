@@ -174,28 +174,36 @@
                             <div class="book-meta" id="page-counter">Página 1 de 3</div>
                         </div>
                         
-                        <!-- Strategic Corner Illustration Frame (Nice size 400x400) -->
-                        <div class="illustration-frame">
-                            <div class="illustration-container">
-                                <img id="illustration-img" src="" alt="Ilustração">
-                                <div id="illustration-error" class="illustration-error-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111827; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; text-align: center; box-sizing: border-box; z-index: 8;">
-                                    <i class="fa-solid fa-circle-exclamation" style="font-size: 2.5rem; margin-bottom: 0.75rem; color: #f59e0b;"></i>
-                                    <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem; color: #f3f4f6;">Erro na Ilustração</div>
-                                    <div id="illustration-error-msg" style="color: #9ca3af; line-height: 1.4; font-size: 0.8rem; overflow-y: auto; max-height: 250px;">Nenhuma imagem retornada pelo Gemini.</div>
+                        <div class="book-columns-grid">
+                            <!-- Left: Large Illustration Column -->
+                            <div class="book-column-illustration">
+                                <!-- Strategic Corner Illustration Frame (Nice size 400x400) -->
+                                <div class="illustration-frame">
+                                    <div class="illustration-container">
+                                        <img id="illustration-img" src="" alt="Ilustração">
+                                        <div id="illustration-error" class="illustration-error-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111827; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; text-align: center; box-sizing: border-box; z-index: 8;">
+                                            <i class="fa-solid fa-circle-exclamation" style="font-size: 2.5rem; margin-bottom: 0.75rem; color: #f59e0b;"></i>
+                                            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem; color: #f3f4f6;">Erro na Ilustração</div>
+                                            <div id="illustration-error-msg" style="color: #9ca3af; line-height: 1.4; font-size: 0.8rem; overflow-y: auto; max-height: 250px;">Nenhuma imagem retornada pelo Gemini.</div>
+                                        </div>
+                                        <button class="illustration-overlay-btn" id="btn-reillustrate" title="Redesenhar esta cena">
+                                            <i class="fa-solid fa-paint-brush"></i>
+                                        </button>
+                                        <a class="illustration-overlay-btn" id="btn-download-illustration" href="" download="book-illustration.png" target="_blank" style="right: 3.5rem; display: none; text-decoration: none;" title="Baixar esta cena">
+                                            <i class="fa-solid fa-download"></i>
+                                        </a>
+                                    </div>
                                 </div>
-                                <button class="illustration-overlay-btn" id="btn-reillustrate" title="Redesenhar esta cena">
-                                    <i class="fa-solid fa-paint-brush"></i>
-                                </button>
-                                <a class="illustration-overlay-btn" id="btn-download-illustration" href="" download="book-illustration.png" target="_blank" style="right: 3.5rem; display: none; text-decoration: none;" title="Baixar esta cena">
-                                    <i class="fa-solid fa-download"></i>
-                                </a>
                             </div>
-                        </div>
 
-                        <!-- Story Content wrapped dynamically -->
-                        <h2 class="chapter-title" id="read-chapter-title">Título do Capítulo</h2>
-                        <div class="book-text" id="read-chapter-text">
-                            <!-- Paragraphs wrap the illustration dynamically -->
+                            <!-- Right: Scrollable Story Content Column -->
+                            <div class="book-column-text">
+                                <!-- Story Content wrapped dynamically -->
+                                <h2 class="chapter-title" id="read-chapter-title">Título do Capítulo</h2>
+                                <div class="book-text" id="read-chapter-text">
+                                    <!-- Paragraphs wrap the illustration dynamically -->
+                                </div>
+                            </div>
                         </div>
                     </div>
 

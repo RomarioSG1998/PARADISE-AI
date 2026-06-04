@@ -88,7 +88,7 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            overflow: hidden; /* Prevent workspace scroll */
+            overflow-y: auto; /* Prevent elements cutoff on small/low screens */
         }
 
         /* Cartoon Panels */
@@ -376,6 +376,43 @@
             box-shadow: 3px 3px 0 var(--border-cartoon);
             display: inline-block; /* Fit title contour */
             transition: background 0.15s ease;
+        }
+
+        /* Grid Column Split for premium display */
+        .book-columns-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 2.5rem;
+            align-items: center;
+        }
+
+        .book-column-illustration {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        .book-column-illustration .illustration-frame {
+            float: none;
+            margin: 0;
+            width: 100%;
+            height: 480px; /* Big, beautiful and prominent! */
+            max-height: calc(100vh - 280px);
+            aspect-ratio: 1 / 1;
+        }
+
+        .book-column-text {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            max-height: calc(100vh - 260px);
+            width: 100%;
+        }
+
+        .book-column-text .book-text {
+            overflow-y: auto;
+            padding-right: 0.75rem;
         }
 
         /* STRATEGIC CORNER ILLUSTRATION FRAME */
@@ -826,12 +863,24 @@
                 padding: 1.5rem;
                 overflow-y: visible;
             }
-            .illustration-frame {
+            .book-columns-grid {
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            .book-column-illustration .illustration-frame {
                 float: none;
                 margin: 0 auto 1.5rem auto;
                 width: 100%;
                 max-width: 400px;
                 height: 380px;
+            }
+            .book-column-text {
+                max-height: none;
+            }
+            .book-column-text .book-text {
+                overflow-y: visible;
+                padding-right: 0;
             }
             .workspace {
                 padding: 0 1rem;
