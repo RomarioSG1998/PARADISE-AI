@@ -284,8 +284,9 @@ function setupEvents() {
         
         // Auto transition
         if (state.autoPlayEnabled && state.lessonData && state.currentSlideIdx < state.lessonData.slides.length - 1) {
+            const endedSlideIdx = state.currentSlideIdx;
             setTimeout(() => {
-                if (state.autoPlayEnabled && elements.audioEl.paused && !elements.audioEl.currentTime) {
+                if (state.autoPlayEnabled && state.currentSlideIdx === endedSlideIdx) {
                     state.currentSlideIdx++;
                     loadSlide(state.currentSlideIdx);
                 }
