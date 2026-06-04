@@ -1,0 +1,50 @@
+export const hubTranslations = {
+    pt: {
+        greeting: "Olá",
+        subtitle: "Selecione um aplicativo abaixo para interagir. Todas as ferramentas utilizam a conexão Pro ilimitada e gratuita do hub.",
+        tabApps: "<i class='fa-solid fa-cubes'></i> Meus Aplicativos",
+        tabTutorial: "<i class='fa-solid fa-circle-question'></i> Como Funciona & Tutorial de Cookies",
+        configBtn: "<i class='fa-solid fa-cookie-bite'></i> Configurar Conexão",
+        bookTitle: "Gerador de Livros Pro",
+        bookDesc: "Crie livros personalizados com texto, ilustrações geradas por IA e leitura narrada em tempo real com tradutor integrado.",
+        classTitle: "Aula Inteligente (AI Classroom)",
+        classDesc: "Insira um tema, texto ou PDF e gere uma aula completa com explicação falada por avatar de IA e ilustrações desenhadas em quadro negro.",
+        connectionChecking: "Verificando...",
+        connectionOnline: "Conexão Pro Ativa",
+        connectionOffline: "Sem Conexão Pro",
+        modalTitle: "Configurar Cookies da Sessão Pro",
+        modalSaveBtn: "<i class='fa-solid fa-circle-check'></i> Validar e Salvar Conexão"
+    },
+    en: {
+        greeting: "Hello",
+        subtitle: "Select an application below to interact. All tools use the hub's unlimited and free Pro connection.",
+        tabApps: "<i class='fa-solid fa-cubes'></i> My Applications",
+        tabTutorial: "<i class='fa-solid fa-circle-question'></i> How it Works & Cookies Tutorial",
+        configBtn: "<i class='fa-solid fa-cookie-bite'></i> Configure Connection",
+        bookTitle: "Book Generator Pro",
+        bookDesc: "Create custom books with text, AI-generated illustrations and real-time narrated reading with integrated translator.",
+        classTitle: "Smart Classroom (AI Classroom)",
+        classDesc: "Enter a theme, text or PDF and generate a complete class with a spoken explanation by an AI avatar and illustrations drawn on a blackboard.",
+        connectionChecking: "Checking...",
+        connectionOnline: "Active Pro Connection",
+        connectionOffline: "No Pro Connection",
+        modalTitle: "Configure Pro Session Cookies",
+        modalSaveBtn: "<i class='fa-solid fa-circle-check'></i> Validate and Save Connection"
+    },
+    es: {
+        greeting: "Hola",
+        subtitle: "Seleccione una aplicación a continuación para interactuar. Todas las herramientas utilizan la conexión Pro ilimitada y gratuita del hub.",
+        tabApps: "<i class='fa-solid fa-cubes'></i> Mis Aplicaciones",
+        tabTutorial: "<i class='fa-solid fa-circle-question'></i> Cómo Funciona y Tutorial de Cookies",
+        configBtn: "<i class='fa-solid fa-cookie-bite'></i> Configurar Conexión",
+        bookTitle: "Generador de Livros Pro",
+        bookDesc: "Cree libros personalizados con texto, ilustraciones generadas por IA y lectura narrada en tempo real con traductor integrado.",
+        classTitle: "Aula Inteligente (AI Classroom)",
+        classDesc: "Ingrese un tema, texto o PDF y genere una clase completa con explicación hablada por avatar de IA e ilustraciones dibujadas en pizarra.",
+        connectionChecking: "Verificando...",
+        connectionOnline: "Conexión Pro Activa",
+        connectionOffline: "Sin Conexión Pro",
+        modalTitle: "Configurar Cookies de Sesión Pro",
+        modalSaveBtn: "<i class='fa-solid fa-circle-check'></i> Validar y Guardar Conexión"
+    }
+};
