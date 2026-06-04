@@ -1,0 +1,395 @@
+import { state } from './state.js';
+import { elements } from './elements.js';
+import { bookTranslations } from './translations.js';
+import { checkStatus } from './config.js';
+import { renderHistoryList, saveBookToHistory } from './history.js';
+import { closeTranslationBubble } from './dict.js';
+import {
+    renderChapter,
+    triggerPageFlipAnimation,
+    updateAutoPlayUI,
+    stopNarration,
+    speakQueue,
+    getProxyUrl,
+    updateLoaderStep
+} from './player.js';
+
+// Apply Language Settings
+export function applyLanguage(lang) {
+    localStorage.setItem("paradise_language", lang);
+    document.cookie = `paradise_language=${lang}; path=/; max-age=31536000; SameSite=Lax`;
+    
+    const t = bookTranslations[lang] || bookTranslations.pt;
+    
+    const brandTitle = document.getElementById('book-brand-title');
+    if (brandTitle) brandTitle.textContent = t.brandTitle;
+    
+    const panelTitle = document.querySelector('.config-form .form-title h2');
+    if (panelTitle) panelTitle.textContent = t.panelTitle;
+    
+    const panelDesc = document.querySelector('.config-form .form-title p');
+    if (panelDesc) panelDesc.textContent = t.panelDesc;
+    
+    const lblTheme = document.querySelector('label[for="book-theme"]');
+    if (lblTheme) lblTheme.textContent = t.lblTheme;
+    
+    const inputTheme = document.getElementById('book-theme');
+    if (inputTheme) inputTheme.placeholder = t.placeholderTheme;
+    
+    const lblLevel = document.querySelector('label[for="book-level"]');
+    if (lblLevel) lblLevel.textContent = t.lblLevel;
+    
+    const lblLang = document.querySelector('label[for="book-lang"]');
+    if (lblLang) lblLang.textContent = t.lblLang;
+    
+    if (elements.btnGenerate) elements.btnGenerate.innerHTML = t.btnGenerate;
+    
+    const lblSaved = document.querySelector('.history-panel .form-title h3');
+    if (lblSaved) lblSaved.innerHTML = `<i class="fa-solid fa-book-open"></i> ${t.lblSavedBooks}`;
+    
+    const descSaved = document.querySelector('.history-panel .form-title p');
+    if (descSaved) descSaved.textContent = t.descSavedBooks;
+    
+    // Connection Status Label
+    if (elements.statusLabel) {
+        if (elements.statusLabel.textContent === 'Verificando...' || elements.statusLabel.textContent === 'Checking...') {
+            elements.statusLabel.textContent = t.connectionChecking;
+        } else if (elements.statusLabel.textContent.includes('Ativa') || elements.statusLabel.textContent.includes('Active')) {
+            elements.statusLabel.textContent = t.connectionOnline;
+        } else {
+            elements.statusLabel.textContent = t.connectionOffline;
+        }
+    }
+    
+    const bookLangSelect = document.getElementById('book-lang');
+    if (bookLangSelect) {
+        if (lang === 'pt') {
+            bookLangSelect.value = 'Português';
+        } else if (lang === 'en') {
+            bookLangSelect.value = 'Inglês';
+        } else if (lang === 'es') {
+            bookLangSelect.value = 'Espanhol';
+        }
+        
+        const ptOpt = bookLangSelect.querySelector('option[value="Português"]');
+        if (ptOpt) ptOpt.textContent = t.langOptionPt;
+        const enOpt = bookLangSelect.querySelector('option[value="Inglês"]');
+        if (enOpt) enOpt.textContent = t.langOptionEn;
+        const esOpt = bookLangSelect.querySelector('option[value="Espanhol"]');
+        if (esOpt) esOpt.textContent = t.langOptionEs;
+    }
+    
+    const langSelect = document.getElementById('global-lang-select');
+    if (langSelect) langSelect.value = lang;
+
+    updateAutoPlayUI();
+}
+
+// Background opacity styling updates
+function updateBgOpacity(val) {
+    const opacity = val / 100;
+    document.documentElement.style.setProperty('--text-box-bg-opacity', opacity);
+    if (elements.bgOpacityValue) {
+        elements.bgOpacityValue.textContent = `${val}%`;
+    }
+}
+
+// Bind Event Listeners
+function setupEvents() {
+    // Generate Action
+    elements.btnGenerate.onclick = async () => {
+        const theme = document.getElementById('book-theme').value.trim();
+        const level = document.getElementById('book-level').value;
+        const lang = document.getElementById('book-lang').value;
+
+        if (!theme) {
+            alert("Por favor, digite uma ideia ou enredo de aventura!");
+            return;
+        }
+
+        elements.panelForm.style.display = 'none';
+        elements.panelLoader.style.display = 'flex';
+
+        updateLoaderStep('write', 'active');
+        updateLoaderStep('img1', 'pending');
+        updateLoaderStep('img2', 'pending');
+        updateLoaderStep('img3', 'pending');
+
+        let timer1 = setTimeout(() => {
+            updateLoaderStep('write', 'done');
+            updateLoaderStep('img1', 'active');
+        }, 9000);
+
+        let timer2 = setTimeout(() => {
+            updateLoaderStep('img1', 'done');
+            updateLoaderStep('img2', 'active');
+        }, 15000);
+
+        let timer3 = setTimeout(() => {
+            updateLoaderStep('img2', 'done');
+            updateLoaderStep('img3', 'active');
+        }, 21000);
+
+        try {
+            const resp = await fetch('/api/book/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ theme, level, language: lang })
+            });
+
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+            clearTimeout(timer3);
+
+            if (!resp.ok) throw new Error("Erro na geração do livro.");
+            const data = await resp.json();
+            
+            updateLoaderStep('write', 'done');
+            updateLoaderStep('img1', 'done');
+            updateLoaderStep('img2', 'done');
+            updateLoaderStep('img3', 'done');
+
+            state.currentBook = data;
+            state.currentBook.id = Date.now();
+            saveBookToHistory(state.currentBook);
+            state.currentChapterIndex = 0;
+            
+            setTimeout(() => {
+                elements.panelLoader.style.display = 'none';
+                elements.panelReader.style.display = 'flex';
+                renderChapter();
+            }, 1000);
+
+        } catch (e) {
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+            clearTimeout(timer3);
+            alert("Falha na geração do livro: " + e.message);
+            elements.panelLoader.style.display = 'none';
+            elements.panelForm.style.display = 'block';
+        }
+    };
+
+    // Navigation Page Control
+    elements.btnPrevPage.onclick = () => {
+        if (state.currentChapterIndex > 0) {
+            triggerPageFlipAnimation(() => {
+                state.currentChapterIndex--;
+                renderChapter();
+            });
+        }
+    };
+
+    elements.btnNextPage.onclick = () => {
+        if (state.currentChapterIndex < state.currentBook.chapters.length - 1) {
+            triggerPageFlipAnimation(() => {
+                state.currentChapterIndex++;
+                renderChapter();
+            });
+        } else {
+            alert("Fim da aventura ilustrada! Deseja criar mais histórias?");
+        }
+    };
+
+    elements.btnNewBook.onclick = () => {
+        stopNarration();
+        state.currentBook = null;
+        elements.panelReader.style.display = 'none';
+        elements.panelForm.style.display = 'block';
+        document.getElementById('book-theme').value = '';
+    };
+
+    // TTS Buttons
+    elements.audioPlay.onclick = () => {
+        if (window.speechSynthesis.speaking) {
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+                setPlayState(true);
+            } else {
+                window.speechSynthesis.pause();
+                setPlayState(false);
+            }
+        } else {
+            const pElements = Array.from(document.querySelectorAll('#read-chapter-text p'));
+            if (pElements.length > 0) {
+                state.speakingParagraphsQueue = pElements;
+                state.currentSpeakingQueueIndex = 0;
+                speakQueue();
+            }
+        }
+    };
+
+    elements.audioStop.onclick = () => {
+        stopNarration();
+    };
+
+    elements.btnAutoPlay.onclick = () => {
+        state.autoPlayEnabled = !state.autoPlayEnabled;
+        localStorage.setItem('book_autoplay', state.autoPlayEnabled);
+        updateAutoPlayUI();
+    };
+
+    // Redraw scene trigger modal
+    elements.btnReillustrate.onclick = () => {
+        elements.redrawPromptInput.value = '';
+        elements.redrawLoading.style.display = 'none';
+        elements.btnSubmitRedraw.disabled = false;
+        elements.modalRedraw.style.display = 'flex';
+    };
+
+    const closeRedrawBtn = document.getElementById('btn-close-redraw-modal');
+    if (closeRedrawBtn) {
+        closeRedrawBtn.onclick = () => {
+            elements.modalRedraw.style.display = 'none';
+        };
+    }
+
+    elements.btnSubmitRedraw.onclick = async () => {
+        const prompt = elements.redrawPromptInput.value.trim();
+        if (!prompt) {
+            alert("Por favor, descreva o que deseja desenhar!");
+            return;
+        }
+
+        elements.redrawLoading.style.display = 'flex';
+        elements.btnSubmitRedraw.disabled = true;
+
+        try {
+            const resp = await fetch('/api/book/illustrate-scene', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: prompt })
+            });
+
+            if (!resp.ok) {
+                const errorData = await resp.json().catch(() => ({}));
+                throw new Error(errorData.error || "Erro de redesenho.");
+            }
+            const data = await resp.json();
+
+            state.currentBook.chapters[state.currentChapterIndex].image_url = data.image_url;
+            delete state.currentBook.chapters[state.currentChapterIndex].image_error;
+            saveBookToHistory(state.currentBook);
+            
+            elements.readIllustrationImg.className = 'loading';
+            const proxySrc = getProxyUrl(data.image_url);
+            elements.readIllustrationImg.src = proxySrc;
+            elements.readIllustrationImg.style.display = 'block';
+            document.getElementById('illustration-error').style.display = 'none';
+            elements.readIllustrationImg.onload = () => elements.readIllustrationImg.className = '';
+
+            elements.bookScrollBody.style.backgroundImage = `url("${proxySrc}")`;
+
+            elements.modalRedraw.style.display = 'none';
+        } catch (e) {
+            alert("Erro ao pintar ilustração: " + e.message);
+            if (state.currentBook && state.currentBook.chapters && state.currentBook.chapters[state.currentChapterIndex]) {
+                state.currentBook.chapters[state.currentChapterIndex].image_url = null;
+                state.currentBook.chapters[state.currentChapterIndex].image_error = e.message;
+                saveBookToHistory(state.currentBook);
+                renderChapter();
+            }
+            elements.modalRedraw.style.display = 'none';
+        } finally {
+            elements.redrawLoading.style.display = 'none';
+            elements.btnSubmitRedraw.disabled = false;
+        }
+    };
+
+    // Close dict bubble on click outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.word-span') && !e.target.closest('#translation-bubble')) {
+            closeTranslationBubble();
+        }
+    });
+
+    // Session Modal actions
+    if (elements.sessionCheckBtn) {
+        elements.sessionCheckBtn.onclick = (e) => {
+            e.stopPropagation();
+            checkStatus();
+        };
+    }
+
+    elements.openConfigBtn.onclick = () => {
+        elements.configError.style.display = 'none';
+        elements.configModal.style.display = 'flex';
+    };
+
+    elements.closeConfigBtn.onclick = () => {
+        elements.configModal.style.display = 'none';
+    };
+
+    elements.saveConfigBtn.onclick = async () => {
+        const sid = elements.secure1psidInput.value.trim();
+        const ts = elements.secure1psidtsInput.value.trim();
+
+        if (!sid || !ts) {
+            elements.configError.textContent = 'Preencha ambos os cookies!';
+            elements.configError.style.display = 'block';
+            return;
+        }
+
+        elements.saveConfigBtn.disabled = true;
+        elements.saveConfigBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Autenticando...';
+        elements.configError.style.display = 'none';
+
+        try {
+            const resp = await fetch('/api/save-cookies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ secure_1psid: sid, secure_1psidts: ts })
+            });
+            
+            const data = await resp.json();
+            if (data.success) {
+                elements.configModal.style.display = 'none';
+                elements.secure1psidInput.value = '';
+                elements.secure1psidtsInput.value = '';
+                await checkStatus();
+            } else {
+                elements.configError.textContent = data.error || 'Erro ao inicializar sessão.';
+                elements.configError.style.display = 'block';
+            }
+        } catch (err) {
+            elements.configError.textContent = 'Erro ao enviar dados para o servidor.';
+            elements.configError.style.display = 'block';
+        } finally {
+            elements.saveConfigBtn.disabled = false;
+            elements.saveConfigBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar e Autenticar';
+        }
+    };
+
+    // Opacity Range control
+    if (elements.bgOpacityRange) {
+        elements.bgOpacityRange.addEventListener('input', (e) => {
+            const val = e.target.value;
+            updateBgOpacity(val);
+            localStorage.setItem('book_bg_opacity', val);
+        });
+    }
+
+    // Global Lang select change
+    document.getElementById('global-lang-select').addEventListener('change', (e) => {
+        applyLanguage(e.target.value);
+    });
+}
+
+// Initial configuration loading
+document.addEventListener('DOMContentLoaded', () => {
+    setupEvents();
+    checkStatus();
+    renderHistoryList();
+
+    // Default Contrast Opacity setup
+    const persistedOpacity = localStorage.getItem('book_bg_opacity');
+    const defaultOpacity = persistedOpacity !== null ? parseInt(persistedOpacity, 10) : 94;
+    if (elements.bgOpacityRange) {
+        elements.bgOpacityRange.value = defaultOpacity;
+        updateBgOpacity(defaultOpacity);
+    }
+
+    // Default Language setup
+    const currentLang = localStorage.getItem('paradise_language') || 'pt';
+    applyLanguage(currentLang);
+});

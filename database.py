@@ -3,7 +3,9 @@ import os
 import secrets
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hub.db")
+DB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+os.makedirs(DB_DIR, exist_ok=True)
+DB_PATH = os.path.join(DB_DIR, "hub.db")
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)

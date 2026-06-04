@@ -26,6 +26,9 @@ COPY app.py .
 COPY database.py .
 COPY templates/ ./templates/
 COPY static/ ./static/
+COPY routes/ ./routes/
+COPY services/ ./services/
+COPY utils/ ./utils/
 
 # .env is injected at runtime via docker-compose / --env-file
 # hub.db is persisted via a named volume
