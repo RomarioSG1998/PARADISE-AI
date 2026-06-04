@@ -12,6 +12,10 @@ from routes.portal import portal_bp
 from utils.async_loop import run_in_background
 from services.ai_service import get_or_create_client_async, ENV_PATH
 
+# Initialize Database
+from database import init_db
+init_db()
+
 app = Flask(__name__, template_folder="templates")
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key-12345-vilmika")

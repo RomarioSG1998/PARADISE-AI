@@ -11,7 +11,7 @@ services:
       - .env
     volumes:
       # Persists the SQLite database across restarts
-      - db_data:/app/hub.db
+      - db_data:/app/data
       # Syncs .env file between host and container to persist cookie updates
       - ./.env:/app/.env
     healthcheck:
