@@ -339,23 +339,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // Apply default language settings
     const currentLang = localStorage.getItem('paradise_language') || 'pt';
     applyLanguage(currentLang);
-    
-    // Load persisted state if exists
-    const activeLessonData = localStorage.getItem('paradise_active_lesson');
-    if (activeLessonData) {
-        try {
-            const parsed = JSON.parse(activeLessonData);
-            if (parsed && parsed.slides && parsed.slides.length > 0) {
-                state.lessonData = parsed;
-                const savedSlideIdx = parseInt(localStorage.getItem('paradise_active_lesson_slide') || '0', 10);
-                state.currentSlideIdx = isNaN(savedSlideIdx) ? 0 : savedSlideIdx;
-                elements.setupPanel.style.display = 'none';
-                elements.stagePanel.style.display = 'flex';
-                renderLesson();
-            }
-        } catch(e) {
-            localStorage.removeItem('paradise_active_lesson');
-            localStorage.removeItem('paradise_active_lesson_slide');
-        }
-    }
 });
