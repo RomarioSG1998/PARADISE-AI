@@ -1,9 +1,18 @@
 import json
 from services.ai_service import generate_text_unified_async, generate_image_unified_async
 
-async def generate_book_async(theme, level, language):
+VISUAL_THEME_STYLES = {
+    "cartoon":  "(2D cartoon style illustration, thick black outlines, vibrant flat colors, comic drawing style, playful animation art, no text, no letters, no labels)",
+    "anime":    "(anime film illustration, Studio Ghibli or Makoto Shinkai style, soft watercolor backgrounds, detailed characters, cinematic lighting, lush scenery, no text, no labels)",
+    "cinema":   "(ultra-realistic cinematic photograph, Hollywood blockbuster style, dramatic lighting, 8K resolution, photorealistic details, no text, no labels)",
+    "classic":  "(silent film era, Charlie Chaplin style, black and white photograph, dramatic shadows, vintage grain texture, expressionist composition, no text, no labels)",
+    "western":  "(Wild West oil painting illustration, dusty desert landscape, warm sunset palette, cowboy aesthetic, rustic vintage style, no text, no labels)",
+}
+
+async def generate_book_async(theme, level, language, visual_theme="cartoon"):
     lang_lower = language.lower()
-    print(f"[Paradise AI] Generating book. Theme: '{theme}', Level: '{level}', Target Language: '{language}'")
+    style_suffix = VISUAL_THEME_STYLES.get(visual_theme, VISUAL_THEME_STYLES["cartoon"])
+    print(f"[Paradise AI] Generating book. Theme: '{theme}', Level: '{level}', Language: '{language}', Visual: '{visual_theme}'")
     
     if "inglês" in lang_lower or "english" in lang_lower or lang_lower == "en":
         prompt = f"""You must write a custom short book in English.
@@ -122,10 +131,10 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
             
         book_data = json.loads(cleaned_text)
         
-        # For each chapter, generate the corresponding image in cartoon style
+        # For each chapter, generate the corresponding image using selected visual theme
         for idx, chapter in enumerate(book_data.get("chapters", [])):
             img_prompt = chapter.get("illustration_prompt", f"A beautiful scene depicting {theme}")
-            full_img_prompt = f"Gere uma imagem de: {img_prompt}. (2D cartoon style illustration, thick outlines, vibrant colors, comic drawing style, playful animation art, no text, no letters, no labels)"
+            full_img_prompt = f"{img_prompt}. {style_suffix}"
             
             img_url, img_err = await generate_image_unified_async(full_img_prompt)
             if img_url:
@@ -137,8 +146,9 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
     except Exception as e:
         return None, f"Failed to generate book: {str(e)}"
 
-async def illustrate_scene_async(prompt):
-    full_prompt = f"Gere uma imagem de: {prompt}. (2D cartoon style illustration, thick outlines, vibrant colors, comic drawing style, playful animation art, no text, no letters)"
+async def illustrate_scene_async(prompt, visual_theme="cartoon"):
+    style_suffix = VISUAL_THEME_STYLES.get(visual_theme, VISUAL_THEME_STYLES["cartoon"])
+    full_prompt = f"{prompt}. {style_suffix}"
     img_url, img_err = await generate_image_unified_async(full_prompt)
     if img_url:
         return {"image_url": img_url}, None

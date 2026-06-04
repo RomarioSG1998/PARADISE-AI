@@ -44,5 +44,7 @@ export const elements = {
     sessionCheckBtn: document.getElementById('session-check-btn'),
     bgOpacityRange: document.getElementById('bg-opacity-range'),
     bgOpacityValue: document.getElementById('bg-opacity-value'),
-    downloadIllustrationBtn: document.getElementById('btn-download-illustration')
+    downloadIllustrationBtn: document.getElementById('btn-download-illustration'),
+    visualThemeSelect: document.getElementById('book-visual-theme'),
+    lblVisualTheme: document.getElementById('lbl-book-visual-theme')
 };

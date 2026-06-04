@@ -42,6 +42,15 @@ export function applyLanguage(lang) {
     const lblLang = document.querySelector('label[for="book-lang"]');
     if (lblLang) lblLang.textContent = t.lblLang;
     
+    if (elements.lblVisualTheme) elements.lblVisualTheme.textContent = t.lblVisualTheme;
+    if (elements.visualThemeSelect) {
+        elements.visualThemeSelect.options[0].text = t.themeOptionCartoon;
+        elements.visualThemeSelect.options[1].text = t.themeOptionAnime;
+        elements.visualThemeSelect.options[2].text = t.themeOptionCinema;
+        elements.visualThemeSelect.options[3].text = t.themeOptionClassic;
+        elements.visualThemeSelect.options[4].text = t.themeOptionWestern;
+    }
+    
     if (elements.btnGenerate) elements.btnGenerate.innerHTML = t.btnGenerate;
     
     const lblSaved = document.querySelector('.history-panel .form-title h3');
@@ -94,6 +103,37 @@ function updateBgOpacity(val) {
     }
 }
 
+// Apply visual theme font and style to reader panel
+const VISUAL_THEME_FONTS = {
+    cartoon:  "'Comic Neue', 'Fredoka', cursive",
+    anime:    "'Outfit', sans-serif",
+    cinema:   "'Playfair Display', Georgia, serif",
+    classic:  "'Cinzel', serif",
+    western:  "'Rye', serif",
+};
+
+const VISUAL_THEME_COLORS = {
+    cartoon:  { accent: '#f43f5e', title: '#1e293b' },
+    anime:    { accent: '#7c3aed', title: '#e0e7ff' },
+    cinema:   { accent: '#d97706', title: '#fef3c7' },
+    classic:  { accent: '#71717a', title: '#f4f4f5' },
+    western:  { accent: '#b45309', title: '#fef3c7' },
+};
+
+export function applyVisualTheme(theme) {
+    const font = VISUAL_THEME_FONTS[theme] || VISUAL_THEME_FONTS.cartoon;
+    const colors = VISUAL_THEME_COLORS[theme] || VISUAL_THEME_COLORS.cartoon;
+    const panelReader = document.getElementById('panel-reader');
+    if (panelReader) {
+        panelReader.style.fontFamily = font;
+    }
+    document.documentElement.style.setProperty('--reader-accent', colors.accent);
+    document.documentElement.style.setProperty('--reader-title-color', colors.title);
+    // Apply chapter title inline so it's immediate
+    const chapterTitle = document.getElementById('read-chapter-title');
+    if (chapterTitle) chapterTitle.style.fontFamily = font;
+}
+
 // Bind Event Listeners
 function setupEvents() {
     // Generate Action
@@ -101,6 +141,7 @@ function setupEvents() {
         const theme = document.getElementById('book-theme').value.trim();
         const level = document.getElementById('book-level').value;
         const lang = document.getElementById('book-lang').value;
+        const visual_theme = elements.visualThemeSelect ? elements.visualThemeSelect.value : 'cartoon';
 
         if (!theme) {
             alert("Por favor, digite uma ideia ou enredo de aventura!");
@@ -134,7 +175,7 @@ function setupEvents() {
             const resp = await fetch('/api/book/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ theme, level, language: lang })
+                body: JSON.stringify({ theme, level, language: lang, visual_theme })
             });
 
             clearTimeout(timer1);
@@ -151,12 +192,14 @@ function setupEvents() {
 
             state.currentBook = data;
             state.currentBook.id = Date.now();
+            state.currentBook.visual_theme = visual_theme;
             saveBookToHistory(state.currentBook);
             state.currentChapterIndex = 0;
             
             setTimeout(() => {
                 elements.panelLoader.style.display = 'none';
                 elements.panelReader.style.display = 'flex';
+                applyVisualTheme(visual_theme);
                 renderChapter();
             }, 1000);
 

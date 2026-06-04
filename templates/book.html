@@ -8,7 +8,7 @@
     <!-- Google Fonts: Cartoon/Comic styles -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Comic+Neue:wght@400;700&family=Orbitron:wght@500;700&family=Cinzel:wght@600;800&family=Playfair+Display:ital,wght@0,600;1,600&family=Rye&family=Outfit:wght@400;600&display=swap" rel="stylesheet">
     
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -66,7 +66,7 @@
                         <input type="text" id="book-theme" placeholder="Ex: Um pequeno dinossauro azul que perdeu seu brinquedo, O mistério do castelo voador..." autocomplete="off">
                     </div>
 
-                    <div class="form-grid" style="grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div class="form-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1rem;">
                         <div class="form-group">
                             <label for="book-level">Nível de Leitura</label>
                             <select id="book-level">
@@ -86,6 +86,17 @@
                                 <option value="Francês">Francês</option>
                                 <option value="Italiano">Italiano</option>
                                 <option value="Alemão">Alemão</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="book-visual-theme" id="lbl-book-visual-theme">Tema/Estilo Visual</label>
+                            <select id="book-visual-theme">
+                                <option value="cartoon">Desenho Animado (Cartoon)</option>
+                                <option value="anime">Anime (Estúdio Ghibli/Shinkai)</option>
+                                <option value="cinema">Cinema (Hollywood/Cinemático)</option>
+                                <option value="classic">Clássico (Cinema Charlie Chaplin)</option>
+                                <option value="western">Velho Oeste (Western/Rústico)</option>
                             </select>
                         </div>
                     </div>
