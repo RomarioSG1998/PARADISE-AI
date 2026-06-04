@@ -81,7 +81,12 @@
                     <!-- Text Group -->
                     <div class="form-group" id="group-text" style="display: none;">
                         <label for="text-input">Cole o texto explicativo da aula</label>
-                        <textarea id="text-input" rows="6" placeholder="Insira o texto base. A IA irá sintetizar, dividir em slides e ilustrar o conteúdo..."></textarea>
+                        <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                            <textarea id="text-input" rows="6" placeholder="Insira o texto base. A IA irá sintetizar, dividir em slides e ilustrar o conteúdo..." style="flex: 1;"></textarea>
+                            <button type="button" id="btn-mic-text" class="mic-btn" title="Clique para falar" style="height: 38px; align-self: flex-start;">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- PDF Group -->

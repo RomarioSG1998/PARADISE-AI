@@ -63,7 +63,12 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="book-theme">Qual será a história?</label>
-                        <input type="text" id="book-theme" placeholder="Ex: Um pequeno dinossauro azul que perdeu seu brinquedo, O mistério do castelo voador..." autocomplete="off">
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="text" id="book-theme" placeholder="Ex: Um pequeno dinossauro azul que perdeu seu brinquedo, O mistério do castelo voador..." autocomplete="off" style="flex: 1;">
+                            <button type="button" id="btn-mic-book-theme" class="mic-btn" title="Clique para falar" style="height: 48px; width: 48px;">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="form-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1rem;">
@@ -250,7 +255,12 @@
             
             <div class="form-group">
                 <label for="redraw-prompt">Instrução para o Cartoon</label>
-                <input type="text" id="redraw-prompt" placeholder="Ex: Um pequeno dinossauro roxo dormindo sobre folhas..." autocomplete="off">
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" id="redraw-prompt" placeholder="Ex: Um pequeno dinossauro roxo dormindo sobre folhas..." autocomplete="off" style="flex: 1;">
+                    <button type="button" id="btn-mic-redraw" class="mic-btn" title="Clique para falar" style="height: 48px; width: 48px;">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="action-loading" id="redraw-loading" style="display: none;">

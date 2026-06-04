@@ -13,7 +13,7 @@ import {
     getProxyUrl,
     updateLoaderStep
 } from './player.js';
-
+import { attachVoiceInput } from '../voice_input.js';
 // Apply Language Settings
 export function applyLanguage(lang) {
     localStorage.setItem("paradise_language", lang);
@@ -416,6 +416,17 @@ function setupEvents() {
     document.getElementById('global-lang-select').addEventListener('change', (e) => {
         applyLanguage(e.target.value);
     });
+
+    // Voice Input for Book Theme and Redraw prompt
+    if (elements.btnMicBookTheme) {
+        const inputTheme = document.getElementById('book-theme');
+        if (inputTheme) {
+            attachVoiceInput(inputTheme, elements.btnMicBookTheme, () => localStorage.getItem('paradise_language') || 'pt');
+        }
+    }
+    if (elements.btnMicRedraw && elements.redrawPromptInput) {
+        attachVoiceInput(elements.redrawPromptInput, elements.btnMicRedraw, () => localStorage.getItem('paradise_language') || 'pt');
+    }
 }
 
 // Initial configuration loading

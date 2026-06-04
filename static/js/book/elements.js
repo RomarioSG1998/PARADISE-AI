@@ -46,5 +46,7 @@ export const elements = {
     bgOpacityValue: document.getElementById('bg-opacity-value'),
     downloadIllustrationBtn: document.getElementById('btn-download-illustration'),
     visualThemeSelect: document.getElementById('book-visual-theme'),
-    lblVisualTheme: document.getElementById('lbl-book-visual-theme')
+    lblVisualTheme: document.getElementById('lbl-book-visual-theme'),
+    btnMicBookTheme: document.getElementById('btn-mic-book-theme'),
+    btnMicRedraw: document.getElementById('btn-mic-redraw')
 };

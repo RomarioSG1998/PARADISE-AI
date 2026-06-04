@@ -13,7 +13,7 @@ import {
     returnToLesson
 } from './player.js';
 import { initializeAvatarHandlers } from './avatar.js';
-import { attachVoiceInput } from './voice_input.js';
+import { attachVoiceInput } from '../voice_input.js';
 
 // Check if generate button should be enabled
 function checkInputs() {
@@ -416,6 +416,10 @@ function setupEvents() {
     }
     if (elements.btnMicAsk && elements.askTeacherInput) {
         attachVoiceInput(elements.askTeacherInput, elements.btnMicAsk, () => localStorage.getItem('paradise_language') || 'pt');
+    }
+    if (elements.btnMicText && elements.textInput) {
+        attachVoiceInput(elements.textInput, elements.btnMicText, () => localStorage.getItem('paradise_language') || 'pt');
+        elements.textInput.addEventListener('change', checkInputs);
     }
 }
 
