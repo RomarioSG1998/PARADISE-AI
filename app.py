@@ -28,7 +28,7 @@ app.register_blueprint(portal_bp)
 
 @app.before_request
 def check_auth():
-    allowed_routes = ["auth.login", "static", "auth.get_status", "auth.save_cookies"]
+    allowed_routes = ["auth.login", "auth.register", "auth.logout", "static", "auth.get_status", "auth.save_cookies", "portal.landing"]
     if request.endpoint and request.endpoint not in allowed_routes:
         if not session.get("authenticated"):
             if request.path.startswith("/api/"):

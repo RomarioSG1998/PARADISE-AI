@@ -1,6 +1,6 @@
 import os
-from flask import Blueprint, request, jsonify, render_template, Response, send_file
-from services.ai_service import chat_async, ENV_PATH, image_cache
+from flask import Blueprint, request, jsonify, render_template, Response, send_file, session, redirect, url_for
+from services.ai_service import ENV_PATH, image_cache
 from services.tts_service import generate_official_gemini_tts_async, pcm_to_wav, generate_edge_tts_async
 from utils.async_loop import run_in_background
 from dotenv import load_dotenv
@@ -8,12 +8,17 @@ from dotenv import load_dotenv
 portal_bp = Blueprint("portal", __name__)
 
 @portal_bp.route("/")
+def landing():
+    if session.get("authenticated"):
+        return redirect(url_for("portal.index_hub"))
+    return render_template("landing.html")
+
+@portal_bp.route("/hub")
 def index_hub():
+    if not session.get("authenticated"):
+        return redirect(url_for("auth.login"))
     return render_template("hub.html")
 
-@portal_bp.route("/chat")
-def index_chat():
-    return render_template("chat.html")
 
 @portal_bp.route("/api/image-cache/<img_id>")
 def get_cached_image(img_id):
@@ -21,26 +26,13 @@ def get_cached_image(img_id):
         return Response(image_cache[img_id], mimetype="image/jpeg")
     return "Image not found", 404
 
-@portal_bp.route("/api/chat", methods=["POST"])
-def chat():
-    data = request.get_json() or {}
-    message = data.get("message", "").strip()
-    
-    if not message:
-        return jsonify({"error": "Message is required"}), 400
-
-    result, err, needs_config = run_in_background(chat_async(message))
-    
-    if err:
-        code = 401 if needs_config else 500
-        return jsonify({"error": err, "needs_config": needs_config}), code
-
-    return jsonify(result)
 
 @portal_bp.route("/api/proxy-image")
 def proxy_image():
+    import os
     import requests
     from urllib.parse import urlparse
+    from database import get_next_available_account
     
     url = request.args.get("url")
     if not url:
@@ -51,16 +43,24 @@ def proxy_image():
         return "Forbidden domain", 403
 
     try:
-        load_dotenv(ENV_PATH, override=True)
-        secure_1psid = os.getenv("GEMINI_SECURE_1PSID", "").strip()
-        secure_1psidts = os.getenv("GEMINI_SECURE_1PSIDTS", "").strip()
+        username = session.get("username")
+        account = get_next_available_account(username=username)
         
         cookies = {}
-        if secure_1psid and secure_1psidts:
+        if account:
             cookies = {
-                "__Secure-1PSID": secure_1psid,
-                "__Secure-1PSIDTS": secure_1psidts
+                "__Secure-1PSID": account["secure_1psid"],
+                "__Secure-1PSIDTS": account["secure_1psidts"]
             }
+        else:
+            load_dotenv(ENV_PATH, override=True)
+            secure_1psid = os.getenv("GEMINI_SECURE_1PSID", "").strip()
+            secure_1psidts = os.getenv("GEMINI_SECURE_1PSIDTS", "").strip()
+            if secure_1psid and secure_1psidts:
+                cookies = {
+                    "__Secure-1PSID": secure_1psid,
+                    "__Secure-1PSIDTS": secure_1psidts
+                }
 
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -81,9 +81,12 @@ def text_to_speech():
     if not text:
         return "Text is required", 400
         
+    lang_code = request.args.get("lang") or request.cookies.get("paradise_language", "pt")
+    from services.tts_service import sanitize_tts_text
+    text = sanitize_tts_text(text, lang_code)
+    
     load_dotenv(ENV_PATH, override=True)
     gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    lang_code = request.cookies.get("paradise_language", "pt")
     
     # 1. Official Gemini API Audio Generation
     if gemini_api_key:

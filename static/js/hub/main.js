@@ -99,6 +99,91 @@ export function applyLanguage(lang) {
     if (elements.globalLangSelect) elements.globalLangSelect.value = lang;
 }
 
+export async function loadProfile() {
+    try {
+        const resp = await fetch('/api/profile');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        
+        if (elements.profileFullname) elements.profileFullname.value = data.full_name || '';
+        if (elements.profileEmail) elements.profileEmail.value = data.email || '';
+        if (elements.profileLang) elements.profileLang.value = data.language || 'pt';
+        if (elements.profileAvatarName) elements.profileAvatarName.value = data.avatar_name || 'Professor';
+        if (elements.profileAvatarUrl) elements.profileAvatarUrl.value = data.avatar_image_url || '';
+        
+        if (elements.profileAvatarPreview) {
+            elements.profileAvatarPreview.src = data.avatar_image_url || '/static/images/walle.png';
+        }
+        
+        const userGreetingName = document.getElementById('user-greeting-name');
+        if (userGreetingName) {
+            userGreetingName.textContent = data.full_name || data.username;
+        }
+        
+        // Auto-apply the user's saved language preference if it exists
+        if (data.language && data.language !== localStorage.getItem("paradise_language")) {
+            applyLanguage(data.language);
+        }
+    } catch (e) {
+        console.error("Failed to load user profile:", e);
+    }
+}
+
+export async function saveProfile() {
+    if (elements.profileError) elements.profileError.style.display = 'none';
+    if (elements.profileSuccess) elements.profileSuccess.style.display = 'none';
+    
+    const fullname = elements.profileFullname.value.trim();
+    const email = elements.profileEmail.value.trim();
+    const lang = elements.profileLang.value;
+    const avatarName = elements.profileAvatarName.value.trim();
+    const avatarUrl = elements.profileAvatarUrl.value.trim();
+    
+    if (elements.btnSaveProfile) {
+        elements.btnSaveProfile.disabled = true;
+        elements.btnSaveProfile.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+    }
+    
+    try {
+        const resp = await fetch('/api/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                full_name: fullname,
+                email: email,
+                language: lang,
+                avatar_name: avatarName,
+                avatar_image_url: avatarUrl
+            })
+        });
+        
+        const data = await resp.json();
+        if (resp.ok) {
+            if (elements.profileSuccess) elements.profileSuccess.style.display = 'block';
+            await loadProfile();
+            setTimeout(() => {
+                if (elements.profileModal) elements.profileModal.style.display = 'none';
+                if (elements.profileSuccess) elements.profileSuccess.style.display = 'none';
+            }, 1000);
+        } else {
+            if (elements.profileError) {
+                elements.profileError.textContent = data.error || 'Erro ao salvar perfil.';
+                elements.profileError.style.display = 'block';
+            }
+        }
+    } catch (e) {
+        if (elements.profileError) {
+            elements.profileError.textContent = 'Erro ao se conectar com o servidor.';
+            elements.profileError.style.display = 'block';
+        }
+    } finally {
+        if (elements.btnSaveProfile) {
+            elements.btnSaveProfile.disabled = false;
+            elements.btnSaveProfile.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Perfil';
+        }
+    }
+}
+
 // Setup Event Listeners
 function setupEvents() {
     if (elements.openConfigBtn) {
@@ -160,6 +245,48 @@ function setupEvents() {
         };
     }
 
+    // Profile events
+    if (elements.openProfileBtn) {
+        elements.openProfileBtn.onclick = () => {
+            if (elements.profileError) elements.profileError.style.display = 'none';
+            if (elements.profileSuccess) elements.profileSuccess.style.display = 'none';
+            if (elements.profileModal) elements.profileModal.style.display = 'flex';
+            loadProfile();
+        };
+    }
+
+    if (elements.closeProfileBtn) {
+        elements.closeProfileBtn.onclick = () => {
+            if (elements.profileModal) elements.profileModal.style.display = 'none';
+        };
+    }
+
+    if (elements.btnSaveProfile) {
+        elements.btnSaveProfile.onclick = saveProfile;
+    }
+
+    if (elements.profileAvatarFile) {
+        elements.profileAvatarFile.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    if (elements.profileAvatarPreview) elements.profileAvatarPreview.src = event.target.result;
+                    if (elements.profileAvatarUrl) elements.profileAvatarUrl.value = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+    }
+
+    if (elements.profileAvatarUrl) {
+        elements.profileAvatarUrl.oninput = (e) => {
+            if (elements.profileAvatarPreview) {
+                elements.profileAvatarPreview.src = e.target.value || '/static/images/walle.png';
+            }
+        };
+    }
+
     // Attach switchTab to tab links dynamically
     document.querySelectorAll('.tab-link').forEach((link, idx) => {
         link.onclick = (e) => {
@@ -171,6 +298,25 @@ function setupEvents() {
     if (elements.globalLangSelect) {
         elements.globalLangSelect.addEventListener('change', (e) => {
             applyLanguage(e.target.value);
+            // Optionally save the lang to profile too
+            const lang = e.target.value;
+            const fullname = elements.profileFullname ? elements.profileFullname.value.trim() : '';
+            if (fullname) {
+                const email = elements.profileEmail ? elements.profileEmail.value.trim() : '';
+                const avatarName = elements.profileAvatarName ? elements.profileAvatarName.value.trim() : '';
+                const avatarUrl = elements.profileAvatarUrl ? elements.profileAvatarUrl.value.trim() : '';
+                fetch('/api/profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        full_name: fullname,
+                        email: email,
+                        language: lang,
+                        avatar_name: avatarName,
+                        avatar_image_url: avatarUrl
+                    })
+                });
+            }
         });
     }
 }
@@ -179,6 +325,8 @@ function setupEvents() {
 document.addEventListener('DOMContentLoaded', () => {
     setupEvents();
     checkConnection();
+    loadProfile();
     const currentLang = localStorage.getItem('paradise_language') || 'pt';
     applyLanguage(currentLang);
 });
+

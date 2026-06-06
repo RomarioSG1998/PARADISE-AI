@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, session
 from services.book_service import generate_book_async, illustrate_scene_async, explain_word_async
 from utils.async_loop import run_in_background
 
@@ -19,7 +19,8 @@ def generate_book():
     if not theme or not level or not language:
         return jsonify({"error": "Theme, level, and language are required"}), 400
 
-    result, err = run_in_background(generate_book_async(theme, level, language, visual_theme))
+    username = session.get("username")
+    result, err = run_in_background(generate_book_async(theme, level, language, visual_theme, username=username))
     if err:
         return jsonify({"error": err}), 500
         
@@ -34,7 +35,8 @@ def illustrate_scene():
     if not prompt:
         return jsonify({"error": "Prompt is required"}), 400
         
-    result, err = run_in_background(illustrate_scene_async(prompt, visual_theme))
+    username = session.get("username")
+    result, err = run_in_background(illustrate_scene_async(prompt, visual_theme, username=username))
     if err:
         return jsonify({"error": err}), 500
         
@@ -66,7 +68,8 @@ def explain_word():
     else: # pt
         target_lang = "Inglês" if is_book_portuguese else "Português"
         
-    result, err = run_in_background(explain_word_async(word, sentence, book_lang, target_lang, user_lang_code))
+    username = session.get("username")
+    result, err = run_in_background(explain_word_async(word, sentence, book_lang, target_lang, user_lang_code, username=username))
     if err:
         return jsonify({"error": err}), 500
         

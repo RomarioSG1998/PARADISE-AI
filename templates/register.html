@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro — Paradise AI</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+
+    <div class="page-wrapper">
+        <!-- Left: Register Card -->
+        <div class="login-card" style="max-width: 460px;">
+            <div class="brand-logo">
+                <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <h1 class="title">Criar Conta</h1>
+            <p class="subtitle">Cadastre-se para criar seu perfil personalizado no Paradise AI</p>
+
+            {% if error %}
+            <div class="error-message">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="POST" id="registerForm">
+                <div class="form-group">
+                    <label for="username">Usuário (Username)*</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-at"></i>
+                        <input type="text" id="username" name="username" class="input-control" placeholder="ex: romario_jala" required autofocus>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="full_name">Nome Completo</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" id="full_name" name="full_name" class="input-control" placeholder="Seu nome e sobrenome">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">E-mail*</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-envelope"></i>
+                        <input type="email" id="email" name="email" class="input-control" placeholder="exemplo@email.com" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Senha*</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-key"></i>
+                        <input type="password" id="password" name="password" class="input-control" placeholder="Crie uma senha forte" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" style="margin-top: 1.5rem;">
+                    Criar Conta & Entrar <i class="fa-solid fa-rocket"></i>
+                </button>
+            </form>
+
+            <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+                Já possui uma conta? <a href="{{ url_for('auth.login') }}" style="color: #60a5fa; text-decoration: none; font-weight: 500;">Faça Login</a>
+            </p>
+        </div>
+
+        <!-- Right: Instructions Card -->
+        <div class="instructions-card">
+            <h2 class="instr-title"><i class="fa-solid fa-shield-halved"></i> Por que se cadastrar?</h2>
+            <p class="instr-desc" style="margin-bottom: 1rem;">
+                Ao criar sua conta no Paradise AI, você obtém uma experiência totalmente isolada e customizada:
+            </p>
+            <ul class="steps-list" style="list-style-type: none; margin-left: 0;">
+                <li style="display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 1rem;">
+                    <i class="fa-solid fa-circle-check" style="color: #10b981; margin-top: 0.2rem; font-size: 1.1rem;"></i>
+                    <span><strong>Isolamento de Cookies:</strong> Suas credenciais de sessão do Gemini Advanced ficam salvas apenas na sua conta, evitando o compartilhamento ou limites indesejados.</span>
+                </li>
+                <li style="display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 1rem;">
+                    <i class="fa-solid fa-circle-check" style="color: #10b981; margin-top: 0.2rem; font-size: 1.1rem;"></i>
+                    <span><strong>Perfil Personalizado:</strong> Salve sua foto de avatar, nome de exibição preferido e selecione o idioma de sua escolha (Português, Inglês ou Espanhol).</span>
+                </li>
+                <li style="display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 1rem;">
+                    <i class="fa-solid fa-circle-check" style="color: #10b981; margin-top: 0.2rem; font-size: 1.1rem;"></i>
+                    <span><strong>Histórico de Conteúdo:</strong> Aulas geradas no Classroom, livros criados no Book Generator e chats com o professor ficam vinculados ao seu perfil.</span>
+                </li>
+            </ul>
+            <div class="instr-note" style="background: rgba(168, 85, 247, 0.08); border-color: rgba(168, 85, 247, 0.15); color: #c084fc;">
+                <i class="fa-solid fa-bolt-lightning"></i>
+                <span>Gere livros, ilustrações 2D, aulas personalizadas em áudio e texto de forma 100% gratuita utilizando a potência do Gemini Pro!</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

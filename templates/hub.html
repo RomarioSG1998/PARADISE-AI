@@ -40,7 +40,9 @@
                 <span id="status-dot" class="dot"></span>
                 <span id="status-label">Verificando...</span>
             </div>
+            <button class="btn" id="open-profile-btn" style="background: rgba(147, 51, 234, 0.15); border-color: rgba(147, 51, 234, 0.3);"><i class="fa-solid fa-user-gear"></i> Editar Perfil</button>
             <button class="btn" id="open-config-btn"><i class="fa-solid fa-cookie-bite"></i> Configurar Conexão</button>
+            <a href="{{ url_for('auth.logout') }}" class="btn" id="logout-btn" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.4rem;"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</a>
         </div>
     </header>
 
@@ -149,6 +151,56 @@
             <button class="btn primary" id="btn-save-cookies"><i class="fa-solid fa-circle-check"></i> Validar e Salvar Conexão</button>
         </div>
     </div>
+
+    <!-- Profile Modal -->
+    <div class="modal-overlay" id="profile-modal">
+        <div class="modal" style="width: 500px; gap: 1rem;">
+            <button class="close-modal" id="close-profile-btn">&times;</button>
+            <h2 class="modal-title">Informações Pessoais</h2>
+            
+            <div class="form-group">
+                <label for="profile-fullname">Nome Completo</label>
+                <input type="text" id="profile-fullname" placeholder="Digite seu nome completo">
+            </div>
+
+            <div class="form-group">
+                <label for="profile-email">E-mail</label>
+                <input type="email" id="profile-email" placeholder="Digite seu e-mail">
+            </div>
+
+            <div class="form-group">
+                <label for="profile-lang">Idioma Padrão</label>
+                <select id="profile-lang" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); color: white; padding: 0.85rem; border-radius: 10px; font-family: inherit; font-size: 0.9rem; cursor: pointer; outline: none; box-sizing: border-box;">
+                    <option value="pt" style="background: #120f26; color: white;">Português 🇧🇷</option>
+                    <option value="en" style="background: #120f26; color: white;">English 🇺🇸</option>
+                    <option value="es" style="background: #120f26; color: white;">Español 🇪🇸</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="profile-avatar-name">Nome do Avatar</label>
+                <input type="text" id="profile-avatar-name" placeholder="Ex: Professor Wall-E">
+            </div>
+
+            <div class="form-group">
+                <label for="profile-avatar-url">Foto do Avatar (URL ou Upload)</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" id="profile-avatar-url" placeholder="URL da foto do avatar" style="flex: 1; margin-bottom: 0;">
+                    <button class="btn" id="upload-avatar-btn" type="button" style="padding: 0.85rem 1rem; margin-top: 0; background: rgba(255,255,255,0.05);"><i class="fa-solid fa-upload"></i></button>
+                </div>
+                <input type="file" id="profile-avatar-file" accept="image/*" style="display: none;">
+                <div style="margin-top: 0.25rem; text-align: center;">
+                    <img id="profile-avatar-preview" src="/static/images/walle.png" alt="Preview" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-glow-active); box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: inline-block;">
+                </div>
+            </div>
+
+            <div class="error-message" id="profile-error">Erro ao salvar as informações.</div>
+            <div class="success-message" id="profile-success" style="color: #4ade80; display: none; font-size: 0.88rem; text-align: center;">Perfil atualizado com sucesso!</div>
+
+            <button class="btn primary" id="btn-save-profile" style="width: 100%;"><i class="fa-solid fa-floppy-disk"></i> Salvar Perfil</button>
+        </div>
+    </div>
+
 
     <!-- Footer -->
     <footer>

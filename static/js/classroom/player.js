@@ -41,6 +41,15 @@ export async function loadSlide(idx) {
     
     // Render text
     elements.boardSlideTitle.textContent = `${idx + 1}. ${slide.title}`;
+    if (window.renderMathInElement) {
+        renderMathInElement(elements.boardSlideTitle, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+        });
+    }
     
     // Split narration and calculate character-weighted ranges
     const words = slide.narration.split(' ');
@@ -60,6 +69,15 @@ export async function loadSlide(idx) {
     slide.bullets.forEach((bullet, i) => {
         const li = document.createElement('li');
         li.textContent = bullet;
+        if (window.renderMathInElement) {
+            renderMathInElement(li, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError: false
+            });
+        }
         elements.boardBullets.appendChild(li);
         // Stagger reveal animation
         setTimeout(() => {
@@ -108,10 +126,9 @@ export async function loadSlide(idx) {
     
     try {
         const globalLang = localStorage.getItem('paradise_language') || 'pt';
-        elements.audioEl.src = `/api/tts?text=${encodeURIComponent(slide.narration)}&lang=${globalLang}`;
-        elements.audioEl.load();
         
-        elements.audioEl.oncanplaythrough = () => {
+        const handleCanPlayThrough = () => {
+            elements.audioEl.oncanplaythrough = null;
             state.audioLoading = false;
             elements.btnPlay.disabled = false;
             
@@ -129,14 +146,22 @@ export async function loadSlide(idx) {
                 window.isSpeaking3D = true;
                 state.isPlaying = true;
                 startSubtitleLoop();
-            }).catch(() => {
-                // Autoplay blocked
+            }).catch((err) => {
+                console.warn("Autoplay blocked:", err);
                 elements.playIcon.className = 'fa-solid fa-play';
                 elements.teacherAvatar.classList.remove('speaking');
                 window.isSpeaking3D = false;
                 state.isPlaying = false;
             });
         };
+
+        elements.audioEl.oncanplaythrough = handleCanPlayThrough;
+        elements.audioEl.src = `/api/tts?text=${encodeURIComponent(slide.narration)}&lang=${globalLang}`;
+        elements.audioEl.load();
+
+        if (elements.audioEl.readyState >= 4) {
+            handleCanPlayThrough();
+        }
     } catch (e) {
         console.error("Failed to load audio for slide", e);
         elements.teleprompterSubtitles.textContent = slide.narration + " (Áudio indisponível)";
@@ -219,8 +244,16 @@ export async function loadExplanation(explanation) {
     elements.btnPrev.disabled = true;
     elements.btnNext.disabled = true;
     
-    // Render explanation title
     elements.boardSlideTitle.textContent = explanation.title || "Explicação do Professor";
+    if (window.renderMathInElement) {
+        renderMathInElement(elements.boardSlideTitle, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+        });
+    }
     
     // Render explanation bullets
     elements.boardBullets.innerHTML = '';
@@ -228,6 +261,15 @@ export async function loadExplanation(explanation) {
     bullets.forEach((bullet, i) => {
         const li = document.createElement('li');
         li.textContent = bullet;
+        if (window.renderMathInElement) {
+            renderMathInElement(li, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError: false
+            });
+        }
         elements.boardBullets.appendChild(li);
         setTimeout(() => {
             li.classList.add('reveal');
@@ -275,10 +317,9 @@ export async function loadExplanation(explanation) {
 
     try {
         const globalLang = localStorage.getItem('paradise_language') || 'pt';
-        elements.audioEl.src = `/api/tts?text=${encodeURIComponent(narration)}&lang=${globalLang}`;
-        elements.audioEl.load();
         
-        elements.audioEl.oncanplaythrough = () => {
+        const handleCanPlayThrough = () => {
+            elements.audioEl.oncanplaythrough = null;
             state.audioLoading = false;
             elements.btnPlay.disabled = false;
             
@@ -294,13 +335,22 @@ export async function loadExplanation(explanation) {
                 window.isSpeaking3D = true;
                 state.isPlaying = true;
                 startSubtitleLoop();
-            }).catch(() => {
+            }).catch((err) => {
+                console.warn("Autoplay blocked:", err);
                 elements.playIcon.className = 'fa-solid fa-play';
                 elements.teacherAvatar.classList.remove('speaking');
                 window.isSpeaking3D = false;
                 state.isPlaying = false;
             });
         };
+
+        elements.audioEl.oncanplaythrough = handleCanPlayThrough;
+        elements.audioEl.src = `/api/tts?text=${encodeURIComponent(narration)}&lang=${globalLang}`;
+        elements.audioEl.load();
+
+        if (elements.audioEl.readyState >= 4) {
+            handleCanPlayThrough();
+        }
     } catch (e) {
         console.error("Failed to load audio for explanation", e);
         elements.teleprompterSubtitles.textContent = narration + " (Áudio indisponível)";
