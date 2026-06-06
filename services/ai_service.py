@@ -7,13 +7,16 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENV_PATH = os.path.join(root_dir, ".env")
 load_dotenv(ENV_PATH, override=True)
 
-# Global client cache
-gemini_client = None
-current_account_id = None
+# User-specific client caches
+gemini_clients = {}
+current_account_ids = {}
 image_cache = {}
 
-async def get_or_create_client_async(force_reinit=False, tried_ids=None):
-    global gemini_client, current_account_id
+async def get_or_create_client_async(username=None, force_reinit=False, tried_ids=None):
+    global gemini_clients, current_account_ids
+    
+    # Use 'default' if no username provided (e.g. CLI script or public audit logs)
+    user_key = username if username else "default"
     
     if tried_ids is None:
         tried_ids = set()
@@ -23,49 +26,47 @@ async def get_or_create_client_async(force_reinit=False, tried_ids=None):
     if gemini_api_key:
         return "api_key", None
         
-    if gemini_client is not None and not force_reinit:
-        return gemini_client, None
+    if gemini_clients.get(user_key) is not None and not force_reinit:
+        return gemini_clients[user_key], None
 
     try:
         from database import get_next_available_account, update_account_status, mark_account_used
     except ImportError:
-        # Avoid circular dependencies if loaded in some contexts
         import sys
         sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from database import get_next_available_account, update_account_status, mark_account_used
 
-    # Query least recently used active account
-    account = get_next_available_account()
+    # Query active account for this user, falling back to shared active accounts
+    account = get_next_available_account(username=username)
     
     # Fallback to .env if no accounts in DB
     if not account:
         secure_1psid = os.getenv("GEMINI_SECURE_1PSID", "").strip()
         secure_1psidts = os.getenv("GEMINI_SECURE_1PSIDTS", "").strip()
         if not secure_1psid or not secure_1psidts:
-            gemini_client = None
-            current_account_id = None
+            gemini_clients[user_key] = None
+            current_account_ids[user_key] = None
             return None, "Configuração ausente: defina GEMINI_API_KEY ou configure uma conta ativa no banco de dados."
         
         # Use .env credentials as virtual account ID 0
         account = {
             "id": 0,
-            "name": "Fallback (.env)",
+            "name": f"Fallback (.env) for {user_key}",
             "secure_1psid": secure_1psid,
             "secure_1psidts": secure_1psidts
         }
 
     if account["id"] in tried_ids:
-        # We tried all available accounts and all failed
-        gemini_client = None
-        current_account_id = None
-        return None, "Todas as contas disponíveis no pool falharam na autenticação."
+        gemini_clients[user_key] = None
+        current_account_ids[user_key] = None
+        return None, f"Todas as contas disponíveis para '{user_key}' falharam na autenticação."
 
     tried_ids.add(account["id"])
 
     try:
         from gemini_webapi import GeminiClient
         from gemini_webapi.client import AccountStatus
-        print(f"[Paradise AI] Initializing GeminiClient for account '{account['name']}' (ID: {account['id']})...")
+        print(f"[Paradise AI] Initializing GeminiClient for '{user_key}' using account '{account['name']}' (ID: {account['id']})...")
         client = GeminiClient(account["secure_1psid"], account["secure_1psidts"])
         await client.init()
         if client.account_status != AccountStatus.AVAILABLE:
@@ -74,21 +75,21 @@ async def get_or_create_client_async(force_reinit=False, tried_ids=None):
             if account["id"] != 0:
                 update_account_status(account["id"], "error", error_msg)
             # Try next account
-            return await get_or_create_client_async(force_reinit=True, tried_ids=tried_ids)
+            return await get_or_create_client_async(username=username, force_reinit=True, tried_ids=tried_ids)
             
-        gemini_client = client
-        current_account_id = account["id"]
+        gemini_clients[user_key] = client
+        current_account_ids[user_key] = account["id"]
         if account["id"] != 0:
             mark_account_used(account["id"])
-        print(f"[Paradise AI] Client for account '{account['name']}' (ID: {account['id']}) initialized successfully!")
-        return gemini_client, None
+        print(f"[Paradise AI] Client for user '{user_key}' using account '{account['name']}' (ID: {account['id']}) initialized successfully!")
+        return gemini_clients[user_key], None
     except Exception as e:
         error_msg = str(e)
         print(f"[Paradise AI] Exception during client init for account {account['id']}: {error_msg}")
         if account["id"] != 0:
             update_account_status(account["id"], "error", error_msg)
         # Try next account
-        return await get_or_create_client_async(force_reinit=True, tried_ids=tried_ids)
+        return await get_or_create_client_async(username=username, force_reinit=True, tried_ids=tried_ids)
 
 def enhance_prompt_for_images(message: str) -> str:
     msg_lower = message.lower()
@@ -98,15 +99,13 @@ def enhance_prompt_for_images(message: str) -> str:
         enhancement = (
             "\n\n(Important System Instruction for Image Generation: As this is a request to generate an image, "
             "please produce a high-quality, ultra-detailed photorealistic image. Expand the user's request "
-            "into a rich, descriptive prompt for your internal ImageFx/Imagen 3 generator. Explicitly request "
-            "highly detailed textures, professional cinematic lighting, 8k resolution, photorealism, deep colors, "
-            "and award-winning photographic framing. Do not output generic low-resolution, blurred, or illustration-like "
-            "styles unless explicitly requested by the user.)"
+            "into a rich and descriptive scene, specifying elements like colors, lighting, art style, and composition "
+            "so that the model's image generator output is visually stunning and directly represents the requested scene.)"
         )
         return message + enhancement
     return message
 
-async def generate_text_unified_async(prompt):
+async def generate_text_unified_async(prompt, username=None):
     load_dotenv(ENV_PATH, override=True)
     gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
     
@@ -121,7 +120,7 @@ async def generate_text_unified_async(prompt):
         text = response.text if hasattr(response, "text") else str(response)
         return text, None
         
-    client, err = await get_or_create_client_async()
+    client, err = await get_or_create_client_async(username=username)
     if err:
         return None, err
     try:
@@ -131,7 +130,7 @@ async def generate_text_unified_async(prompt):
     except Exception as e:
         return None, str(e)
 
-async def generate_image_unified_async(prompt):
+async def generate_image_unified_async(prompt, username=None):
     load_dotenv(ENV_PATH, override=True)
     gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
     
@@ -157,7 +156,7 @@ async def generate_image_unified_async(prompt):
         except Exception as e:
             return None, f"Erro de geração de imagem oficial: {str(e)}"
             
-    client, err = await get_or_create_client_async()
+    client, err = await get_or_create_client_async(username=username)
     if err:
         return None, err
     try:
@@ -169,58 +168,3 @@ async def generate_image_unified_async(prompt):
         return None, "Nenhuma imagem retornada pelo cliente."
     except Exception as e:
         return None, str(e)
-
-async def chat_async(message):
-    client, err = await get_or_create_client_async()
-    if err:
-        return None, err, True
-
-    load_dotenv(ENV_PATH, override=True)
-    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
-
-    if gemini_api_key:
-        try:
-            from google import genai
-            print("[Paradise AI] Using official Gemini API for chat...")
-            official_client = genai.Client(api_key=gemini_api_key)
-            response = official_client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=message
-            )
-            text = response.text if hasattr(response, "text") else str(response)
-            return {"text": text, "images": []}, None, False
-        except Exception as e:
-            return None, f"Official Gemini API Error: {str(e)}", False
-
-    try:
-        # Enhance prompt if it contains image generation requests
-        enhanced_message = enhance_prompt_for_images(message)
-        response = await client.generate_content(enhanced_message)
-        
-        # Parse images if any
-        images = []
-        if hasattr(response, "images") and response.images:
-            for img in response.images:
-                if hasattr(img, "url") and img.url:
-                    images.append(img.url)
-
-        text = response.text if hasattr(response, "text") else str(response)
-        return {"text": text, "images": images}, None, False
-    except Exception as e:
-        error_msg = str(e)
-        print(f"[Paradise AI Error] {error_msg}")
-        
-        needs_config = False
-        if "cookie" in error_msg.lower() or "auth" in error_msg.lower() or "401" in error_msg or "403" in error_msg:
-            global gemini_client, current_account_id
-            if current_account_id and current_account_id != 0:
-                try:
-                    from database import update_account_status
-                    update_account_status(current_account_id, "error", f"Runtime error: {error_msg}")
-                except Exception as dbe:
-                    print(f"[Paradise AI DB Error] Could not update account {current_account_id} status: {dbe}")
-            gemini_client = None
-            current_account_id = None
-            needs_config = True
-            
-        return None, f"An error occurred: {error_msg}", needs_config

@@ -9,10 +9,10 @@ VISUAL_THEME_STYLES = {
     "western":  "(Wild West oil painting illustration, dusty desert landscape, warm sunset palette, cowboy aesthetic, rustic vintage style, no text, no labels)",
 }
 
-async def generate_book_async(theme, level, language, visual_theme="cartoon"):
+async def generate_book_async(theme, level, language, visual_theme="cartoon", username=None):
     lang_lower = language.lower()
     style_suffix = VISUAL_THEME_STYLES.get(visual_theme, VISUAL_THEME_STYLES["cartoon"])
-    print(f"[Paradise AI] Generating book. Theme: '{theme}', Level: '{level}', Language: '{language}', Visual: '{visual_theme}'")
+    print(f"[Paradise AI] Generating book. Theme: '{theme}', Level: '{level}', Language: '{language}', Visual: '{visual_theme}', User: '{username}'")
     
     if "inglês" in lang_lower or "english" in lang_lower or lang_lower == "en":
         prompt = f"""You must write a custom short book in English.
@@ -117,7 +117,7 @@ O JSON retornado deve seguir exatamente esta estrutura:
 }}
 Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcação adicional ou texto fora do bloco de código json. Envolva o JSON em um bloco de código markdown (iniciando com ```json e finalizando com ```)."""
 
-    text_resp, err = await generate_text_unified_async(prompt)
+    text_resp, err = await generate_text_unified_async(prompt, username=username)
     if err:
         return None, err
         
@@ -136,7 +136,7 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
             img_prompt = chapter.get("illustration_prompt", f"A beautiful scene depicting {theme}")
             full_img_prompt = f"{img_prompt}. {style_suffix}"
             
-            img_url, img_err = await generate_image_unified_async(full_img_prompt)
+            img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username)
             if img_url:
                 chapter["image_url"] = img_url
             else:
@@ -146,15 +146,15 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
     except Exception as e:
         return None, f"Failed to generate book: {str(e)}"
 
-async def illustrate_scene_async(prompt, visual_theme="cartoon"):
+async def illustrate_scene_async(prompt, visual_theme="cartoon", username=None):
     style_suffix = VISUAL_THEME_STYLES.get(visual_theme, VISUAL_THEME_STYLES["cartoon"])
     full_prompt = f"{prompt}. {style_suffix}"
-    img_url, img_err = await generate_image_unified_async(full_prompt)
+    img_url, img_err = await generate_image_unified_async(full_prompt, username=username)
     if img_url:
         return {"image_url": img_url}, None
     return None, img_err or "Nenhuma imagem retornada"
 
-async def explain_word_async(word, sentence, book_lang, target_lang, user_lang_code):
+async def explain_word_async(word, sentence, book_lang, target_lang, user_lang_code, username=None):
     if user_lang_code == "en":
         prompt = f"""Explain the word or expression "{word}" that appears in the following sentence: "{sentence}".
 The book is written in the language {book_lang}.
@@ -189,7 +189,7 @@ O JSON retornado deve seguir exatamente este modelo:
 }}
 Não adicione explicações extras fora do bloco JSON. Retorne apenas o JSON válido."""
 
-    text_resp, err = await generate_text_unified_async(prompt)
+    text_resp, err = await generate_text_unified_async(prompt, username=username)
     if err:
         return None, err
         
@@ -204,7 +204,7 @@ Não adicione explicações extras fora do bloco JSON. Retorne apenas o JSON vá
         
         # Generate the micro-illustration for this word!
         img_prompt = data.get("illustration_prompt", f"A simple vector cartoon icon of {word}")
-        img_url, img_err = await generate_image_unified_async(img_prompt)
+        img_url, img_err = await generate_image_unified_async(img_prompt, username=username)
         
         data["image_url"] = img_url
         return data, None

@@ -3,110 +3,170 @@ import os
 import secrets
 from datetime import datetime
 
-DB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-os.makedirs(DB_DIR, exist_ok=True)
-DB_PATH = os.path.join(DB_DIR, "hub.db")
+# Load environment to check for DATABASE_URL
+from dotenv import load_dotenv
+root_dir = os.path.dirname(os.path.abspath(__file__))
+ENV_PATH = os.path.join(root_dir, ".env")
+load_dotenv(ENV_PATH, override=True)
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+def qry(sql: str) -> str:
+    if DATABASE_URL:
+        return sql.replace("?", "%s")
+    return sql
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    if DATABASE_URL:
+        import psycopg2
+        conn = psycopg2.connect(DATABASE_URL)
+        return conn
+    else:
+        DB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+        os.makedirs(DB_DIR, exist_ok=True)
+        DB_PATH = os.path.join(DB_DIR, "hub.db")
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+def get_cursor(conn):
+    if DATABASE_URL:
+        from psycopg2.extras import RealDictCursor
+        return conn.cursor(cursor_factory=RealDictCursor)
+    else:
+        return conn.cursor()
 
 def init_db():
-    from dotenv import load_dotenv
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = get_cursor(conn)
     
-    # Create apps table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS apps (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        api_key TEXT NOT NULL UNIQUE,
-        status TEXT DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-    
-    # Create gemini_accounts table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS gemini_accounts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        secure_1psid TEXT NOT NULL,
-        secure_1psidts TEXT NOT NULL,
-        status TEXT DEFAULT 'active',
-        error_message TEXT,
-        last_used TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-    
-    # Create request_logs table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS request_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        app_id INTEGER,
-        prompt_length INTEGER,
-        response_length INTEGER,
-        duration_ms INTEGER,
-        status_code INTEGER,
-        error TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(app_id) REFERENCES apps(id)
-    )
-    """)
-    
+    if not DATABASE_URL:
+        # Create apps table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS apps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            api_key TEXT NOT NULL UNIQUE,
+            status TEXT DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        
+        # Create gemini_accounts table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS gemini_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            secure_1psid TEXT NOT NULL,
+            secure_1psidts TEXT NOT NULL,
+            status TEXT DEFAULT 'active',
+            error_message TEXT,
+            last_used TIMESTAMP,
+            username TEXT REFERENCES profiles(username) ON DELETE CASCADE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        
+        # Create request_logs table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS request_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            app_id INTEGER,
+            prompt_length INTEGER,
+            response_length INTEGER,
+            duration_ms INTEGER,
+            status_code INTEGER,
+            error TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(app_id) REFERENCES apps(id)
+        )
+        """)
+
+        # Create profiles table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS profiles (
+            username TEXT PRIMARY KEY,
+            email TEXT,
+            full_name TEXT,
+            password_hash TEXT,
+            language TEXT NOT NULL DEFAULT 'pt',
+            avatar_name TEXT NOT NULL DEFAULT 'Professor',
+            avatar_image_url TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        conn.commit()
+
     # Check if we have any registered apps. If not, seed the first one
-    cursor.execute("SELECT COUNT(*) FROM apps")
-    if cursor.fetchone()[0] == 0:
-        # Generate first API Key
+    cursor.execute(qry("SELECT COUNT(*) as cnt FROM apps"))
+    row = cursor.fetchone()
+    app_count = row["cnt"] if isinstance(row, dict) or hasattr(row, '__getitem__') else row[0]
+    
+    if app_count == 0:
         default_key = f"paradise_ai_{secrets.token_hex(16)}"
         cursor.execute(
-            "INSERT INTO apps (name, api_key, status) VALUES (?, ?, ?)",
+            qry("INSERT INTO apps (name, api_key, status) VALUES (?, ?, ?)"),
             ("Paradise AI Study Secretary Bot (Telegram)", default_key, "active")
         )
+        conn.commit()
         print(f"[AI Hub DB] Seeded first app. API KEY: {default_key}")
 
     # Check if we have accounts. If not, migrate old cookies from .env
-    cursor.execute("SELECT COUNT(*) FROM gemini_accounts")
-    if cursor.fetchone()[0] == 0:
+    cursor.execute(qry("SELECT COUNT(*) as cnt FROM gemini_accounts"))
+    row = cursor.fetchone()
+    account_count = row["cnt"] if isinstance(row, dict) or hasattr(row, '__getitem__') else row[0]
+    
+    if account_count == 0:
         env_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
         load_dotenv(env_file_path, override=True)
         secure_1psid = os.getenv("GEMINI_SECURE_1PSID", "").strip()
         secure_1psidts = os.getenv("GEMINI_SECURE_1PSIDTS", "").strip()
         if secure_1psid and secure_1psidts:
             cursor.execute(
-                "INSERT INTO gemini_accounts (name, secure_1psid, secure_1psidts, status) VALUES (?, ?, ?, ?)",
+                qry("INSERT INTO gemini_accounts (name, secure_1psid, secure_1psidts, status) VALUES (?, ?, ?, ?)"),
                 ("Conta Pro Migrada (.env)", secure_1psid, secure_1psidts, "active")
             )
-            print("[AI Hub DB] Successfully migrated old .env cookies to SQLite database pool.")
+            conn.commit()
+            print("[AI Hub DB] Successfully migrated old .env cookies to database pool.")
 
-    conn.commit()
     conn.close()
 
 def validate_api_key(api_key):
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, name, status FROM apps WHERE api_key = ? LIMIT 1", (api_key,))
+    cursor = get_cursor(conn)
+    cursor.execute(qry("SELECT id, name, status FROM apps WHERE api_key = ? LIMIT 1"), (api_key,))
     row = cursor.fetchone()
     conn.close()
     if row and row["status"] == "active":
         return {"id": row["id"], "name": row["name"]}
     return None
 
-def get_next_available_account():
-    """Gets the active account that was least recently used."""
+def get_next_available_account(username=None):
+    """Gets the active account associated with the user, falling back to a shared account."""
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT id, name, secure_1psid, secure_1psidts 
-        FROM gemini_accounts 
-        WHERE status = 'active' 
-        ORDER BY last_used ASC NULLS FIRST 
-        LIMIT 1
-    """)
-    row = cursor.fetchone()
+    cursor = get_cursor(conn)
+    table_name = "public.gemini_accounts" if DATABASE_URL else "gemini_accounts"
+    row = None
+    if username:
+        cursor.execute(qry(f"""
+            SELECT id, name, secure_1psid, secure_1psidts 
+            FROM {table_name} 
+            WHERE username = ? AND status = 'active' 
+            ORDER BY last_used ASC NULLS FIRST 
+            LIMIT 1
+        """), (username,))
+        row = cursor.fetchone()
+        
+    if not row:
+        cursor.execute(qry(f"""
+            SELECT id, name, secure_1psid, secure_1psidts 
+            FROM {table_name} 
+            WHERE username IS NULL AND status = 'active' 
+            ORDER BY last_used ASC NULLS FIRST 
+            LIMIT 1
+        """))
+        row = cursor.fetchone()
+        
     conn.close()
     if row:
         return {
@@ -119,9 +179,10 @@ def get_next_available_account():
 
 def update_account_status(account_id, status, error_message=None):
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = get_cursor(conn)
+    table_name = "public.gemini_accounts" if DATABASE_URL else "gemini_accounts"
     cursor.execute(
-        "UPDATE gemini_accounts SET status = ?, error_message = ? WHERE id = ?",
+        qry(f"UPDATE {table_name} SET status = ?, error_message = ? WHERE id = ?"),
         (status, error_message, account_id)
     )
     conn.commit()
@@ -129,9 +190,10 @@ def update_account_status(account_id, status, error_message=None):
 
 def mark_account_used(account_id):
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = get_cursor(conn)
+    table_name = "public.gemini_accounts" if DATABASE_URL else "gemini_accounts"
     cursor.execute(
-        "UPDATE gemini_accounts SET last_used = ? WHERE id = ?",
+        qry(f"UPDATE {table_name} SET last_used = ? WHERE id = ?"),
         (datetime.utcnow().isoformat(), account_id)
     )
     conn.commit()
@@ -139,85 +201,105 @@ def mark_account_used(account_id):
 
 def log_request(app_id, prompt_len, resp_len, duration_ms, status_code, error=None):
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO request_logs (app_id, prompt_length, response_length, duration_ms, status_code, error)
+    cursor = get_cursor(conn)
+    table_name = "public.request_logs" if DATABASE_URL else "request_logs"
+    cursor.execute(qry(f"""
+        INSERT INTO {table_name} (app_id, prompt_length, response_length, duration_ms, status_code, error)
         VALUES (?, ?, ?, ?, ?, ?)
-    """, (app_id, prompt_len, resp_len, duration_ms, status_code, error))
+    """), (app_id, prompt_len, resp_len, duration_ms, status_code, error))
     conn.commit()
     conn.close()
 
 def create_app(name):
     api_key = f"paradise_ai_{secrets.token_hex(16)}"
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO apps (name, api_key) VALUES (?, ?)", (name, api_key))
+    cursor = get_cursor(conn)
+    table_name = "public.apps" if DATABASE_URL else "apps"
+    cursor.execute(qry(f"INSERT INTO {table_name} (name, api_key) VALUES (?, ?)"), (name, api_key))
     conn.commit()
     conn.close()
     return api_key
 
 def get_apps():
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM apps ORDER BY id DESC")
+    cursor = get_cursor(conn)
+    table_name = "public.apps" if DATABASE_URL else "apps"
+    cursor.execute(qry(f"SELECT * FROM {table_name} ORDER BY id DESC"))
     rows = cursor.fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 def get_accounts():
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, name, status, error_message, last_used, created_at FROM gemini_accounts ORDER BY id DESC")
+    cursor = get_cursor(conn)
+    table_name = "public.gemini_accounts" if DATABASE_URL else "gemini_accounts"
+    cursor.execute(qry(f"SELECT id, username, name, status, error_message, last_used, created_at FROM {table_name} ORDER BY id DESC"))
     rows = cursor.fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
-def add_account(name, secure_1psid, secure_1psidts):
+def add_account(username, name, secure_1psid, secure_1psidts):
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = get_cursor(conn)
+    table_name = "public.gemini_accounts" if DATABASE_URL else "gemini_accounts"
+    if username:
+        cursor.execute(qry(f"DELETE FROM {table_name} WHERE username = ?"), (username,))
     cursor.execute(
-        "INSERT INTO gemini_accounts (name, secure_1psid, secure_1psidts, status) VALUES (?, ?, ?, ?)",
-        (name, secure_1psid, secure_1psidts, "active")
+        qry(f"INSERT INTO {table_name} (username, name, secure_1psid, secure_1psidts, status) VALUES (?, ?, ?, ?, ?)"),
+        (username, name, secure_1psid, secure_1psidts, "active")
     )
     conn.commit()
     conn.close()
 
 def delete_account(account_id):
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM gemini_accounts WHERE id = ?", (account_id,))
+    cursor = get_cursor(conn)
+    table_name = "public.gemini_accounts" if DATABASE_URL else "gemini_accounts"
+    cursor.execute(qry(f"DELETE FROM {table_name} WHERE id = ?"), (account_id,))
     conn.commit()
     conn.close()
 
 def get_stats():
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = get_cursor(conn)
     
+    apps_tbl = "public.apps" if DATABASE_URL else "apps"
+    accounts_tbl = "public.gemini_accounts" if DATABASE_URL else "gemini_accounts"
+    logs_tbl = "public.request_logs" if DATABASE_URL else "request_logs"
+
     # Total Requests
-    cursor.execute("SELECT COUNT(*) FROM request_logs")
-    total_requests = cursor.fetchone()[0]
+    cursor.execute(qry(f"SELECT COUNT(*) as cnt FROM {logs_tbl}"))
+    row = cursor.fetchone()
+    total_requests = row["cnt"] if isinstance(row, dict) or hasattr(row, '__getitem__') else row[0]
+    total_requests = total_requests or 0
     
     # Success Rate
-    cursor.execute("SELECT COUNT(*) FROM request_logs WHERE status_code = 200")
-    success_requests = cursor.fetchone()[0]
+    cursor.execute(qry(f"SELECT COUNT(*) as cnt FROM {logs_tbl} WHERE status_code = 200"))
+    row = cursor.fetchone()
+    success_requests = row["cnt"] if isinstance(row, dict) or hasattr(row, '__getitem__') else row[0]
+    success_requests = success_requests or 0
     success_rate = (success_requests / total_requests * 100) if total_requests > 0 else 0
     
     # Average Duration
-    cursor.execute("SELECT AVG(duration_ms) FROM request_logs WHERE status_code = 200")
-    avg_duration = cursor.fetchone()[0] or 0
+    cursor.execute(qry(f"SELECT AVG(duration_ms) as avg_dur FROM {logs_tbl} WHERE status_code = 200"))
+    row = cursor.fetchone()
+    avg_duration = row["avg_dur"] if isinstance(row, dict) or hasattr(row, '__getitem__') else row[0]
+    avg_duration = avg_duration or 0
     
     # Active accounts
-    cursor.execute("SELECT COUNT(*) FROM gemini_accounts WHERE status = 'active'")
-    active_accounts = cursor.fetchone()[0]
+    cursor.execute(qry(f"SELECT COUNT(*) as cnt FROM {accounts_tbl} WHERE status = 'active'"))
+    row = cursor.fetchone()
+    active_accounts = row["cnt"] if isinstance(row, dict) or hasattr(row, '__getitem__') else row[0]
+    active_accounts = active_accounts or 0
 
     # Recent Logs
-    cursor.execute("""
+    cursor.execute(qry(f"""
         SELECT l.id, a.name as app_name, l.prompt_length, l.response_length, l.duration_ms, l.status_code, l.created_at
-        FROM request_logs l
-        LEFT JOIN apps a ON l.app_id = a.id
+        FROM {logs_tbl} l
+        LEFT JOIN {apps_tbl} a ON l.app_id = a.id
         ORDER BY l.id DESC
         LIMIT 10
-    """)
+    """))
     recent_logs = [dict(r) for r in cursor.fetchall()]
     
     conn.close()
@@ -229,3 +311,76 @@ def get_stats():
         "active_accounts": active_accounts,
         "recent_logs": recent_logs
     }
+
+def get_profile(username):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    table_name = "public.profiles" if DATABASE_URL else "profiles"
+    cursor.execute(qry(f"SELECT * FROM {table_name} WHERE username = ?"), (username,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
+
+def save_profile(username, full_name, email, language, avatar_name, avatar_image_url):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    table_name = "public.profiles" if DATABASE_URL else "profiles"
+    if DATABASE_URL:
+        cursor.execute(qry(f"""
+            INSERT INTO {table_name} (username, full_name, email, language, avatar_name, avatar_image_url)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT (username) DO UPDATE
+            SET full_name = EXCLUDED.full_name,
+                email = EXCLUDED.email,
+                language = EXCLUDED.language,
+                avatar_name = EXCLUDED.avatar_name,
+                avatar_image_url = EXCLUDED.avatar_image_url
+        """), (username, full_name, email, language, avatar_name, avatar_image_url))
+    else:
+        cursor.execute(f"""
+            INSERT OR REPLACE INTO profiles (username, full_name, email, language, avatar_name, avatar_image_url)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (username, full_name, email, language, avatar_name, avatar_image_url))
+    conn.commit()
+    conn.close()
+
+def register_user(username, email, password, full_name):
+    from werkzeug.security import generate_password_hash
+    password_hash = generate_password_hash(password)
+    
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    table_name = "public.profiles" if DATABASE_URL else "profiles"
+    
+    # Check if username or email already exists
+    cursor.execute(qry(f"SELECT username FROM {table_name} WHERE username = ? OR email = ?"), (username, email))
+    if cursor.fetchone():
+        conn.close()
+        raise Exception("Usuário ou e-mail já cadastrado!")
+        
+    cursor.execute(qry(f"""
+        INSERT INTO {table_name} (username, email, full_name, password_hash, language, avatar_name, avatar_image_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """), (username, email, full_name, password_hash, "pt", "Professor", ""))
+    
+    conn.commit()
+    conn.close()
+    return True
+
+def authenticate_user(username_or_email, password):
+    from werkzeug.security import check_password_hash
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    table_name = "public.profiles" if DATABASE_URL else "profiles"
+    
+    cursor.execute(qry(f"SELECT * FROM {table_name} WHERE username = ? OR email = ?"), (username_or_email, username_or_email))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        user_dict = dict(row)
+        if user_dict.get("password_hash") and check_password_hash(user_dict["password_hash"], password):
+            return user_dict
+    return None

@@ -6,3 +6,4 @@ pypdf
 gTTS
 edge-tts
 google-genai
+psycopg2-binary

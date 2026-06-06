@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paradise AI — Conexão Gemini Pro Ilimitada</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-base: #06050f;
+            --bg-surface: rgba(18, 15, 38, 0.6);
+            --border-glow: rgba(147, 51, 234, 0.25);
+            --border-glow-active: rgba(147, 51, 234, 0.6);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --gemini-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            --accent-glow: 0 0 25px rgba(139, 92, 246, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        header {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-decoration: none;
+            color: white;
+        }
+
+        .logo i {
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo span {
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-btn {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-btn:hover {
+            color: #c084fc;
+        }
+
+        .btn-cta {
+            background: var(--gemini-gradient);
+            color: white;
+            padding: 0.6rem 1.25rem;
+            border-radius: 12px;
+            box-shadow: var(--accent-glow);
+            font-weight: 600;
+            transition: transform 0.2s, opacity 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-cta:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* Hero Section */
+        .hero {
+            max-width: 1200px;
+            margin: 4rem auto 2rem auto;
+            padding: 0 2rem;
+            text-align: center;
+        }
+
+        .badge {
+            background: rgba(147, 51, 234, 0.15);
+            border: 1px solid rgba(147, 51, 234, 0.3);
+            color: #c084fc;
+            padding: 0.35rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .hero h1 span {
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 760px;
+            margin: 0 auto 2.5rem auto;
+        }
+
+        .hero-ctas {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+        }
+
+        .btn-large {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border-radius: 14px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--gemini-gradient);
+            color: white;
+            font-weight: 600;
+            box-shadow: var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 35px rgba(139, 92, 246, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-weight: 500;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Features Section */
+        .features-section {
+            max-width: 1200px;
+            margin: 6rem auto;
+            padding: 0 2rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 3.5rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .section-header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--bg-surface);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--border-glow);
+            border-radius: 24px;
+            padding: 2.5rem;
+            transition: transform 0.3s, border-color 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--gemini-gradient);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--border-glow-active);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            width: 54px;
+            height: 54px;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            color: #a855f7;
+        }
+
+        .feature-card h3 {
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: white;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* How it works */
+        .info-panel {
+            max-width: 1000px;
+            margin: 4rem auto 6rem auto;
+            background: rgba(30, 27, 75, 0.2);
+            border: 1px solid rgba(139, 92, 246, 0.15);
+            border-radius: 28px;
+            padding: 3.5rem;
+            display: flex;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .info-content {
+            flex: 1.2;
+        }
+
+        .info-content h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .info-content p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+        }
+
+        .info-points {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .info-point {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .info-point i {
+            color: #10b981;
+            font-size: 1.2rem;
+            margin-top: 0.25rem;
+        }
+
+        .info-point span {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .info-graphic {
+            flex: 0.8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 8rem;
+            background: var(--gemini-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 30px rgba(139, 92, 246, 0.3));
+        }
+
+        footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+            padding: 2.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            .hero-ctas {
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+            }
+            .btn-large {
+                width: 100%;
+                justify-content: center;
+            }
+            .info-panel {
+                flex-direction: column;
+                padding: 2rem;
+                text-align: center;
+            }
+            .info-point {
+                text-align: left;
+            }
+            .info-graphic {
+                font-size: 5rem;
+                margin-top: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <header>
+        <a href="/" class="logo">
+            <i class="fa-solid fa-user-astronaut"></i>
+            <span>Paradise AI</span>
+        </a>
+        <div class="nav-links">
+            {% if session.get('authenticated') %}
+                <span style="color: var(--text-secondary); font-size: 0.95rem;">Olá, <strong>{{ session.get('username') }}</strong></span>
+                <a href="{{ url_for('portal.index_hub') }}" class="btn-cta">Acessar o Hub <i class="fa-solid fa-rocket"></i></a>
+                <a href="{{ url_for('auth.logout') }}" class="nav-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}" class="nav-btn">Entrar</a>
+                <a href="{{ url_for('auth.register') }}" class="btn-cta">Cadastrar-se</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="badge">
+            <i class="fa-solid fa-sparkles"></i>
+            <span>Conecte sua própria conta e crie sem limites</span>
+        </div>
+        <h1>Esqueça chaves de API pagas.<br>Use <span>Gemini Pro</span> Ilimitado.</h1>
+        <p>
+            O Paradise AI conecta o backend local diretamente à sua sessão do Google. Salve seus cookies uma única vez e ganhe geração ilimitada de textos, explicações, livros infantis e ilustrações sob demanda.
+        </p>
+        <div class="hero-ctas">
+            {% if session.get('authenticated') %}
+                <a href="{{ url_for('portal.index_hub') }}" class="btn-large btn-primary">
+                    Ir para Área de Trabalho <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            {% else %}
+                <a href="{{ url_for('auth.register') }}" class="btn-large btn-primary">
+                    Criar Conta Grátis <i class="fa-solid fa-user-plus"></i>
+                </a>
+                <a href="{{ url_for('auth.login') }}" class="btn-large btn-secondary">
+                    Fazer Login <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                </a>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Value Statement / Explanation Panel -->
+    <section class="info-panel">
+        <div class="info-content">
+            <h2>O Propósito do Software</h2>
+            <p>
+                As APIs de IA tradicionais impõem barreiras financeiras e de tokens difíceis de escalar. O **Paradise AI** nasceu para democratizar o uso das tecnologias de IA Generativa de forma livre.
+            </p>
+            <div class="info-points">
+                <div class="info-point">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span><strong>Token Ilimitado:</strong> Utilize a inteligência da sua própria sessão do Gemini Advanced para produzir conteúdos gigantescos sem cobranças por palavra.</span>
+                </div>
+                <div class="info-point">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span><strong>Integração Livre:</strong> Exponha seu próprio proxy Gemini Pro local/remoto para ser consumido em outros aplicativos da sua preferência sem travas.</span>
+                </div>
+                <div class="info-point">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span><strong>Privacidade & Isolamento:</strong> Suas chaves e perfis de cookies ficam salvos de forma independente e isolada no banco de dados, protegidos por senha.</span>
+                </div>
+            </div>
+        </div>
+        <div class="info-graphic">
+            <i class="fa-solid fa-brain"></i>
+        </div>
+    </section>
+
+    <!-- Built-in Applications Section -->
+    <section class="features-section">
+        <div class="section-header">
+            <h2>Aplicativos do Hub Integrados</h2>
+            <p>Descubra as ferramentas que já estão prontas para usar com a sua conta do Gemini Pro.</p>
+        </div>
+        <div class="features-grid">
+            <!-- App 1: Classroom -->
+            <div class="feature-card">
+                <div class="card-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+                <h3>Classroom (Sala de Aula)</h3>
+                <p>
+                    Gere aulas customizadas completas a partir de qualquer tema. O professor virtual gera a lousa, narração em áudio via Text-to-Speech e responde suas dúvidas na hora.
+                </p>
+            </div>
+            <!-- App 2: Book Generator -->
+            <div class="feature-card">
+                <div class="card-icon"><i class="fa-solid fa-book-open"></i></div>
+                <h3>Book Generator</h3>
+                <p>
+                    Escreva livros ilustrados nos temas e idiomas escolhidos. As páginas contam com ilustrações geradas por IA, narração e um glossário interativo para expandir o vocabulário.
+                </p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>© 2026 Paradise AI. Desenvolvido para uso acadêmico e integrativo ilimitado.</p>
+    </footer>
+
+</body>
+</html>

@@ -5,8 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: ai_paradise
     restart: unless-stopped
-    ports:
-      - "5000:5000"
+    network_mode: "host"
     env_file:
       - .env
     volumes:
