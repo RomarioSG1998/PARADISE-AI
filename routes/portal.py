@@ -82,8 +82,9 @@ def text_to_speech():
         return "Text is required", 400
         
     lang_code = request.args.get("lang") or request.cookies.get("paradise_language", "pt")
-    from services.tts_service import sanitize_tts_text
-    text = sanitize_tts_text(text, lang_code)
+    from services.tts_service import sanitize_tts_text, detect_language
+    detected_lang = detect_language(text, default_lang=lang_code)
+    text = sanitize_tts_text(text, detected_lang)
     
     load_dotenv(ENV_PATH, override=True)
     gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
@@ -91,7 +92,7 @@ def text_to_speech():
     # 1. Official Gemini API Audio Generation
     if gemini_api_key:
         try:
-            print("[Paradise AI] Generating native voice from Gemini API...")
+            print(f"[Paradise AI] Generating native voice from Gemini API (lang: {detected_lang})...")
             audio_data, mime_type = run_in_background(generate_official_gemini_tts_async(text, gemini_api_key))
             
             if audio_data:
@@ -109,7 +110,8 @@ def text_to_speech():
     # 2. Edge TTS Fallback
     try:
         import io
-        audio_data = run_in_background(generate_edge_tts_async(text, lang_code))
+        print(f"[Paradise AI] Generating Edge TTS voice (detected language: {detected_lang})...")
+        audio_data = run_in_background(generate_edge_tts_async(text, detected_lang))
         
         fp = io.BytesIO(audio_data)
         fp.seek(0)
@@ -120,8 +122,8 @@ def text_to_speech():
             from gtts import gTTS
             import io
             
-            gtts_lang = "en" if lang_code == "en" else ("es" if lang_code == "es" else "pt")
-            gtts_tld = "com" if lang_code == "en" else ("es" if lang_code == "es" else "com.br")
+            gtts_lang = "en" if detected_lang == "en" else ("es" if detected_lang == "es" else "pt")
+            gtts_tld = "com" if detected_lang == "en" else ("es" if detected_lang == "es" else "com.br")
             
             tts = gTTS(text=text, lang=gtts_lang, tld=gtts_tld)
             fp = io.BytesIO()

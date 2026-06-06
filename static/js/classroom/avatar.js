@@ -44,101 +44,72 @@ export function initializeAvatarHandlers() {
         }
     });
 
-    // ── Magnifying Glass Effect ──────────────────────────────────────────
-    const ZOOM = 2.8;  // magnification factor (fixed)
+    // ── Draggable Presenter Avatar ───────────────────────────────────────
+    const container = document.querySelector('.blackboard .avatar-container');
+    const blackboard = document.querySelector('.blackboard');
 
-    const lens   = document.getElementById('magnifier-lens');
-    const slider = document.getElementById('magnifier-size-slider');
-    const label  = document.getElementById('magnifier-size-label');
+    if (container && blackboard) {
+        // Prevent default drag behaviors
+        container.addEventListener('dragstart', (e) => e.preventDefault());
 
-    // Load persisted size (default 320px)
-    let LENS_SIZE = parseInt(localStorage.getItem('classroom_magnifier_size') || '320', 10);
+        const startDrag = (e) => {
+            // Do not drag if clicking text inputs, file selectors, editable fields, or the profile image button
+            const isInteractive = e.target.closest('[contenteditable="true"], input, label, button, .teacher-avatar, i');
+            if (isInteractive) return;
 
-    function applyLensSize(size) {
-        LENS_SIZE = size;
-        lens.style.width  = `${size}px`;
-        lens.style.height = `${size}px`;
-        if (label)  label.textContent  = `${size}px`;
-        if (slider) slider.value = size;
-        localStorage.setItem('classroom_magnifier_size', size);
+            e.preventDefault();
+
+            const rect = container.getBoundingClientRect();
+            const boardRect = blackboard.getBoundingClientRect();
+
+            // Store starting positions
+            const startX = e.clientX || (e.touches && e.touches[0].clientX);
+            const startY = e.clientY || (e.touches && e.touches[0].clientY);
+
+            // Compute current relative position to the blackboard parent
+            const currentLeft = rect.left - boardRect.left;
+            const currentTop = rect.top - boardRect.top;
+
+            const onDrag = (moveEvent) => {
+                const clientX = moveEvent.clientX || (moveEvent.touches && moveEvent.touches[0].clientX);
+                const clientY = moveEvent.clientY || (moveEvent.touches && moveEvent.touches[0].clientY);
+
+                const dx = clientX - startX;
+                const dy = clientY - startY;
+
+                let newLeft = currentLeft + dx;
+                let newTop = currentTop + dy;
+
+                // Restrict layout to stay strictly inside the blackboard borders (14px border)
+                const borderOffset = 14;
+                const maxLeft = boardRect.width - rect.width - borderOffset;
+                const maxTop = boardRect.height - rect.height - borderOffset;
+
+                newLeft = Math.max(borderOffset, Math.min(newLeft, maxLeft));
+                newTop = Math.max(borderOffset, Math.min(newTop, maxTop));
+
+                container.style.left = `${newLeft}px`;
+                container.style.top = `${newTop}px`;
+                container.style.bottom = 'auto';
+                container.style.right = 'auto';
+            };
+
+            const stopDrag = () => {
+                document.removeEventListener('mousemove', onDrag);
+                document.removeEventListener('mouseup', stopDrag);
+                document.removeEventListener('touchmove', onDrag);
+                document.removeEventListener('touchend', stopDrag);
+            };
+
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchmove', onDrag, { passive: false });
+            document.addEventListener('touchend', stopDrag);
+        };
+
+        // Attach both mouse and touch events
+        container.addEventListener('mousedown', startDrag);
+        container.addEventListener('touchstart', startDrag, { passive: false });
     }
-
-    // Apply stored size immediately
-    applyLensSize(LENS_SIZE);
-
-    // Slider live update (don't close lens while dragging)
-    if (slider) {
-        slider.addEventListener('input', (e) => {
-            applyLensSize(parseInt(e.target.value, 10));
-        });
-        // Stop the mousemove on slider from firing the lens update
-        slider.addEventListener('mousemove', (e) => e.stopPropagation());
-        slider.addEventListener('mouseenter', (e) => e.stopPropagation());
-    }
-
-    function isImageReady() {
-        return (
-            elements.boardImage &&
-            elements.boardImage.src &&
-            !elements.boardImage.src.endsWith('/classroom') &&
-            !elements.boardImage.className.includes('loading') &&
-            elements.boardImage.complete &&
-            elements.boardImage.naturalWidth > 0
-        );
-    }
-
-    function updateLens(e) {
-        if (!isImageReady()) return;
-
-        const imgRect = elements.boardImage.getBoundingClientRect();
-
-        // Cursor position relative to the image
-        const cx = e.clientX - imgRect.left;
-        const cy = e.clientY - imgRect.top;
-
-        // Clamp so the zoomed region doesn't go outside the image
-        const halfW = (LENS_SIZE / ZOOM) / 2;
-        const halfH = (LENS_SIZE / ZOOM) / 2;
-        const clampedX = Math.max(halfW, Math.min(cx, imgRect.width  - halfW));
-        const clampedY = Math.max(halfH, Math.min(cy, imgRect.height - halfH));
-
-        // Background size = image rendered size × zoom factor
-        const bgW = imgRect.width  * ZOOM;
-        const bgH = imgRect.height * ZOOM;
-
-        // Background position: shifts so the point under cursor is centred in lens
-        const bgX = -(clampedX * ZOOM - LENS_SIZE / 2);
-        const bgY = -(clampedY * ZOOM - LENS_SIZE / 2);
-
-        // Use a proxy URL if needed (same logic as player.js)
-        let src = elements.boardImage.src;
-        if (src.includes('/api/proxy-image')) {
-            // already proxied
-        } else if (src.includes('googleusercontent.com') || src.includes('google.com')) {
-            src = `/api/proxy-image?url=${encodeURIComponent(src)}`;
-        }
-
-        lens.style.backgroundImage  = `url("${src}")`;
-        lens.style.backgroundSize   = `${bgW}px ${bgH}px`;
-        lens.style.backgroundPosition = `${bgX}px ${bgY}px`;
-
-        // Position lens centred on cursor
-        lens.style.left = `${e.clientX}px`;
-        lens.style.top  = `${e.clientY}px`;
-    }
-
-    elements.boardImage.addEventListener('mouseenter', (e) => {
-        if (!isImageReady()) return;
-        lens.style.display = 'block';
-        elements.boardImage.classList.add('magnifying');
-        updateLens(e);
-    });
-
-    elements.boardImage.addEventListener('mousemove', updateLens);
-
-    elements.boardImage.addEventListener('mouseleave', () => {
-        lens.style.display = 'none';
-        elements.boardImage.classList.remove('magnifying');
-    });
 }
 

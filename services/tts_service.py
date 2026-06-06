@@ -236,3 +236,32 @@ def sanitize_tts_text(text: str, lang_code: str = "pt") -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
+def detect_language(text: str, default_lang: str = "pt") -> str:
+    text_lower = text.lower()
+    
+    # Common words dictionary for Portuguese, English, Spanish
+    pt_words = {" o ", " a ", " e ", " do ", " da ", " de ", " que ", " um ", " uma ", " para ", " com ", " na ", " no ", " os ", " as ", " como ", " está ", " você ", " foi ", " mais "}
+    en_words = {" the ", " and ", " of ", " to ", " is ", " you ", " that ", " it ", " he ", " was ", " for ", " on ", " are ", " as ", " with ", " his ", " they ", " i ", " this ", " have "}
+    es_words = {" el ", " la ", " y ", " del ", " de ", " que ", " un ", " una ", " para ", " con ", " en ", " los ", " las ", " como ", " está ", " usted ", " fue ", " más ", " por ", " lo "}
+    
+    pt_score = sum(1 for word in pt_words if word in text_lower)
+    en_score = sum(1 for word in en_words if word in text_lower)
+    es_score = sum(1 for word in es_words if word in text_lower)
+    
+    # Also check if text starts with common words or contains them without spaces if short
+    if len(text_lower) < 20:
+        pt_words_clean = {w.strip() for w in pt_words}
+        en_words_clean = {w.strip() for w in en_words}
+        es_words_clean = {w.strip() for w in es_words}
+        words = text_lower.split()
+        pt_score += sum(1 for w in words if w in pt_words_clean)
+        en_score += sum(1 for w in words if w in en_words_clean)
+        es_score += sum(1 for w in words if w in es_words_clean)
+        
+    scores = {"pt": pt_score, "en": en_score, "es": es_score}
+    max_lang = max(scores, key=scores.get)
+    
+    if scores[max_lang] > 0:
+        return max_lang
+    return default_lang
+
