@@ -47,28 +47,44 @@ def proxy_image():
         account = get_next_available_account(username=username)
         
         cookies = {}
+        psid = None
+        psidts = None
         if account:
+            psid = account["secure_1psid"]
+            psidts = account["secure_1psidts"]
             cookies = {
-                "__Secure-1PSID": account["secure_1psid"],
-                "__Secure-1PSIDTS": account["secure_1psidts"]
+                "__Secure-1PSID": psid,
+                "__Secure-1PSIDTS": psidts
             }
         else:
             load_dotenv(ENV_PATH, override=True)
-            secure_1psid = os.getenv("GEMINI_SECURE_1PSID", "").strip()
-            secure_1psidts = os.getenv("GEMINI_SECURE_1PSIDTS", "").strip()
-            if secure_1psid and secure_1psidts:
+            psid = os.getenv("GEMINI_SECURE_1PSID", "").strip()
+            psidts = os.getenv("GEMINI_SECURE_1PSIDTS", "").strip()
+            if psid and psidts:
                 cookies = {
-                    "__Secure-1PSID": secure_1psid,
-                    "__Secure-1PSIDTS": secure_1psidts
+                    "__Secure-1PSID": psid,
+                    "__Secure-1PSIDTS": psidts
                 }
 
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        resp = requests.get(url, headers=headers, cookies=cookies, timeout=25)
+        load_dotenv(ENV_PATH, override=True)
+        cf_proxy = os.getenv("CLOUDFLARE_PROXY_URL", "").strip()
+
+        if cf_proxy:
+            import urllib.parse
+            proxy_url = f"{cf_proxy}?url={urllib.parse.quote(url)}"
+            if psid and psidts:
+                proxy_url += f"&psid={urllib.parse.quote(psid)}&psidts={urllib.parse.quote(psidts)}"
+            
+            resp = requests.get(proxy_url, timeout=25)
+        else:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            resp = requests.get(url, headers=headers, cookies=cookies, timeout=25)
+
         if resp.status_code != 200:
             print(f"[Paradise AI Proxy Image Error] Failed to fetch image: status={resp.status_code}, url={url}")
-            return f"Failed to fetch image from Google: status {resp.status_code}", 502
+            return f"Failed to fetch image: status {resp.status_code}", 502
             
         content_type = resp.headers.get("Content-Type", "image/png")
         return Response(resp.content, mimetype=content_type)
