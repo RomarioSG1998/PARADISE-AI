@@ -106,6 +106,13 @@
             flex: 1;
         }
 
+        /* Classroom Immersive Container */
+        .classroom-container {
+            max-width: 1600px !important;
+            width: 96% !important;
+            padding: 1.5rem !important;
+        }
+
         /* Config / Input Area */
         .input-panel {
             background: var(--bg-surface);
@@ -356,9 +363,9 @@
 
         .classroom-board-area {
             display: grid;
-            grid-template-columns: 1fr 280px;
+            grid-template-columns: 1fr;
             gap: 1.5rem;
-            min-height: 480px;
+            min-height: 520px;
         }
 
         /* Blackboard/Whiteboard Screen */
@@ -373,9 +380,10 @@
                 inset 0 0 40px rgba(0, 0, 0, 0.8),
                 0 10px 30px rgba(0, 0, 0, 0.4);
             padding: 2.5rem;
+            padding-bottom: 2rem;
             display: flex;
             flex-direction: column;
-            gap: 2rem;
+            gap: 1.5rem;
             position: relative;
             overflow: hidden;
         }
@@ -409,6 +417,7 @@
             gap: 2rem;
             flex: 1;
             align-items: center;
+            padding-bottom: 60px; /* Leave space for floating avatar on desktop */
         }
 
         .bullets-list {
@@ -448,7 +457,7 @@
             position: relative;
             width: 100%;
             height: 100%;
-            min-height: 250px;
+            min-height: 280px;
             border: 2px dashed rgba(255, 255, 255, 0.15);
             border-radius: 8px;
             background: rgba(0, 0, 0, 0.2);
@@ -482,20 +491,45 @@
             color: rgba(255, 255, 255, 0.3);
         }
 
-        /* Avatar Container (Teacher Panel) */
-        .avatar-container {
-            background: var(--bg-surface);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+        /* Avatar Container (Teacher Panel) - Moved inside Blackboard as a PIP floating panel */
+        .blackboard .avatar-container {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 50;
+            width: 210px;
+            padding: 0.75rem;
+            background: rgba(8, 20, 14, 0.9);
+            border: 1px dashed rgba(255, 255, 255, 0.25);
             border-radius: 12px;
-            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 1.5rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px);
-            position: relative;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .blackboard .avatar-container:hover {
+            border-color: rgba(167, 139, 250, 0.6);
+            transform: scale(1.02);
+        }
+
+        .blackboard .avatar-container .teacher-avatar {
+            width: 110px;
+            height: 110px;
+            border-width: 3px;
+        }
+
+        .blackboard .avatar-container .simple-subtitle-box {
+            height: 65px;
+            max-height: 65px;
+            font-size: 0.85rem;
+            padding: 0.4rem;
+            margin-top: 0.25rem;
+            max-width: 100%;
         }
 
         /* Realistic Human Teacher Avatar */
@@ -748,85 +782,25 @@
             opacity: 1;
         }
 
-        /* Magnifier Lens Effect */
-        .magnifier-lens {
-            position: fixed;
-            width: 220px;
-            height: 220px;
-            border-radius: 50%;
-            border: 3px solid rgba(167, 139, 250, 0.85);
-            box-shadow:
-                0 0 0 2px rgba(167, 139, 250, 0.25),
-                0 0 24px rgba(139, 92, 246, 0.5),
-                inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-            cursor: none;
-            pointer-events: none;
-            z-index: 9999;
-            overflow: hidden;
-            display: none;
-            background-repeat: no-repeat;
-            transform: translate(-50%, -50%);
-            transition: opacity 0.15s ease;
+        /* Cursor styles for the draggable presenter avatar */
+        .blackboard .avatar-container {
+            cursor: move;
+        }
+        .blackboard .avatar-container .teacher-avatar,
+        .blackboard .avatar-container .teacher-role-container,
+        .blackboard .avatar-container .simple-subtitle-box {
+            cursor: default;
+        }
+        .blackboard .avatar-container .teacher-avatar {
+            cursor: pointer;
+        }
+        .blackboard .avatar-container .teacher-role {
+            cursor: text;
         }
 
-        /* Crosshair lines inside the lens */
-        .magnifier-lens::before,
-        .magnifier-lens::after {
-            content: '';
-            position: absolute;
-            background: rgba(167, 139, 250, 0.4);
-            pointer-events: none;
-        }
-        .magnifier-lens::before {
-            width: 1px;
-            height: 100%;
-            left: 50%;
-            top: 0;
-        }
-        .magnifier-lens::after {
-            height: 1px;
-            width: 100%;
-            top: 50%;
-            left: 0;
-        }
-
-        /* Hide native cursor while magnifier is active */
-        #board-image.magnifying {
-            cursor: none;
-        }
-
-        /* Show zoom-in cursor on the loaded illustration */
+        /* Normal cursor on the loaded illustration */
         .board-illustration #board-image:not(.loading) {
-            cursor: zoom-in;
-        }
-
-        /* Magnifier size slider pill — sits at bottom of the illustration */
-        .magnifier-controls {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(10, 8, 25, 0.82);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(167, 139, 250, 0.35);
-            border-radius: 20px;
-            padding: 0.35rem 0.9rem;
-            width: calc(100% - 32px);
-            max-width: 320px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-            z-index: 20;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-        }
-
-        /* Show controls when hovering the illustration container */
-        .board-illustration:hover .magnifier-controls {
-            opacity: 1;
-            pointer-events: auto;
+            cursor: default;
         }
 
         /* Sidebar reservoir panel styling */
@@ -1007,5 +981,31 @@
             }
             100% {
                 box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* Responsive Classroom Layout for Small Devices */
+        @media (max-width: 992px) {
+            .blackboard .avatar-container {
+                position: relative !important;
+                bottom: auto !important;
+                right: auto !important;
+                width: 100% !important;
+                margin-top: 1.5rem !important;
+                background: rgba(8, 20, 14, 0.95) !important;
+                box-shadow: none !important;
+            }
+            .blackboard .avatar-container .teacher-avatar {
+                width: 130px !important;
+                height: 130px !important;
+            }
+            .blackboard .avatar-container .simple-subtitle-box {
+                height: 80px !important;
+                max-height: 80px !important;
+                font-size: 0.9rem !important;
+            }
+            .board-content {
+                grid-template-columns: 1fr !important;
+                padding-bottom: 0 !important;
             }
         }

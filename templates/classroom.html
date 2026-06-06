@@ -21,8 +21,7 @@
 </head>
 <body>
 
-    <!-- Board Image Magnifier Lens (fixed, follows cursor) -->
-    <div id="magnifier-lens" class="magnifier-lens"></div>
+
 
     <!-- Header -->
     <header style="display: flex; justify-content: space-between; align-items: center;">
@@ -51,7 +50,7 @@
     </header>
 
     <!-- Main Container -->
-    <div class="container">
+    <div class="container classroom-container">
         
         <!-- Config/Generation Panel -->
         <div class="input-panel" id="setup-panel">
@@ -157,40 +156,33 @@
                             <a id="btn-download-board-img" href="" download="classroom-illustration.png" target="_blank" class="img-download-btn" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0, 0, 0, 0.75); border: 1px solid rgba(255, 255, 255, 0.2); color: white; border-radius: 6px; width: 36px; height: 36px; display: none; align-items: center; justify-content: center; text-decoration: none; z-index: 100;" title="Baixar Ilustração">
                                 <i class="fa-solid fa-download"></i>
                             </a>
-                            <!-- Magnifier size control (only visible on hover) -->
-                            <div class="magnifier-controls" id="magnifier-controls">
-                                <i class="fa-solid fa-magnifying-glass" style="font-size: 0.75rem; color: #a78bfa; flex-shrink:0;"></i>
-                                <input type="range" id="magnifier-size-slider" min="120" max="480" value="320" step="10"
-                                    title="Tamanho da lupa"
-                                    style="flex:1; accent-color: #a78bfa; cursor: pointer; height: 4px;">
-                                <span id="magnifier-size-label" style="font-size: 0.7rem; color: #a78bfa; min-width: 36px; text-align:right;">320px</span>
+
+                        </div>
+                    </div>
+
+                    <!-- Teacher avatar panel moved inside blackboard -->
+                    <div class="avatar-container">
+                        <!-- Human Realistic Avatar / Custom Uploadable Wall-E -->
+                        <div class="teacher-avatar" id="teacher-avatar" onclick="document.getElementById('avatar-upload').click();" style="cursor: pointer;" title="Clique para alterar a foto do avatar">
+                            <img src="/static/images/walle.png" alt="Professor" class="avatar-img" id="avatar-display-img">
+                            <div class="avatar-upload-overlay">
+                                <i class="fa-solid fa-camera"></i>
+                                <span>Alterar Foto</span>
                             </div>
+                        </div>
+                        <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
+
+                        <div class="teacher-role-container" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <div class="teacher-role" id="teacher-role-name" contenteditable="true" spellcheck="false" title="Clique para editar o nome do professor">Dr. A. J. Bennett (Professor IA)</div>
+                            <i class="fa-solid fa-pen" style="font-size: 0.7rem; color: #3b82f6; cursor: pointer; opacity: 0.7;" onclick="document.getElementById('teacher-role-name').focus();"></i>
+                        </div>
+
+                        <!-- Simple legend box directly below the avatar -->
+                        <div class="simple-subtitle-box" id="teleprompter-subtitles">
+                            Selecione ou crie uma aula para iniciar.
                         </div>
                     </div>
                 </div>
-
-                <!-- Teacher avatar panel -->
-                <div class="avatar-container">
-                    
-                    <!-- Human Realistic Avatar / Custom Uploadable Wall-E -->
-                    <div class="teacher-avatar" id="teacher-avatar" onclick="document.getElementById('avatar-upload').click();" style="cursor: pointer;" title="Clique para alterar a foto do avatar">
-                        <img src="/static/images/walle.png" alt="Professor" class="avatar-img" id="avatar-display-img">
-                        <div class="avatar-upload-overlay">
-                            <i class="fa-solid fa-camera"></i>
-                            <span>Alterar Foto</span>
-                        </div>
-                    </div>
-                    <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
-
-                    <div class="teacher-role-container" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <div class="teacher-role" id="teacher-role-name" contenteditable="true" spellcheck="false" title="Clique para editar o nome do professor">Dr. A. J. Bennett (Professor IA)</div>
-                        <i class="fa-solid fa-pen" style="font-size: 0.7rem; color: #3b82f6; cursor: pointer; opacity: 0.7;" onclick="document.getElementById('teacher-role-name').focus();"></i>
-                    </div>
-
-                    <!-- Simple legend box directly below the avatar -->
-                    <div class="simple-subtitle-box" id="teleprompter-subtitles">
-                        Selecione ou crie uma aula para iniciar.
-                    </div>
             </div>
 
             <!-- Ask the Teacher Section -->
