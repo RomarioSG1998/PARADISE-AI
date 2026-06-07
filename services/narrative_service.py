@@ -95,7 +95,7 @@ Return only the valid JSON block, without any additional text before or after. W
         # Inject style modifier corresponding to the genre
         full_img_prompt = f"{img_prompt}. ({style_modifier}, no text, no letters, cinematic composition, atmospheric lighting, detailed artwork)"
 
-        img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username)
+        img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username, output_format=output_format)
         if img_url:
             segment["image_url"] = img_url
         else:

@@ -1287,8 +1287,7 @@ header {
 /* ═══════════════════════════════════════════════════════════════
    STORIES MODE — Vertical 9:16 Player
 ═══════════════════════════════════════════════════════════════ */
-.theater-arena.stories-mode .scenes-sidebar,
-.theater-arena.stories-mode .right-sidebar { display: none !important; }
+.theater-arena.stories-mode .theater-sidebar { display: none !important; }
 
 .theater-arena.stories-mode .theater-main {
     display: flex;
