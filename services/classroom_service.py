@@ -25,6 +25,7 @@ For each slide, you must provide:
 Return the response EXCLUSIVELY in JSON format (wrapped by ```json ... ```) matching exactly this model:
 {{
   "subject": "General Title of the Class in English",
+  "thumbnail_prompt": "Highly detailed English prompt for a cinematic YouTube thumbnail artwork representing this class. Style should be clean, digital art, no text, no letters.",
   "slides": [
     {{
       "slide_number": 1,
@@ -55,6 +56,7 @@ Para cada diapositiva, debes proporcionar:
 Devuelve la respuesta EXCLUSIVAMENTE en formato JSON (envuelto por ```json ... ```) siguiendo exactamente este modelo:
 {{
   "subject": "Título General de la Clase en Español",
+  "thumbnail_prompt": "Highly detailed English prompt for a cinematic YouTube thumbnail artwork representing this class. Style should be clean, digital art, no text, no letters.",
   "slides": [
     {{
       "slide_number": 1,
@@ -85,6 +87,7 @@ Para cada parte/tela da aula, você deve fornecer:
 Retorne a resposta EXCLUSIVAMENTE em formato JSON (envolvido por ```json ... ```) seguindo exatamente este modelo:
 {{
   "subject": "Título Geral da Aula em Português",
+  "thumbnail_prompt": "Highly detailed English prompt for a cinematic YouTube thumbnail artwork representing this class. Style should be clean, digital art, no text, no letters.",
   "slides": [
     {{
       "slide_number": 1,
@@ -129,6 +132,15 @@ Retorne apenas o bloco JSON válido, sem texto adicional antes ou depois. Envolv
             slide["image_url"] = img_url
         else:
             slide["image_error"] = img_err or "Nenhuma imagem retornada"
+
+    # Generate the YouTube Thumbnail
+    thumb_base_prompt = lesson_data.get("thumbnail_prompt", f"A beautiful cinematic cover artwork for an educational video about {lesson_data.get('subject', 'education')}")
+    full_thumb_prompt = f"Professional high-CTR YouTube video thumbnail poster artwork: {thumb_base_prompt}. (vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
+    thumb_url, thumb_err = await generate_image_unified_async(full_thumb_prompt, username=username)
+    if thumb_url:
+        lesson_data["thumbnail_url"] = thumb_url
+    else:
+        lesson_data["thumbnail_error"] = thumb_err or "Nenhuma imagem retornada"
 
     return lesson_data
 

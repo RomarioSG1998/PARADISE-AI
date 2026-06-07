@@ -26,6 +26,7 @@ The returned JSON must follow exactly this structure:
   "theme": "Theme in English",
   "level": "{level}",
   "language": "English",
+  "thumbnail_prompt": "Highly detailed English prompt for a cinematic YouTube thumbnail or book cover artwork representing this story. Style should be clean, digital art, no text, no letters.",
   "chapters": [
     {{
       "chapter_number": 1,
@@ -60,6 +61,7 @@ El JSON devuelto debe seguir exactamente esta estructura:
   "theme": "Tema en Español",
   "level": "{level}",
   "language": "Español",
+  "thumbnail_prompt": "Highly detailed English prompt for a cinematic YouTube thumbnail or book cover artwork representing this story. Style should be clean, digital art, no text, no letters.",
   "chapters": [
     {{
       "chapter_number": 1,
@@ -94,6 +96,7 @@ O JSON retornado deve seguir exatamente esta estrutura:
   "theme": "Tema no idioma {language}",
   "level": "{level}",
   "language": "{language}",
+  "thumbnail_prompt": "Highly detailed English prompt for a cinematic YouTube thumbnail or book cover artwork representing this story. Style should be clean, digital art, no text, no letters.",
   "chapters": [
     {{
       "chapter_number": 1,
@@ -141,6 +144,15 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
                 chapter["image_url"] = img_url
             else:
                 chapter["image_error"] = img_err or "Nenhuma imagem retornada"
+                
+        # Generate the YouTube/Book Thumbnail
+        thumb_base_prompt = book_data.get("thumbnail_prompt", f"A beautiful cinematic cover artwork for {theme}")
+        full_thumb_prompt = f"Professional high-CTR YouTube video thumbnail poster artwork: {thumb_base_prompt}. ({style_suffix}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
+        thumb_url, thumb_err = await generate_image_unified_async(full_thumb_prompt, username=username)
+        if thumb_url:
+            book_data["thumbnail_url"] = thumb_url
+        else:
+            book_data["thumbnail_error"] = thumb_err or "Nenhuma imagem retornada"
                 
         return book_data, None
     except Exception as e:

@@ -129,9 +129,12 @@
                 <div class="classroom-subject" id="classroom-subject-title">Título da Aula</div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <span id="export-status" style="display: none; color: #ff4d4d; font-size: 0.85rem; font-weight: bold; animation: pulse 1.5s infinite;"><i class="fa-solid fa-circle"></i> Gravando</span>
-                    <button class="reset-classroom-btn" id="btn-export-video" style="border-color: rgba(255, 77, 77, 0.4); background: rgba(255, 77, 77, 0.1); color: #ff4d4d;">
-                        <i class="fa-solid fa-record-vinyl"></i> <span id="lbl-btn-export">Gravar Aula</span>
+                    <button class="reset-classroom-btn" id="btn-export-video" style="border-color: rgba(255, 77, 77, 0.4); background: rgba(255, 77, 77, 0.1); color: #ff4d4d;" title="Gravar Aula">
+                        <i class="fa-solid fa-record-vinyl"></i> <span id="lbl-btn-export">Gravar</span>
                     </button>
+                    <a class="reset-classroom-btn" id="btn-download-classroom-thumbnail" style="display: none; border-color: rgba(167, 139, 250, 0.4); background: rgba(167, 139, 250, 0.1); color: #c084fc; text-decoration: none;" target="_blank" title="Baixar Thumbnail do YouTube">
+                        <i class="fa-solid fa-image"></i>
+                    </a>
                     <button class="reset-classroom-btn" id="btn-return-lesson" style="display: none; border-color: rgba(167, 139, 250, 0.4); background: rgba(167, 139, 250, 0.1); color: #c084fc;">
                         <i class="fa-solid fa-chevron-left"></i> <span id="lbl-btn-return">Voltar para a Aula</span>
                     </button>
@@ -260,6 +263,6 @@
         </div>
     </div>
 
-    <script type="module" src="{{ url_for('static', filename='js/classroom/main.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/classroom/main.js') }}?v=13"></script>
 </body>
 </html>
