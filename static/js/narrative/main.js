@@ -260,9 +260,9 @@ function applyAmbientEffects(genre) {
 async function loadScene(idx) {
     if (!state.narrativeData || !state.narrativeData.segments || idx < 0 || idx >= state.narrativeData.segments.length) return;
     
-    // Auto-select or shuffle horror effect if random is selected
-    if (dom.horrorEffectSelect && dom.horrorEffectSelect.value === 'random') {
-        applyHorrorEffect('random');
+    // Apply current horror effect on scene change (handles auto, random, and specific effects)
+    if (dom.horrorEffectSelect) {
+        applyHorrorEffect(dom.horrorEffectSelect.value);
     }
     
     state.currentSceneIdx = idx;
@@ -534,31 +534,12 @@ function setupEvents() {
             dom.storyBadge.textContent = dom.genreSelect.options[dom.genreSelect.selectedIndex].text.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').trim();
             
             applyAmbientEffects(dom.genreSelect.value);
-            // Auto-select horror effect based on genre
+            // Apply selected or automatic genre-based effects/animations
             if (dom.horrorEffectSelect) {
-                const genre = dom.genreSelect.value;
-                if (genre === 'terror') {
-                    dom.horrorEffectSelect.value = 'rec';
-                } else if (genre === 'suspense') {
-                    dom.horrorEffectSelect.value = 'vhs';
-                } else {
-                    dom.horrorEffectSelect.value = 'none';
-                }
                 applyHorrorEffect(dom.horrorEffectSelect.value);
-                localStorage.setItem('narrative_horror_effect', dom.horrorEffectSelect.value);
             }
-            // Auto-select image animation based on genre
             if (dom.imageAnimationSelect) {
-                const genre = dom.genreSelect.value;
-                if (genre === 'terror') {
-                    dom.imageAnimationSelect.value = 'shake';
-                } else if (genre === 'suspense') {
-                    dom.imageAnimationSelect.value = 'zoom';
-                } else {
-                    dom.imageAnimationSelect.value = 'none';
-                }
                 applyImageAnimation(dom.imageAnimationSelect.value);
-                localStorage.setItem('narrative_image_animation', dom.imageAnimationSelect.value);
             }
             renderPlaylist();
             loadScene(0);
@@ -679,10 +660,6 @@ function setupEvents() {
         dom.selectedFilename.style.display = 'none';
         dom.btnGenerate.disabled = true;
         resetThumbnailUI();
-        if (dom.horrorEffectSelect) dom.horrorEffectSelect.value = 'none';
-        applyHorrorEffect('none');
-        if (dom.imageAnimationSelect) dom.imageAnimationSelect.value = 'none';
-        applyImageAnimation('none');
     });
     
     // Subtitle Toggle Click
@@ -969,29 +946,12 @@ function loadNarrativeFromHistory(id) {
         dom.storyBadge.textContent = genreText;
         
         applyAmbientEffects(genre);
-        // Auto-select horror effect based on genre
+        // Apply selected or automatic genre-based effects/animations
         if (dom.horrorEffectSelect) {
-            if (genre === 'terror') {
-                dom.horrorEffectSelect.value = 'rec';
-            } else if (genre === 'suspense') {
-                dom.horrorEffectSelect.value = 'vhs';
-            } else {
-                dom.horrorEffectSelect.value = 'none';
-            }
             applyHorrorEffect(dom.horrorEffectSelect.value);
-            localStorage.setItem('narrative_horror_effect', dom.horrorEffectSelect.value);
         }
-        // Auto-select image animation based on genre
         if (dom.imageAnimationSelect) {
-            if (genre === 'terror') {
-                dom.imageAnimationSelect.value = 'shake';
-            } else if (genre === 'suspense') {
-                dom.imageAnimationSelect.value = 'zoom';
-            } else {
-                dom.imageAnimationSelect.value = 'none';
-            }
             applyImageAnimation(dom.imageAnimationSelect.value);
-            localStorage.setItem('narrative_image_animation', dom.imageAnimationSelect.value);
         }
         renderPlaylist();
         loadScene(0);
@@ -1152,7 +1112,18 @@ function applyHorrorEffect(effect) {
     dom.horrorOverlay.className = 'horror-overlay';
     
     let targetEffect = effect;
-    if (effect === 'random') {
+    if (effect === 'auto') {
+        const genre = (state.narrativeData && state.narrativeData.genre) || '';
+        if (genre === 'terror') {
+            targetEffect = 'rec';
+        } else if (genre === 'suspense') {
+            targetEffect = 'vhs';
+        } else {
+            targetEffect = 'none';
+        }
+    }
+    
+    if (targetEffect === 'random') {
         const effects = ['rec', 'ritual', 'vhs', 'insanity'];
         // Pick a random effect, avoiding picking the exact same one if possible (optional, simple random is fine)
         targetEffect = effects[Math.floor(Math.random() * effects.length)];
@@ -1170,8 +1141,20 @@ function applyImageAnimation(anim) {
     // Remove all animation classes
     dom.screenImage.classList.remove('anim-zoom', 'anim-shake', 'anim-heartbeat', 'anim-blur', 'anim-glitch');
     
-    if (anim && anim !== 'none') {
-        dom.screenImage.classList.add(`anim-${anim}`);
+    let targetAnim = anim;
+    if (anim === 'auto') {
+        const genre = (state.narrativeData && state.narrativeData.genre) || '';
+        if (genre === 'terror') {
+            targetAnim = 'shake';
+        } else if (genre === 'suspense') {
+            targetAnim = 'zoom';
+        } else {
+            targetAnim = 'none';
+        }
+    }
+    
+    if (targetAnim && targetAnim !== 'none') {
+        dom.screenImage.classList.add(`anim-${targetAnim}`);
     }
 }
 
