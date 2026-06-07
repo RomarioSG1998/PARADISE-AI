@@ -9,6 +9,7 @@ import {
     triggerPageFlipAnimation,
     updateAutoPlayUI,
     stopNarration,
+    toggleNarration,
     speakQueue,
     getProxyUrl,
     updateLoaderStep
@@ -243,28 +244,9 @@ function setupEvents() {
     };
 
     // TTS Buttons
-    elements.audioPlay.onclick = () => {
-        if (window.speechSynthesis.speaking) {
-            if (window.speechSynthesis.paused) {
-                window.speechSynthesis.resume();
-                setPlayState(true);
-            } else {
-                window.speechSynthesis.pause();
-                setPlayState(false);
-            }
-        } else {
-            const pElements = Array.from(document.querySelectorAll('#read-chapter-text p'));
-            if (pElements.length > 0) {
-                state.speakingParagraphsQueue = pElements;
-                state.currentSpeakingQueueIndex = 0;
-                speakQueue();
-            }
-        }
-    };
+    elements.audioPlay.onclick = toggleNarration;
 
-    elements.audioStop.onclick = () => {
-        stopNarration();
-    };
+    elements.audioStop.onclick = stopNarration;
 
     elements.btnAutoPlay.onclick = () => {
         state.autoPlayEnabled = !state.autoPlayEnabled;
@@ -426,6 +408,135 @@ function setupEvents() {
     }
     if (elements.btnMicRedraw && elements.redrawPromptInput) {
         attachVoiceInput(elements.redrawPromptInput, elements.btnMicRedraw, () => localStorage.getItem('paradise_language') || 'pt');
+    }
+
+    // Video Export Logic for Book
+    if (elements.btnExportBookVideo) {
+        let mediaRecorder;
+        let recordedChunks = [];
+        let stopCheckInterval;
+        let isExporting = false;
+        
+        elements.btnExportBookVideo.onclick = async (e) => {
+            e.preventDefault();
+            if (isExporting) return;
+            
+            if (!state.currentBook) {
+                alert('Nenhum livro gerado para gravar.');
+                return;
+            }
+            
+            isExporting = true;
+            elements.btnExportBookVideo.disabled = true;
+            stopNarration();
+            
+            try {
+                // Request Display Media (Tab audio captures WebAudio/audio tags)
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { displaySurface: "browser" },
+                    audio: true,
+                    preferCurrentTab: true
+                });
+
+                // Prepare video screen (fullscreen)
+                const videoArea = elements.panelReader;
+                if (videoArea.requestFullscreen) {
+                    videoArea.requestFullscreen().catch(e => console.log("Fullscreen could not be automatically initiated:", e));
+                }
+                
+                videoArea.style.cursor = 'none';
+                videoArea.classList.add('recording-mode');
+                
+                recordedChunks = [];
+                const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+                mediaRecorder = new MediaRecorder(stream, { mimeType });
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                const restoreUI = () => {
+                    if (document.fullscreenElement) document.exitFullscreen();
+                    videoArea.style.cursor = 'default';
+                    videoArea.classList.remove('recording-mode');
+                    
+                    elements.exportStatusBook.style.display = 'none';
+                    elements.btnExportBookVideo.disabled = false;
+                    if (stopCheckInterval) clearInterval(stopCheckInterval);
+                    
+                    stream.getTracks().forEach(t => t.stop());
+                };
+                
+                mediaRecorder.onstop = () => {
+                    restoreUI();
+                    
+                    const blob = new Blob(recordedChunks, { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    const safeTitle = (state.currentBook.theme || 'livro').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                    a.download = `${safeTitle}.webm`;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                };
+                
+                // Wait a moment for fullscreen animation
+                await new Promise(r => setTimeout(r, 1000));
+
+                elements.btnExportBookVideo.disabled = true;
+                elements.exportStatusBook.style.display = 'inline-block';
+                mediaRecorder.start();
+                
+                // Enable Auto Play and start from Page 1
+                state.autoPlayEnabled = true;
+                localStorage.setItem('book_autoplay', state.autoPlayEnabled);
+                updateAutoPlayUI();
+                
+                // Reset to chapter 0 and render
+                state.currentChapterIndex = 0;
+                import('./player.js').then(module => {
+                    module.renderChapter();
+                    setTimeout(() => {
+                        elements.audioPlay.click();
+                    }, 800);
+                });
+                
+                stream.getVideoTracks()[0].onended = () => {
+                    if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+                    stopNarration();
+                    isExporting = false;
+                    elements.btnExportBookVideo.disabled = false;
+                };
+                
+                // Auto-stop checking loop
+                stopCheckInterval = setInterval(() => {
+                    if (state.currentChapterIndex >= state.currentBook.chapters.length - 1) {
+                        import('./player.js').then(module => {
+                            if (!module.isPlaying()) {
+                                setTimeout(() => {
+                                    if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+                                }, 2000); // 2 second buffer after speech ends
+                                clearInterval(stopCheckInterval);
+                            }
+                        });
+                    }
+                }, 1000);
+                
+            } catch (err) {
+                console.error("Error starting screen record: ", err);
+                alert("Falha ao iniciar a gravação. Verifique as permissões.");
+                elements.exportStatusBook.style.display = 'none';
+                isExporting = false;
+                elements.btnExportBookVideo.disabled = false;
+            }
+        };
     }
 }
 
