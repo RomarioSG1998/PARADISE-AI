@@ -1,21 +1,27 @@
 import json
 from services.ai_service import generate_text_unified_async, generate_image_unified_async
 
-async def generate_classroom_async(content: str, lang_code: str, username=None):
+async def generate_classroom_async(content: str, lang_code: str, duration_min="3", username=None):
+    try:
+        num_slides = max(2, min(20, int(duration_min) * 2))
+    except ValueError:
+        num_slides = 6
+
     lang_names = {
         "pt": "Português (Brasil)",
         "en": "Inglês",
         "es": "Espanhol"
     }
-    target_lang_name = lang_names.get(lang_code, "Português (Brasil)")
 
     if lang_code == "en":
-        prompt = f"""Create a complete, educational, and structured class about the following topic.
+        prompt = f"""You are an expert, highly engaging teacher creating a compelling, dynamic slide-based lesson.
+Your goal is to teach the following content in English.
+The lesson must be designed to take approximately {duration_min} minutes to deliver aloud. Therefore, you MUST divide the lesson into exactly {num_slides} sequential parts/screens (slides) that explain the concept logically.
 The topic/content is: {content[:8000]}
 
 First, translate the topic/content to English if it is in another language. Write the entire class based on that translated topic/content.
 The entire class (including general title, slide titles, teacher narration, and board bullet points) MUST be written exclusively in English.
-The class must be divided into 3 to 5 sequential slides explaining the concept logically.
+
 For each slide, you must provide:
 1. A short board title (max 50 characters). If there are math formulas, use standard LaTeX notation enclosed in '$' (e.g. $x^2 + y^2 = z^2$).
 2. A dynamic and natural narration text that the teacher (avatar) will speak to explain this slide (3 to 5 sentences in English). IMPORTANT: This text is read aloud by a Text-to-Speech (TTS) system. Therefore, NEVER use LaTeX notation, dollar signs ($), or raw mathematical symbols like ^, _, \\sqrt in the narration. Instead, write math formulas out in natural spoken English words exactly as they should be pronounced (e.g., write 'x squared plus y squared equals z squared' instead of '$x^2 + y^2 = z^2$'; write 'the integral of x' or 'square root of y').
@@ -39,14 +45,15 @@ Return the response EXCLUSIVELY in JSON format (wrapped by ```json ... ```) matc
     }}
   ]
 }}
-Return only the valid JSON block, with no additional text before or after. Wrap it in a markdown code block starting with ```json and ending with ```."""
+Return exactly {num_slides} slides in the array. Return only the valid JSON block, with no additional text before or after."""
     elif lang_code == "es":
         prompt = f"""Crea una clase completa, didáctica y estructurada sobre el siguiente tema.
 El tema/contenido es: {content[:8000]}
 
 Primero, traduce el tema/contenido al español si está en otro idioma. Escribe la clase completa basándote en ese tema/contenido traducido.
-Toda la clase (incluido el título general, los títulos de las diapositivas, la narración del profesor y los puntos clave de la pizarra) DEBE estar escrita exclusivamente en Español.
-La clase debe dividirse en 3 a 5 diapositivas secuenciales que expliquen el concepto de manera lógica.
+Tu objetivo es enseñar el siguiente contenido en Español.
+La clase debe estar diseñada para durar aproximadamente {duration_min} minutos. Por lo tanto, DEBES dividir la lección en exactamente {num_slides} partes/pantallas secuenciales (diapositivas) que expliquen el concepto lógicamente.
+
 Para cada diapositiva, debes proporcionar:
 1. Un título corto para la pizarra (máximo de 50 caracteres). Si hay fórmulas matemáticas, usa notación LaTeX estándar envuelta en '$' (ej. $x^2 + y^2 = z^2$).
 2. Un texto explicativo dinámico y natural que hablará el profesor (avatar) para explicar esta diapositiva (de 3 a 5 frases en Español). IMPORTANTE: Este texto será leído en voz alta por un sistema de texto a voz (TTS). Por lo tanto, NUNCA uses notación LaTeX, signos de dólar ($), ni símbolos matemáticos crudos como ^, _, \\sqrt en la narración. En su lugar, escribe las fórmulas matemáticas con palabras habladas naturales en español tal como se deben pronunciar (ej. escribe 'x al cuadrado más y al cuadrado es igual a z al cuadrado' en lugar de '$x^2 + y^2 = z^2$'; escribe 'la integral de x' o 'la raíz cuadrada de y').
@@ -70,14 +77,15 @@ Devuelve la respuesta EXCLUSIVAMENTE en formato JSON (envuelto por ```json ... `
     }}
   ]
 }}
-Devuelve solo el bloque JSON válido, sin texto adicional antes o después. Envuélvelo en un bloque de código markdown que comience con ```json y termine con ```."""
+Devuelve exactamente {num_slides} diapositivas. Devuelve solo el bloque JSON válido, sin texto adicional antes o después."""
     else:
         prompt = f"""Crie uma aula completa, didática e estruturada sobre o assunto a seguir.
 O assunto/conteúdo é: {content[:8000]}
 
 Primeiro, traduza o assunto/conteúdo para o português se estiver em outro idioma. Escreva a aula completa com base nesse assunto/conteúdo traduzido.
-A aula inteira (incluindo título geral, títulos dos slides, narração do professor e tópicos da lousa) deve ser escrita exclusivamente no idioma Português (Brasil).
-A aula deve ser dividida em 3 a 5 partes/telas sequenciais (slides) que explicam o conceito de forma lógica.
+Seu objetivo é ensinar o seguinte conteúdo em Português (Brasil).
+A aula deve ser planejada para durar cerca de {duration_min} minutos. Para isso, DEVE ser dividida em exatamente {num_slides} partes/telas sequenciais (slides) que explicam o conceito de forma lógica.
+
 Para cada parte/tela da aula, você deve fornecer:
 1. Um título curto do quadro (máximo de 50 caracteres). Se houver fórmulas matemáticas complexas, use notação LaTeX padrão envolvida em '$' (ex: $x^2 + y^2 = z^2$).
 2. Um texto explicativo dinâmico e natural que o professor (avatar) falará para explicar esse slide (de 3 a 5 frases em Português). IMPORTANTE: Este texto será lido em voz alta por um sistema de conversão de texto em fala (TTS). Portanto, NUNCA use notação LaTeX, símbolos matemáticos brutos como ^, _, \\sqrt, ou cifrões ($) na narração. Em vez disso, escreva as fórmulas por extenso exatamente como devem ser faladas em português (ex: escreva 'x ao quadrado mais y ao quadrado é igual a z ao quadrado' em vez de '$x^2 + y^2 = z^2$'; escreva 'a integral de x' ou 'raiz quadrada de y').
@@ -101,7 +109,7 @@ Retorne a resposta EXCLUSIVAMENTE em formato JSON (envolvido por ```json ... ```
     }}
   ]
 }}
-Retorne apenas o bloco JSON válido, sem texto adicional antes ou depois. Envolva o JSON em um bloco de código markdown (iniciando com ```json e finalizando com ```)."""
+Retorne exatamente {num_slides} slides. Retorne apenas o bloco JSON válido, sem texto adicional antes ou depois."""
 
     # Generate lesson script
     text_resp, err = await generate_text_unified_async(prompt, username=username)

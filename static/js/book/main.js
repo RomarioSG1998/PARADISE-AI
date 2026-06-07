@@ -143,6 +143,7 @@ function setupEvents() {
         const level = document.getElementById('book-level').value;
         const lang = document.getElementById('book-lang').value;
         const visual_theme = elements.visualThemeSelect ? elements.visualThemeSelect.value : 'cartoon';
+        const duration = document.getElementById('book-duration') ? document.getElementById('book-duration').value : '3';
 
         if (!theme) {
             alert("Por favor, digite uma ideia ou enredo de aventura!");
@@ -176,7 +177,7 @@ function setupEvents() {
             const resp = await fetch('/api/book/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ theme, level, language: lang, visual_theme })
+                body: JSON.stringify({ theme, level, language: lang, visual_theme, duration })
             });
 
             clearTimeout(timer1);

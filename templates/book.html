@@ -71,7 +71,7 @@
                         </div>
                     </div>
 
-                    <div class="form-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    <div class="form-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1rem;">
                         <div class="form-group">
                             <label for="book-level">Nível de Leitura</label>
                             <select id="book-level">
@@ -91,6 +91,17 @@
                                 <option value="Francês">Francês</option>
                                 <option value="Italiano">Italiano</option>
                                 <option value="Alemão">Alemão</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="book-duration">Duração de Leitura</label>
+                            <select id="book-duration">
+                                <option value="1">1 minuto (Livro Curto)</option>
+                                <option value="2">2 minutos (Livro Médio)</option>
+                                <option value="3" selected>3 minutos (Padrão)</option>
+                                <option value="5">5 minutos (Livro Longo)</option>
+                                <option value="10">10 minutos (Épico)</option>
                             </select>
                         </div>
 
@@ -321,6 +332,6 @@
         </div>
     </div>
 
-    <script type="module" src="{{ url_for('static', filename='js/book/main.js') }}?v=13"></script>
+    <script type="module" src="{{ url_for('static', filename='js/book/main.js') }}?v=14"></script>
 </body>
 </html>
