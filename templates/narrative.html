@@ -303,7 +303,6 @@
                         <!-- Populated dynamically -->
                     </div>
 
-                    <!-- YouTube Thumbnail Section -->
                     <div class="thumbnail-section" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
                         <h3 style="margin-bottom: 0.75rem;"><i class="fa-solid fa-image"></i> Thumbnail do YouTube</h3>
                         <div class="thumbnail-container" style="position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1);">
@@ -319,6 +318,18 @@
                             <button id="btn-change-thumbnail" class="action-btn" style="flex: 1; padding: 0.5rem; font-size: 0.8rem; border-radius: 6px; background: var(--accent-pink); color: #fff; border: none; cursor: pointer;" title="Mudar Thumbnail">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i> Mudar
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- Video Export Section -->
+                    <div class="export-section" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+                        <h3 style="margin-bottom: 0.75rem;"><i class="fa-solid fa-video"></i> Exportar Vídeo</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Grave a aba do navegador para baixar a história em vídeo.</p>
+                        <button id="btn-export-video" class="action-btn" style="width: 100%; padding: 0.75rem; font-size: 0.9rem; border-radius: 6px; background: var(--accent-purple); color: #fff; border: none; cursor: pointer; font-weight: 500;" title="Iniciar Gravação">
+                            <i class="fa-solid fa-record-vinyl"></i> Iniciar Gravação
+                        </button>
+                        <div id="export-status" style="display:none; font-size: 0.8rem; text-align: center; margin-top: 0.5rem; color: #a78bfa; font-weight: bold;">
+                            <i class="fa-solid fa-circle fa-fade" style="color: #ef4444;"></i> Gravando... Deixe reproduzir até o fim.
                         </div>
                     </div>
                 </div>

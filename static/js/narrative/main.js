@@ -86,7 +86,9 @@ const dom = {
     imageAnimationSelect: document.getElementById('image-animation-select'),
     formatBtnYoutube: document.getElementById('format-btn-youtube'),
     formatBtnStories: document.getElementById('format-btn-stories'),
-    generateBtnLabel: document.getElementById('generate-btn-label')
+    generateBtnLabel: document.getElementById('generate-btn-label'),
+    btnExportVideo: document.getElementById('btn-export-video'),
+    exportStatus: document.getElementById('export-status')
 };
 
 // Translations
@@ -1677,4 +1679,140 @@ document.addEventListener('DOMContentLoaded', () => {
         applyLanguageUpdates(e.target.value);
         renderHistoryList();
     });
+    
+    // Video Export Logic
+    if (dom.btnExportVideo) {
+        let mediaRecorder;
+        let recordedChunks = [];
+        let stopCheckInterval;
+        
+        dom.btnExportVideo.addEventListener('click', async () => {
+            if (!state.narrativeData) {
+                alert('Nenhuma narrativa carregada para gravar.');
+                return;
+            }
+            
+            try {
+                // 1. Request Display Media first (Visual only is enough if we capture audio manually)
+                // Usando preferCurrentTab para guiar o usuario a selecionar a aba atual
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { displaySurface: "browser" },
+                    audio: true,
+                    preferCurrentTab: true
+                });
+
+                // 2. Prepare video screen (fullscreen and hide controls) AFTER the user accepts the prompt
+                const videoArea = document.querySelector('.theater-screen');
+                if (videoArea.requestFullscreen) {
+                    await videoArea.requestFullscreen();
+                }
+                videoArea.style.cursor = 'none';
+                const controls = videoArea.querySelector('.media-controls');
+                if (controls) controls.style.display = 'none'; // hide controls completely during record
+                
+                // 3. Guarantee Audio via Web Audio API
+                let audioTrack = null;
+                try {
+                    if (!window._narrativeAudioDest) {
+                        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                        const source = audioCtx.createMediaElementSource(dom.audioEl);
+                        const dest = audioCtx.createMediaStreamDestination();
+                        source.connect(dest);
+                        source.connect(audioCtx.destination);
+                        window._narrativeAudioDest = dest;
+                    }
+                    audioTrack = window._narrativeAudioDest.stream.getAudioTracks()[0];
+                } catch (e) {
+                    console.warn("WebAudio capture failed, falling back to system audio", e);
+                    audioTrack = stream.getAudioTracks()[0]; // fallback
+                }
+                
+                // Combine Video + Audio
+                const tracks = [stream.getVideoTracks()[0]];
+                if (audioTrack) tracks.push(audioTrack);
+                const combinedStream = new MediaStream(tracks);
+                
+                recordedChunks = [];
+                const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+                mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                const restoreUI = () => {
+                    if (document.fullscreenElement) document.exitFullscreen();
+                    videoArea.style.cursor = 'default';
+                    if (controls) controls.style.display = '';
+                    
+                    dom.exportStatus.style.display = 'none';
+                    dom.btnExportVideo.disabled = false;
+                    dom.btnExportVideo.innerHTML = '<i class="fa-solid fa-record-vinyl"></i> Iniciar Gravação';
+                    if (stopCheckInterval) clearInterval(stopCheckInterval);
+                    
+                    // Stop tracks to release camera/mic indicators
+                    stream.getTracks().forEach(t => t.stop());
+                };
+                
+                mediaRecorder.onstop = () => {
+                    restoreUI();
+                    
+                    const blob = new Blob(recordedChunks, { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    const safeTitle = (state.narrativeData.title || 'narrativa').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                    a.download = `${safeTitle}.webm`;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                };
+                
+                // Wait a moment for fullscreen animation and UI changes to settle completely
+                await new Promise(r => setTimeout(r, 1000));
+
+                // Update UI and start
+                dom.btnExportVideo.disabled = true;
+                dom.btnExportVideo.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gravando...';
+                dom.exportStatus.style.display = 'block';
+                mediaRecorder.start();
+                
+                // Restart video from beginning automatically
+                loadScene(0);
+                setTimeout(() => {
+                    if (dom.audioEl.paused) dom.btnPlay.click();
+                }, 800);
+                
+                // Stop when stream ends by user
+                stream.getVideoTracks()[0].onended = () => {
+                    if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+                };
+                
+                // Auto-stop checking loop (stops when last scene ends)
+                stopCheckInterval = setInterval(() => {
+                    if (state.currentSceneIdx >= state.narrativeData.segments.length - 1) {
+                        // Se estamos na ultima cena e nao esta tocando E nao esta carregando audio
+                        // E o audio ja tocou um pouco (currentTime > 0) para nao parar antes de comecar
+                        if (!state.isPlaying && dom.audioEl.paused && !state.audioLoading && dom.audioEl.currentTime > 0.5) {
+                            if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+                            clearInterval(stopCheckInterval);
+                        }
+                    }
+                }, 1000);
+                
+            } catch (err) {
+                console.error("Error starting screen record: ", err);
+                alert("Falha ao iniciar a gravação. Verifique as permissões no navegador.");
+                dom.exportStatus.style.display = 'none';
+                dom.btnExportVideo.disabled = false;
+                dom.btnExportVideo.innerHTML = '<i class="fa-solid fa-record-vinyl"></i> Iniciar Gravação';
+            }
+        });
+    }
 });
