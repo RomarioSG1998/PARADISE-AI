@@ -48,5 +48,7 @@ export const elements = {
     visualThemeSelect: document.getElementById('book-visual-theme'),
     lblVisualTheme: document.getElementById('lbl-book-visual-theme'),
     btnMicBookTheme: document.getElementById('btn-mic-book-theme'),
-    btnMicRedraw: document.getElementById('btn-mic-redraw')
+    btnMicRedraw: document.getElementById('btn-mic-redraw'),
+    btnExportBookVideo: document.getElementById('btn-export-book-video'),
+    exportStatusBook: document.getElementById('export-status-book')
 };

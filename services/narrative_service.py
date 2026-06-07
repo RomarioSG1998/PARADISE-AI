@@ -41,14 +41,16 @@ Target Duration: {duration_min} minutes (the narrative must have exactly {num_se
 YOUTUBE THUMBNAIL COMPOSITION INSTRUCTIONS:
 - Create an extremely detailed "thumbnail_prompt" in English. To achieve high YouTube engagement (CTR), the description MUST focus on a dramatic close-up of a single character with an exaggerated expression of extreme emotion (e.g. dread, shock, fury or astonishment) or a mysterious, glowing object in close-up. Describe highly saturated colors with strong contrast, bright rim lighting, dramatic shadows, and slightly blurred background (bokeh/shallow depth of field) for cinematic depth. No text, letters, or marks.
 
-STORY STRUCTURE AND SCRIPT INSTRUCTIONS:
+YOUTUBE SCRIPT & RETENTION STRATEGIES (CRITICAL):
 - The story must be divided into exactly {num_segments} sequential segments/scenes that make chronological sense.
 - Each segment must contain approximately 40 to 55 words of narration text.
-- IMPORTANT: The narration text of each segment will be read by a text-to-speech (TTS) system. Therefore:
+- THE HOOK (First Segment): The very first segment MUST start with an extremely powerful hook, a shocking revelation, or an intriguing question to grab the viewer's attention in the first 3 seconds. No slow or generic introductions.
+- CURIOSITY LOOPS (Middle Segments): Keep the pacing dynamic. End each segment with an "open loop" or a mini-cliffhanger to create suspense and force the viewer to keep watching to find out what happens next.
+- PAYOFF (Final Segment): Escalate the tension progressively and deliver a mind-blowing or deeply satisfying payoff at the end, leaving a lasting emotional impression.
+- TTS FORMATTING: The text will be read by a realistic Text-To-Speech engine. Therefore:
   1. Do NOT use markdown (e.g., **bold**, *italic*).
   2. Do NOT use special formatting, bullet points, or special symbols.
-  3. Write the text in clean, flowing prose, exactly as it should be read by the narrator.
-  4. Ensure the reading flows naturally and is emotionally engaging.
+  3. Write in clean, flowing, conversational prose with natural punctuation for breathing pauses.
 
 IMAGE INSTRUCTIONS:
 - For each segment, you must create a detailed "image_prompt" in English.

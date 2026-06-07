@@ -111,25 +111,30 @@
                     <!-- Voice / Narrator Selection -->
                     <div class="form-group">
                         <label for="voice-select"><i class="fa-solid fa-circle-user"></i> Voz do Narrador</label>
-                        <select id="voice-select">
-                            <optgroup label="Português (Brasil)">
-                                <option value="pt-BR-AntonioNeural" selected>Antônio (Masculino - Narrador Natural)</option>
-                                <option value="pt-BR-FranciscaNeural">Francisca (Feminino - Contadora de Histórias)</option>
-                                <option value="pt-BR-ThalitaMultilingualNeural">Thalita (Feminino - Expressiva Premium)</option>
-                            </optgroup>
-                            <optgroup label="English (US)">
-                                <option value="en-US-AndrewNeural">Andrew (Male - Premium Cinematic)</option>
-                                <option value="en-US-BrianNeural">Brian (Male - Natural Storyteller)</option>
-                                <option value="en-US-EmmaNeural">Emma (Female - Smooth Storyteller)</option>
-                                <option value="en-US-AvaNeural">Ava (Female - Expressive Premium)</option>
-                            </optgroup>
-                            <optgroup label="Español (España / México)">
-                                <option value="es-ES-AlvaroNeural">Álvaro (Masculino - Relator Natural)</option>
-                                <option value="es-ES-ElviraNeural">Elvira (Femenino - Narración Calma)</option>
-                                <option value="es-MX-DaliaNeural">Dalia (Femenino - Expresivo Premium)</option>
-                                <option value="es-MX-JorgeNeural">Jorge (Masculino - Natural Premium)</option>
-                            </optgroup>
-                        </select>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <select id="voice-select" style="flex: 1;">
+                                <optgroup label="Português (Brasil)">
+                                    <option value="pt-BR-AntonioNeural" selected>Antônio (Masculino - Narrador Natural)</option>
+                                    <option value="pt-BR-FranciscaNeural">Francisca (Feminino - Contadora de Histórias)</option>
+                                    <option value="pt-BR-ThalitaMultilingualNeural">Thalita (Feminino - Expressiva Premium)</option>
+                                </optgroup>
+                                <optgroup label="English (US)">
+                                    <option value="en-US-AndrewNeural">Andrew (Male - Premium Cinematic)</option>
+                                    <option value="en-US-BrianNeural">Brian (Male - Natural Storyteller)</option>
+                                    <option value="en-US-EmmaNeural">Emma (Female - Smooth Storyteller)</option>
+                                    <option value="en-US-AvaNeural">Ava (Female - Expressive Premium)</option>
+                                </optgroup>
+                                <optgroup label="Español (España / México)">
+                                    <option value="es-ES-AlvaroNeural">Álvaro (Masculino - Relator Natural)</option>
+                                    <option value="es-ES-ElviraNeural">Elvira (Femenino - Narración Calma)</option>
+                                    <option value="es-MX-DaliaNeural">Dalia (Femenino - Expresivo Premium)</option>
+                                    <option value="es-MX-JorgeNeural">Jorge (Masculino - Natural Premium)</option>
+                                </optgroup>
+                            </select>
+                            <button type="button" id="btn-preview-voice" class="action-btn" style="padding: 0; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex-shrink: 0; transition: all 0.2s;" title="Ouvir Preview da Voz">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <!-- Output Format Selection -->

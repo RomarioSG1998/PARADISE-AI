@@ -88,7 +88,8 @@ const dom = {
     formatBtnStories: document.getElementById('format-btn-stories'),
     generateBtnLabel: document.getElementById('generate-btn-label'),
     btnExportVideo: document.getElementById('btn-export-video'),
-    exportStatus: document.getElementById('export-status')
+    exportStatus: document.getElementById('export-status'),
+    btnPreviewVoice: document.getElementById('btn-preview-voice')
 };
 
 // Translations
@@ -1679,6 +1680,52 @@ document.addEventListener('DOMContentLoaded', () => {
         applyLanguageUpdates(e.target.value);
         renderHistoryList();
     });
+    
+    // Voice Preview Logic
+    if (dom.btnPreviewVoice) {
+        let previewAudioEl = new Audio();
+        
+        dom.btnPreviewVoice.addEventListener('click', () => {
+            // Se já está tocando, pausa
+            if (!previewAudioEl.paused && previewAudioEl.src) {
+                previewAudioEl.pause();
+                dom.btnPreviewVoice.innerHTML = '<i class="fa-solid fa-play"></i>';
+                return;
+            }
+            
+            const voice = dom.voiceSelect.value;
+            let sampleText = "Olá, eu sou o narrador que você escolheu. Esta é uma breve demonstração da minha voz e entonação para a sua história.";
+            
+            if (voice.startsWith('en-')) {
+                sampleText = "Hello, I am the narrator you selected. This is a brief demonstration of my voice and intonation for your story.";
+            } else if (voice.startsWith('es-')) {
+                sampleText = "Hola, soy el narrador que has elegido. Esta es una breve demostración de mi voz y entonación para tu historia.";
+            }
+            
+            dom.btnPreviewVoice.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            previewAudioEl.src = `/api/narrative/tts?text=${encodeURIComponent(sampleText)}&voice=${encodeURIComponent(voice)}`;
+            
+            previewAudioEl.play().then(() => {
+                dom.btnPreviewVoice.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            }).catch(e => {
+                console.error("Preview falhou", e);
+                dom.btnPreviewVoice.innerHTML = '<i class="fa-solid fa-play"></i>';
+                alert("Falha ao carregar preview da voz.");
+            });
+            
+            previewAudioEl.onended = () => {
+                dom.btnPreviewVoice.innerHTML = '<i class="fa-solid fa-play"></i>';
+            };
+        });
+        
+        // Stop preview if another voice is selected
+        dom.voiceSelect.addEventListener('change', () => {
+            if (!previewAudioEl.paused) {
+                previewAudioEl.pause();
+                dom.btnPreviewVoice.innerHTML = '<i class="fa-solid fa-play"></i>';
+            }
+        });
+    }
     
     // Video Export Logic
     if (dom.btnExportVideo) {

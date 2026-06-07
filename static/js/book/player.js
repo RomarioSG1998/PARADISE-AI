@@ -63,13 +63,26 @@ export function clearHighlights() {
     });
 }
 
+let bookAudioEl = null;
+
 export function stopNarration() {
     window.speechSynthesis.cancel();
+    if (bookAudioEl) {
+        bookAudioEl.pause();
+        bookAudioEl.src = '';
+    }
     setPlayState(false);
     clearHighlights();
     state.activeParagraphElement = null;
     state.speakingParagraphsQueue = [];
     state.currentSpeakingQueueIndex = 0;
+}
+
+export function isPlaying() {
+    const audioPlaying = (bookAudioEl && !bookAudioEl.paused && bookAudioEl.src);
+    const synthSpeaking = window.speechSynthesis.speaking;
+    const queueActive = (state.speakingParagraphsQueue && state.speakingParagraphsQueue.length > 0 && state.currentSpeakingQueueIndex < state.speakingParagraphsQueue.length);
+    return audioPlaying || synthSpeaking || queueActive;
 }
 
 export function updateAutoPlayUI() {
@@ -102,10 +115,39 @@ export function triggerPageFlipAnimation(callback) {
     }, 500);
 }
 
+export function toggleNarration() {
+    if (bookAudioEl && !bookAudioEl.paused && bookAudioEl.src) {
+        bookAudioEl.pause();
+        setPlayState(false);
+    } else if (bookAudioEl && bookAudioEl.paused && bookAudioEl.src) {
+        bookAudioEl.play();
+        setPlayState(true);
+    } else if (window.speechSynthesis.speaking) {
+        if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+            setPlayState(true);
+        } else {
+            window.speechSynthesis.pause();
+            setPlayState(false);
+        }
+    } else {
+        const pElements = Array.from(document.querySelectorAll('#read-chapter-text p'));
+        if (pElements.length > 0) {
+            state.speakingParagraphsQueue = pElements;
+            state.currentSpeakingQueueIndex = 0;
+            speakQueue();
+        }
+    }
+}
+
 export function speakParagraph(pElement, onFinishedCallback = null) {
+    if (bookAudioEl) {
+        bookAudioEl.pause();
+        bookAudioEl.src = '';
+    }
     window.speechSynthesis.cancel();
     clearHighlights();
-
+    
     state.activeParagraphElement = pElement;
     pElement.classList.add('speaking-highlight');
 
@@ -119,40 +161,83 @@ export function speakParagraph(pElement, onFinishedCallback = null) {
     else if (langLower.includes('italiano') || langLower.includes('italian') || langLower.includes('it')) speechLang = 'it-IT';
     else if (langLower.includes('alemão') || langLower.includes('german') || langLower.includes('de')) speechLang = 'de-DE';
 
+    if (!bookAudioEl) {
+        bookAudioEl = new Audio();
+    }
+
+    const ttsUrl = `/api/tts?text=${encodeURIComponent(rawText)}&lang=${encodeURIComponent(speechLang)}`;
+    
+    fetch(ttsUrl).then(response => {
+        if (!response.ok) throw new Error("TTS fetch failed");
+        return response.blob();
+    }).then(blob => {
+        const url = URL.createObjectURL(blob);
+        bookAudioEl.src = url;
+        bookAudioEl.playbackRate = parseFloat(elements.speechRate.value) || 1.0;
+        
+        const spans = Array.from(pElement.querySelectorAll('.word-span'));
+        
+        bookAudioEl.onplay = () => {
+            if (state.highlightInterval) clearInterval(state.highlightInterval);
+            state.highlightInterval = setInterval(() => {
+                if (!bookAudioEl || bookAudioEl.paused) return;
+                
+                let duration = bookAudioEl.duration;
+                if (!duration || isNaN(duration) || !isFinite(duration)) return;
+                
+                const progress = bookAudioEl.currentTime / duration;
+                const targetCharIndex = progress * rawText.length;
+                
+                spans.forEach((span) => {
+                    const start = parseInt(span.getAttribute('data-start'));
+                    const end = parseInt(span.getAttribute('data-end'));
+                    
+                    // Highlight the word if the target character index falls within its start/end
+                    // or if it's the closest word. To prevent multiple highlights, we just check the range.
+                    // We add a small buffer (+1 or -1) if needed, but exact match is usually fine.
+                    if (targetCharIndex >= start && targetCharIndex <= end) {
+                        span.classList.add('word-highlight');
+                        // Only scroll if it's not fully in view (optional, but keep for now)
+                        span.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    } else {
+                        span.classList.remove('word-highlight');
+                    }
+                });
+            }, 30);
+        };
+        
+        bookAudioEl.onended = () => {
+            if (state.highlightInterval) clearInterval(state.highlightInterval);
+            pElement.classList.remove('speaking-highlight');
+            spans.forEach(span => span.classList.remove('word-highlight'));
+            
+            if (onFinishedCallback) onFinishedCallback();
+            else stopNarration();
+            
+            URL.revokeObjectURL(url);
+        };
+
+        bookAudioEl.play().catch(e => {
+            if (state.highlightInterval) clearInterval(state.highlightInterval);
+            fallbackSpeak(rawText, speechLang, pElement, onFinishedCallback);
+        });
+        
+        setPlayState(true);
+    }).catch(err => {
+        fallbackSpeak(rawText, speechLang, pElement, onFinishedCallback);
+    });
+}
+
+function fallbackSpeak(rawText, speechLang, pElement, onFinishedCallback) {
     const utterance = new SpeechSynthesisUtterance(rawText);
     utterance.lang = speechLang;
     utterance.rate = parseFloat(elements.speechRate.value) || 1.0;
 
-    utterance.onboundary = (event) => {
-        if (event.name === 'word') {
-            const charIndex = event.charIndex;
-            const spans = pElement.querySelectorAll('.word-span');
-            
-            spans.forEach(span => {
-                const start = parseInt(span.getAttribute('data-start'));
-                const end = parseInt(span.getAttribute('data-end'));
-                
-                if (charIndex >= start && charIndex < end) {
-                    span.classList.add('word-highlight');
-                    span.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                } else {
-                    span.classList.remove('word-highlight');
-                }
-            });
-        }
-    };
-
     utterance.onend = () => {
         pElement.classList.remove('speaking-highlight');
-        pElement.querySelectorAll('.word-span').forEach(span => {
-            span.classList.remove('word-highlight');
-        });
-        
-        if (onFinishedCallback) {
-            onFinishedCallback();
-        } else {
-            stopNarration();
-        }
+        pElement.querySelectorAll('.word-span').forEach(span => span.classList.remove('word-highlight'));
+        if (onFinishedCallback) onFinishedCallback();
+        else stopNarration();
     };
 
     state.currentUtterance = utterance;
@@ -179,10 +264,10 @@ export function speakQueue() {
                                     speakQueue();
                                 }
                             }
-                        }, 800);
+                        }, 400);
                     });
                 }
-            }, 2000);
+            }, 500);
         } else if (state.autoPlayEnabled && state.currentBook && state.currentChapterIndex === state.currentBook.chapters.length - 1) {
             setTimeout(() => {
                 alert("Fim da aventura ilustrada! Deseja criar mais histórias?");
@@ -222,10 +307,13 @@ export function renderChapter() {
     
     const paragraphs = chapter.text.split('\n').filter(p => p.trim() !== '');
     paragraphs.forEach((pText, pIdx) => {
+        const cleanText = pText.replace(/[*_~`#]/g, '').replace(/<\/?[^>]+(>|$)/g, "").trim();
+        if (!cleanText) return;
+
         const p = document.createElement('p');
         p.setAttribute('data-idx', pIdx);
-        p.setAttribute('data-raw-text', pText);
-        p.innerHTML = prepareTextForHighlighting(pText);
+        p.setAttribute('data-raw-text', cleanText);
+        p.innerHTML = prepareTextForHighlighting(cleanText);
 
         p.querySelectorAll('.word-span').forEach(wordSpan => {
             wordSpan.onclick = (e) => {
