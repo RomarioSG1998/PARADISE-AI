@@ -496,6 +496,7 @@ function setupEvents() {
         formData.append('genre', dom.genreSelect.value);
         formData.append('duration', dom.durationSelect.value);
         formData.append('voice', dom.voiceSelect.value);
+        formData.append('language', getActiveLanguage());
         
         if (state.currentType === 'theme') {
             formData.append('content', dom.themeInput.value.trim());
@@ -866,6 +867,28 @@ function applyLanguageUpdates(lang) {
     }
 
     document.getElementById('global-lang-select').value = lang;
+
+    // Auto-select a compatible narrator voice for the active language
+    // Only switch if the current voice doesn't match the new language
+    if (dom.voiceSelect) {
+        const currentVoice = dom.voiceSelect.value;
+        const isCurrentPt = currentVoice.startsWith('pt-');
+        const isCurrentEn = currentVoice.startsWith('en-');
+        const isCurrentEs = currentVoice.startsWith('es-');
+        const needsSwitch =
+            (lang === 'pt' && !isCurrentPt) ||
+            (lang === 'en' && !isCurrentEn) ||
+            (lang === 'es' && !isCurrentEs);
+        if (needsSwitch) {
+            if (lang === 'en') {
+                dom.voiceSelect.value = 'en-US-AndrewNeural';
+            } else if (lang === 'es') {
+                dom.voiceSelect.value = 'es-ES-AlvaroNeural';
+            } else {
+                dom.voiceSelect.value = 'pt-BR-AntonioNeural';
+            }
+        }
+    }
 }
 
 // History System

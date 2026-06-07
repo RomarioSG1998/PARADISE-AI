@@ -2,7 +2,7 @@ import json
 import os
 from services.ai_service import generate_text_unified_async, generate_image_unified_async
 
-async def generate_narrative_async(content: str, genre: str, duration_min: int, voice_id: str, username=None):
+async def generate_narrative_async(content: str, genre: str, duration_min: int, voice_id: str, language: str = "pt", username=None):
     # Set segments count based on duration
     # 1 min -> 3 segments (~45 words per segment, total ~135 words)
     # 2 min -> 6 segments (~45 words per segment, total ~270 words)
@@ -21,47 +21,56 @@ async def generate_narrative_async(content: str, genre: str, duration_min: int, 
 
     style_modifier = genre_styles.get(genre.lower(), "cinematic digital painting, highly detailed, expressive lighting")
 
-    prompt = f"""Crie uma narrativa completa, cativante e imersiva sobre o assunto a seguir.
-O assunto/conteúdo é: {content[:8000]}
+    # Build an explicit language instruction based on the active global language
+    lang_names = {"pt": "Portuguese (Brazilian)", "en": "English", "es": "Spanish"}
+    lang_label = lang_names.get(language, "Portuguese (Brazilian)")
+    lang_instruction = (
+        f"MANDATORY LANGUAGE RULE: The entire narrative — including the title, description, and ALL segment narration texts — "
+        f"MUST be written EXCLUSIVELY in {lang_label}. "
+        f"Do NOT use any other language for any narrative text field. "
+        f"(Note: image_prompt and thumbnail_prompt fields must always remain in English for the image generator.)"
+    )
 
-Gênero Escolhido: {genre}
-Duração Alvo: {duration_min} minutos (a narrativa deve ter exatamente {num_segments} partes/cenas).
+    prompt = f"""Create a complete, captivating and immersive narrative about the following subject.
+The subject/content is: {content[:8000]}
 
-INSTRUÇÕES DE IDIOMA:
-- A narrativa (título, descrição e os textos de narração dos segmentos) deve ser escrita no MESMO IDIOMA do texto de entrada do usuário. Se a entrada estiver em português, tudo em português. Se estiver em inglês, tudo em inglês. Se estiver em espanhol, tudo em espanhol.
+Chosen Genre: {genre}
+Target Duration: {duration_min} minutes (the narrative must have exactly {num_segments} parts/scenes).
 
-INSTRUÇÕES DE COMPOSIÇÃO DA THUMBNAIL (MINIATURA DO YOUTUBE):
-- Crie um "thumbnail_prompt" extremamente detalhado em inglês. Para obter alto engajamento (CTR do YouTube), a descrição DEVE focar em um close-up dramático de um único personagem com expressão facial exagerada de emoção extrema (ex: pavor, choque, fúria ou espanto) ou um objeto misterioso e brilhante em close-up. Descreva cores altamente saturadas com forte contraste, luz de contorno (rim light) brilhante, sombras dramáticas e fundo ligeiramente desfocado (bokeh/shallow depth of field) para dar profundidade de campo. Sem nenhum texto, letras ou marcas.
+{lang_instruction}
 
-INSTRUÇÕES DE ESTRUTURAÇÃO E ROTEIRO:
-- A história deve ser dividida em exatamente {num_segments} segmentos/cenas sequenciais que façam sentido cronológico.
-- Cada segmento deve conter um texto de narração de aproximadamente 40 a 55 palavras.
-- IMPORTANTE: O texto da narração de cada segmento será lido por um sistema de conversão de texto em voz (TTS). Portanto:
-  1. NÃO use markdown (como **negrito**, *itálico*).
-  2. NÃO use formatação especial, marcadores ou símbolos especiais.
-  3. Escreva o texto de forma limpa e corrida, exatamente como deve ser lido pelo narrador.
-  4. Certifique-se de que a leitura flua de forma natural e emocionante.
+YOUTUBE THUMBNAIL COMPOSITION INSTRUCTIONS:
+- Create an extremely detailed "thumbnail_prompt" in English. To achieve high YouTube engagement (CTR), the description MUST focus on a dramatic close-up of a single character with an exaggerated expression of extreme emotion (e.g. dread, shock, fury or astonishment) or a mysterious, glowing object in close-up. Describe highly saturated colors with strong contrast, bright rim lighting, dramatic shadows, and slightly blurred background (bokeh/shallow depth of field) for cinematic depth. No text, letters, or marks.
 
-INSTRUÇÕES DE IMAGEM:
-- Para cada segmento, você deve criar um "image_prompt" detalhado em inglês.
-- O "image_prompt" deve descrever visualmente o que acontece naquela cena específica da história, incorporando elementos de cenário, personagens, clima e cores.
-- NÃO inclua textos ou letras nas imagens.
+STORY STRUCTURE AND SCRIPT INSTRUCTIONS:
+- The story must be divided into exactly {num_segments} sequential segments/scenes that make chronological sense.
+- Each segment must contain approximately 40 to 55 words of narration text.
+- IMPORTANT: The narration text of each segment will be read by a text-to-speech (TTS) system. Therefore:
+  1. Do NOT use markdown (e.g., **bold**, *italic*).
+  2. Do NOT use special formatting, bullet points, or special symbols.
+  3. Write the text in clean, flowing prose, exactly as it should be read by the narrator.
+  4. Ensure the reading flows naturally and is emotionally engaging.
 
-Retorne a resposta EXCLUSIVAMENTE em formato JSON (envolvido por ```json ... ```) seguindo exatamente este modelo:
+IMAGE INSTRUCTIONS:
+- For each segment, you must create a detailed "image_prompt" in English.
+- The "image_prompt" must visually describe what happens in that specific scene, incorporating setting, characters, mood, and color elements.
+- Do NOT include any text or letters in the images.
+
+Return the response EXCLUSIVELY in JSON format (wrapped in ```json ... ```) following exactly this model:
 {{
-  "title": "Título Geral da Narrativa",
-  "description": "Uma breve sinopse ou descrição da história.",
+  "title": "General Narrative Title",
+  "description": "A brief synopsis or description of the story.",
   "genre": "{genre}",
   "thumbnail_prompt": "A high-impact, high-CTR YouTube thumbnail prompt in English describing a dramatic close-up of the main subject/character with extreme emotional expression, intense glowing rim lighting, vibrant color pop, highly detailed digital art, blurred background, textless.",
   "segments": [
     {{
       "segment_number": 1,
-      "text": "Texto corrido de narração do primeiro segmento...",
+      "text": "Flowing narration text of the first segment in {lang_label}...",
       "image_prompt": "A detailed scene description in English for the image generator, describing what is visually happening in this segment..."
     }}
   ]
 }}
-Retorne apenas o bloco JSON válido, sem texto adicional antes ou depois. Envolva o JSON em um bloco de código markdown (iniciando com ```json e finalizando com ```)."""
+Return only the valid JSON block, without any additional text before or after. Wrap the JSON in a markdown code block (starting with ```json and ending with ```)."""
 
     text_resp, err = await generate_text_unified_async(prompt, username=username)
     if err:
