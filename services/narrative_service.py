@@ -31,7 +31,7 @@ INSTRUÇÕES DE IDIOMA:
 - A narrativa (título, descrição e os textos de narração dos segmentos) deve ser escrita no MESMO IDIOMA do texto de entrada do usuário. Se a entrada estiver em português, tudo em português. Se estiver em inglês, tudo em inglês. Se estiver em espanhol, tudo em espanhol.
 
 INSTRUÇÕES DE COMPOSIÇÃO DA THUMBNAIL (MINIATURA DO YOUTUBE):
-- Crie um "thumbnail_prompt" detalhado em inglês. Ele deve descrever uma arte de capa/miniatura do YouTube extremamente chamativa, dramática e profissional para a história. Deve focar em um elemento central de grande impacto visual (um personagem com expressão facial forte, um objeto misterioso ou criatura em close-up dramático), com iluminação de alto contraste, cores vibrantes ou sombras marcantes, composição cinematográfica de poster de filme, e sem nenhum texto ou letras.
+- Crie um "thumbnail_prompt" extremamente detalhado em inglês. Para obter alto engajamento (CTR do YouTube), a descrição DEVE focar em um close-up dramático de um único personagem com expressão facial exagerada de emoção extrema (ex: pavor, choque, fúria ou espanto) ou um objeto misterioso e brilhante em close-up. Descreva cores altamente saturadas com forte contraste, luz de contorno (rim light) brilhante, sombras dramáticas e fundo ligeiramente desfocado (bokeh/shallow depth of field) para dar profundidade de campo. Sem nenhum texto, letras ou marcas.
 
 INSTRUÇÕES DE ESTRUTURAÇÃO E ROTEIRO:
 - A história deve ser dividida em exatamente {num_segments} segmentos/cenas sequenciais que façam sentido cronológico.
@@ -52,7 +52,7 @@ Retorne a resposta EXCLUSIVAMENTE em formato JSON (envolvido por ```json ... ```
   "title": "Título Geral da Narrativa",
   "description": "Uma breve sinopse ou descrição da história.",
   "genre": "{genre}",
-  "thumbnail_prompt": "A highly dramatic, high-contrast, click-worthy YouTube thumbnail art description in English, focusing on a single, close-up, dramatic focal point or character representing the story's climax, with rich lighting details, vibrant colors, no text.",
+  "thumbnail_prompt": "A high-impact, high-CTR YouTube thumbnail prompt in English describing a dramatic close-up of the main subject/character with extreme emotional expression, intense glowing rim lighting, vibrant color pop, highly detailed digital art, blurred background, textless.",
   "segments": [
     {{
       "segment_number": 1,
@@ -96,9 +96,9 @@ Retorne apenas o bloco JSON válido, sem texto adicional antes ou depois. Envolv
     title = narrative_data.get("title", "Uma História Incrível")
     gpt_thumb_prompt = narrative_data.get("thumbnail_prompt", "").strip()
     if gpt_thumb_prompt:
-        thumb_prompt = f"YouTube video thumbnail artwork: {gpt_thumb_prompt}. ({style_modifier}, high contrast, saturated colors, textless, award-winning illustration, cinematic composition, 8k)"
+        thumb_prompt = f"Professional high-CTR YouTube video thumbnail artwork: {gpt_thumb_prompt}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
     else:
-        thumb_prompt = f"YouTube video thumbnail poster artwork: A highly dramatic, high-contrast, epic close-up scene related to '{title}'. Genre: {genre}. ({style_modifier}, intense lighting, saturated colors, textless, cinematic composition, award-winning illustration, 8k resolution)"
+        thumb_prompt = f"Professional high-CTR YouTube video thumbnail poster artwork: A highly dramatic close-up of a central element or character showing intense emotion related to '{title}'. Genre: {genre}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
         
     thumb_url, thumb_err = await generate_image_unified_async(thumb_prompt, username=username)
     if thumb_url:

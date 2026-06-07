@@ -125,11 +125,11 @@ def regenerate_thumbnail():
     
     from services.ai_service import generate_image_unified_async
     if custom_prompt:
-        prompt = f"YouTube video thumbnail artwork: {custom_prompt}. ({style_modifier}, high contrast, saturated colors, textless, cinematic composition, award-winning illustration, 8k)"
+        prompt = f"Professional high-CTR YouTube video thumbnail artwork: {custom_prompt}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
     elif thumbnail_prompt:
-        prompt = f"YouTube video thumbnail artwork: {thumbnail_prompt}. ({style_modifier}, high contrast, saturated colors, textless, cinematic composition, award-winning illustration, 8k)"
+        prompt = f"Professional high-CTR YouTube video thumbnail artwork: {thumbnail_prompt}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
     else:
-        prompt = f"YouTube video thumbnail poster artwork: A highly dramatic, high-contrast, epic close-up scene related to '{title}'. Genre: {genre}. ({style_modifier}, intense lighting, saturated colors, textless, cinematic composition, award-winning illustration, 8k resolution)"
+        prompt = f"Professional high-CTR YouTube video thumbnail poster artwork: A highly dramatic close-up of a central element or character showing intense emotion related to '{title}'. Genre: {genre}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
         
     try:
         thumb_url, err = run_in_background(generate_image_unified_async(prompt, username=username))
