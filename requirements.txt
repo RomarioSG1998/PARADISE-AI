@@ -9,3 +9,4 @@ google-genai
 psycopg2-binary
 g4f
 nest_asyncio
+Pillow
