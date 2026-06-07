@@ -12,7 +12,10 @@ const state = {
     animationFrameId: null,
     autoPlayEnabled: true,
     subtitlesVisible: true,
-    currentSubtitleStyle: 'classic'
+    currentSubtitleStyle: 'classic',
+    // Audio preload cache: Map<segmentIndex, HTMLAudioElement>
+    audioCache: new Map(),
+    _composedThumbnailDataUrl: null
 };
 
 // DOM Cache
@@ -256,6 +259,52 @@ function applyAmbientEffects(genre) {
     }
 }
 
+// ─── Audio Preload Cache ─────────────────────────────────────────────────────
+
+/**
+ * Silently fetches and caches the TTS audio for a given segment index.
+ * Returns immediately if the segment is already cached or out of range.
+ */
+function preloadAudioForScene(idx) {
+    if (!state.narrativeData?.segments) return;
+    const segments = state.narrativeData.segments;
+    if (idx < 0 || idx >= segments.length) return;
+    if (state.audioCache.has(idx)) return;  // already cached
+
+    const segment = segments[idx];
+    const voice = dom.voiceSelect.value;
+    const url = `/api/narrative/tts?text=${encodeURIComponent(segment.text)}&voice=${encodeURIComponent(voice)}`;
+
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.src = url;
+    audio.load();
+    state.audioCache.set(idx, audio);
+}
+
+/**
+ * Preloads the next N scenes' audio in the background.
+ * Called after each scene loads so the next transition is instantaneous.
+ */
+function preloadAdjacentScenes(currentIdx, ahead = 2) {
+    for (let i = 1; i <= ahead; i++) {
+        preloadAudioForScene(currentIdx + i);
+    }
+}
+
+/**
+ * Clears the audio cache (e.g. when starting a new story or changing voice).
+ */
+function clearAudioCache() {
+    state.audioCache.forEach(audio => {
+        audio.pause();
+        audio.src = '';
+    });
+    state.audioCache.clear();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Load individual scene
 async function loadScene(idx) {
     if (!state.narrativeData || !state.narrativeData.segments || idx < 0 || idx >= state.narrativeData.segments.length) return;
@@ -327,58 +376,81 @@ async function loadScene(idx) {
     dom.currentTime.textContent = '00:00';
     dom.totalTime.textContent = '00:00';
     
-    // Prepare new Audio TTS
+    // ── Audio: use preloaded cache if available, otherwise fetch now ──────────
     state.audioLoading = true;
     dom.btnPlay.disabled = true;
     dom.subtitleText.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">${t.audioPreparando}</span>`;
-    
+
+    // Preload next scenes silently in background
+    preloadAdjacentScenes(idx);
+
     try {
         const voice = dom.voiceSelect.value;
-        const handleCanPlayThrough = () => {
+
+        const activateAudio = (audioEl) => {
+            // Swap the preloaded Audio element into the main player
             dom.audioEl.oncanplaythrough = null;
             dom.audioEl.onerror = null;
-            state.audioLoading = false;
-            dom.btnPlay.disabled = false;
-            
-            // Restore words display
-            dom.subtitleText.innerHTML = words.map((w, wIdx) => `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ');
-            
-            // Apply speed rate
-            dom.audioEl.playbackRate = parseFloat(dom.speedSelect.value);
-            
-            // Trigger play
-            dom.audioEl.play().then(() => {
-                dom.btnPlay.innerHTML = '<i class="fa-solid fa-pause"></i>';
-                dom.voiceWave.classList.add('active');
-                state.isPlaying = true;
-                startSubtitleLoop();
-            }).catch((err) => {
-                console.warn("Playback autoplay blocked:", err);
-                dom.btnPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
-                dom.voiceWave.classList.remove('active');
-                state.isPlaying = false;
-            });
-        };
-        
-        const handleAudioError = (err) => {
-            console.error("Audio playback error:", err);
-            dom.audioEl.oncanplaythrough = null;
-            dom.audioEl.onerror = null;
-            state.audioLoading = false;
-            dom.btnPlay.disabled = false;
-            dom.subtitleText.innerHTML = words.map((w, wIdx) => `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ') + ` <span style="color:#ef4444; font-size:0.85em; display:block; margin-top:0.25rem;">${t.audioErro}</span>`;
+            dom.audioEl.pause();
+            dom.audioEl.src = audioEl.src;
+            dom.audioEl.load();
+
+            const handleCanPlay = () => {
+                dom.audioEl.oncanplaythrough = null;
+                dom.audioEl.onerror = null;
+                state.audioLoading = false;
+                dom.btnPlay.disabled = false;
+
+                dom.subtitleText.innerHTML = words.map((w, wIdx) =>
+                    `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ');
+
+                dom.audioEl.playbackRate = parseFloat(dom.speedSelect.value);
+
+                dom.audioEl.play().then(() => {
+                    dom.btnPlay.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                    dom.voiceWave.classList.add('active');
+                    state.isPlaying = true;
+                    startSubtitleLoop();
+                }).catch(err => {
+                    console.warn('Autoplay blocked:', err);
+                    dom.btnPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
+                    dom.voiceWave.classList.remove('active');
+                    state.isPlaying = false;
+                });
+            };
+
+            const handleAudioError = (err) => {
+                console.error('Audio playback error:', err);
+                dom.audioEl.oncanplaythrough = null;
+                dom.audioEl.onerror = null;
+                state.audioLoading = false;
+                dom.btnPlay.disabled = false;
+                dom.subtitleText.innerHTML = words.map((w, wIdx) =>
+                    `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ') +
+                    ` <span style="color:#ef4444;font-size:0.85em;display:block;margin-top:0.25rem;">${t.audioErro}</span>`;
+            };
+
+            dom.audioEl.oncanplaythrough = handleCanPlay;
+            dom.audioEl.onerror = handleAudioError;
+            if (dom.audioEl.readyState >= 4) handleCanPlay();
         };
 
-        dom.audioEl.oncanplaythrough = handleCanPlayThrough;
-        dom.audioEl.onerror = handleAudioError;
-        dom.audioEl.src = `/api/narrative/tts?text=${encodeURIComponent(segment.text)}&voice=${encodeURIComponent(voice)}`;
-        dom.audioEl.load();
-        
-        if (dom.audioEl.readyState >= 4) {
-            handleCanPlayThrough();
+        if (state.audioCache.has(idx)) {
+            // ✅ Cache hit — instant playback
+            const cached = state.audioCache.get(idx);
+            activateAudio(cached);
+        } else {
+            // Cache miss — fetch now and cache
+            const url = `/api/narrative/tts?text=${encodeURIComponent(segment.text)}&voice=${encodeURIComponent(voice)}`;
+            const fresh = new Audio();
+            fresh.preload = 'auto';
+            fresh.src = url;
+            fresh.load();
+            state.audioCache.set(idx, fresh);
+            activateAudio(fresh);
         }
     } catch (e) {
-        console.error("Audio generation loading error:", e);
+        console.error('Audio generation loading error:', e);
         dom.subtitleText.textContent = segment.text + ` ${t.audioErro}`;
         state.audioLoading = false;
     }
@@ -543,6 +615,7 @@ function setupEvents() {
                 applyImageAnimation(dom.imageAnimationSelect.value);
             }
             renderPlaylist();
+            clearAudioCache();   // discard any cached audio from previous story
             loadScene(0);
             updateThumbnailUI();
             saveNarrativeToHistory(state.narrativeData);
@@ -790,6 +863,13 @@ function setupEvents() {
         }
     });
 
+    // Voice select change → clear audio cache so re-generated TTS uses new voice
+    if (dom.voiceSelect) {
+        dom.voiceSelect.addEventListener('change', () => {
+            clearAudioCache();
+        });
+    }
+
     // Horror Effect Selector Change
     if (dom.horrorEffectSelect) {
         dom.horrorEffectSelect.addEventListener('change', () => {
@@ -1007,6 +1087,7 @@ function loadNarrativeFromHistory(id) {
             applyImageAnimation(dom.imageAnimationSelect.value);
         }
         renderPlaylist();
+        clearAudioCache();   // discard any cached audio from previous story
         loadScene(0);
         updateThumbnailUI();
     }
