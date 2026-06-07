@@ -197,76 +197,86 @@
 
                     <!-- Media Player Control Bar -->
                     <div class="media-controls">
-                        <div class="controls-left">
-                            <button class="control-btn" id="btn-prev" title="Cena Anterior"><i class="fa-solid fa-backward-step"></i></button>
-                            <button class="control-btn play-pause" id="btn-play" title="Reproduzir/Pausar"><i class="fa-solid fa-play"></i></button>
-                            <button class="control-btn" id="btn-next" title="Próxima Cena"><i class="fa-solid fa-forward-step"></i></button>
-                            
-                            <!-- Audio Waveform Visualizer simulation -->
-                            <div class="voice-wave" id="voice-wave">
-                                <span></span><span></span><span></span><span></span><span></span><span></span>
-                            </div>
-                        </div>
-
-                        <!-- Progress timeline slider -->
+                        <!-- Progress timeline slider (Top Row) -->
                         <div class="controls-center">
                             <span class="time-label" id="current-time">00:00</span>
                             <input type="range" class="timeline-slider" id="timeline-slider" min="0" max="100" value="0">
                             <span class="time-label" id="total-time">00:00</span>
                         </div>
 
-                        <div class="controls-right">
-                            <!-- Subtitle Options -->
-                            <button class="control-btn" id="btn-toggle-subtitles" title="Legendas (Ativar/Desativar)" style="color: var(--accent-pink);">
-                                <i class="fa-solid fa-closed-captioning"></i>
-                            </button>
-                            <select id="subtitle-style-select" class="speed-select" title="Estilo da Legenda">
-                                <option value="classic">🟡 Amarelo</option>
-                                <option value="neon">⚡ Neon</option>
-                                <option value="minimalist">⚪ Minimalista</option>
-                                <option value="karaoke">🎤 Karaokê</option>
-                            </select>
-
-                            <!-- Horror Effects Select -->
-                            <select id="horror-effect-select" class="speed-select" title="Efeito de Terror" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171;">
-                                <option value="none">🎬 Sem Efeito</option>
-                                <option value="random">🔀 Efeito Aleatório</option>
-                                <option value="rec">📹 Visão Noturna (REC)</option>
-                                <option value="ritual">🕯️ Brilho Satânico</option>
-                                <option value="vhs">📼 Fita VHS Maldita</option>
-                                <option value="insanity">🧠 Sanidade Oscilante</option>
-                            </select>
-
-                            <!-- Image Animation Select -->
-                            <select id="image-animation-select" class="speed-select" title="Animação da Cena" style="background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); color: #c084fc;">
-                                <option value="none">🖼️ Sem Animação</option>
-                                <option value="zoom">🔍 Zoom Cinemático</option>
-                                <option value="shake">📳 Tremor de Câmera</option>
-                                <option value="heartbeat">💓 Batimento Cardíaco</option>
-                                <option value="blur">🌫️ Desfoque Fantasma</option>
-                                <option value="glitch">⚡ Glitch de Terror</option>
-                            </select>
-
-                            <!-- Volume slider -->
-                            <div class="volume-container">
-                                <i class="fa-solid fa-volume-high" id="volume-icon"></i>
-                                <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="80">
+                        <!-- Buttons and Selectors (Bottom Row) -->
+                        <div class="media-controls-bottom">
+                            <!-- Play/Pause, prev/next, visualizer -->
+                            <div class="controls-left">
+                                <button class="control-btn" id="btn-prev" title="Cena Anterior">
+                                    <i class="fa-solid fa-backward-step"></i>
+                                </button>
+                                <button class="control-btn play-pause" id="btn-play" title="Reproduzir/Pausar">
+                                    <i class="fa-solid fa-play"></i>
+                                </button>
+                                <button class="control-btn" id="btn-next" title="Próxima Cena">
+                                    <i class="fa-solid fa-forward-step"></i>
+                                </button>
+                                
+                                <!-- Audio Waveform Visualizer simulation -->
+                                <div class="voice-wave" id="voice-wave">
+                                    <span></span><span></span><span></span><span></span><span></span><span></span>
+                                </div>
                             </div>
-                            
-                            <!-- Speed dropdown -->
-                            <select id="speed-select" class="speed-select">
-                                <option value="0.75">0.75x</option>
-                                <option value="1.0" selected>1.0x</option>
-                                <option value="1.25">1.25x</option>
-                                <option value="1.5">1.5x</option>
-                            </select>
 
-                            <span class="scene-counter" id="scene-counter">Cena 1 / 3</span>
+                            <div class="controls-right">
+                                <!-- Subtitle Options -->
+                                <button class="control-btn" id="btn-toggle-subtitles" title="Legendas (Ativar/Desativar)" style="color: var(--accent-pink);">
+                                    <i class="fa-solid fa-closed-captioning"></i>
+                                </button>
+                                <select id="subtitle-style-select" class="speed-select" title="Estilo da Legenda">
+                                    <option value="classic">🟡 Amarelo</option>
+                                    <option value="neon">⚡ Neon</option>
+                                    <option value="minimalist">⚪ Minimalista</option>
+                                    <option value="karaoke">🎤 Karaokê</option>
+                                </select>
 
-                            <!-- Fullscreen Button -->
-                            <button class="control-btn" id="btn-fullscreen" title="Tela Cheia">
-                                <i class="fa-solid fa-expand"></i>
-                            </button>
+                                <!-- Horror Effects Select -->
+                                <select id="horror-effect-select" class="speed-select" title="Efeito de Terror" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171;">
+                                    <option value="none">🎬 Sem Efeito</option>
+                                    <option value="random">🔀 Efeito Aleatório</option>
+                                    <option value="rec">📹 Visão Noturna (REC)</option>
+                                    <option value="ritual">🕯️ Brilho Satânico</option>
+                                    <option value="vhs">📼 Fita VHS Maldita</option>
+                                    <option value="insanity">🧠 Sanidade Oscilante</option>
+                                </select>
+
+                                <!-- Image Animation Select -->
+                                <select id="image-animation-select" class="speed-select" title="Animação da Cena" style="background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); color: #c084fc;">
+                                    <option value="none">🖼️ Sem Animação</option>
+                                    <option value="zoom">🔍 Zoom Cinemático</option>
+                                    <option value="shake">📳 Tremor de Câmera</option>
+                                    <option value="heartbeat">💓 Batimento Cardíaco</option>
+                                    <option value="blur">🌫️ Desfoque Fantasma</option>
+                                    <option value="glitch">⚡ Glitch de Terror</option>
+                                </select>
+
+                                <!-- Volume slider -->
+                                <div class="volume-container">
+                                    <i class="fa-solid fa-volume-high" id="volume-icon"></i>
+                                    <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="80">
+                                </div>
+                                
+                                <!-- Speed dropdown -->
+                                <select id="speed-select" class="speed-select">
+                                    <option value="0.75">0.75x</option>
+                                    <option value="1.0" selected>1.0x</option>
+                                    <option value="1.25">1.25x</option>
+                                    <option value="1.5">1.5x</option>
+                                </select>
+
+                                <span class="scene-counter" id="scene-counter">Cena 1 / 3</span>
+
+                                <!-- Fullscreen Button -->
+                                <button class="control-btn" id="btn-fullscreen" title="Tela Cheia">
+                                    <i class="fa-solid fa-expand"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
