@@ -74,7 +74,9 @@ const dom = {
     thumbnailImg: document.getElementById('thumbnail-img'),
     thumbnailPlaceholder: document.getElementById('thumbnail-placeholder'),
     btnDownloadThumbnail: document.getElementById('btn-download-thumbnail'),
-    btnChangeThumbnail: document.getElementById('btn-change-thumbnail')
+    btnChangeThumbnail: document.getElementById('btn-change-thumbnail'),
+    horrorEffectSelect: document.getElementById('horror-effect-select'),
+    horrorOverlay: document.getElementById('horror-overlay')
 };
 
 // Translations
@@ -523,6 +525,18 @@ function setupEvents() {
             dom.storyBadge.textContent = dom.genreSelect.options[dom.genreSelect.selectedIndex].text.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').trim();
             
             applyAmbientEffects(dom.genreSelect.value);
+            // Auto-select horror effect based on genre
+            if (dom.horrorEffectSelect) {
+                const genre = dom.genreSelect.value;
+                if (genre === 'terror') {
+                    dom.horrorEffectSelect.value = 'flashlight';
+                } else if (genre === 'suspense') {
+                    dom.horrorEffectSelect.value = 'fog';
+                } else {
+                    dom.horrorEffectSelect.value = 'none';
+                }
+                applyHorrorEffect(dom.horrorEffectSelect.value);
+            }
             renderPlaylist();
             loadScene(0);
             updateThumbnailUI();
@@ -638,6 +652,8 @@ function setupEvents() {
         dom.selectedFilename.style.display = 'none';
         dom.btnGenerate.disabled = true;
         resetThumbnailUI();
+        if (dom.horrorEffectSelect) dom.horrorEffectSelect.value = 'none';
+        applyHorrorEffect('none');
     });
     
     // Subtitle Toggle Click
@@ -735,6 +751,13 @@ function setupEvents() {
                 }
                 document.body.style.cursor = 'default';
             }
+        });
+    }
+
+    // Horror Effect Selector Change
+    if (dom.horrorEffectSelect) {
+        dom.horrorEffectSelect.addEventListener('change', () => {
+            applyHorrorEffect(dom.horrorEffectSelect.value);
         });
     }
 }// Global Language selectors updates
@@ -907,6 +930,17 @@ function loadNarrativeFromHistory(id) {
         dom.storyBadge.textContent = genreText;
         
         applyAmbientEffects(genre);
+        // Auto-select horror effect based on genre
+        if (dom.horrorEffectSelect) {
+            if (genre === 'terror') {
+                dom.horrorEffectSelect.value = 'flashlight';
+            } else if (genre === 'suspense') {
+                dom.horrorEffectSelect.value = 'fog';
+            } else {
+                dom.horrorEffectSelect.value = 'none';
+            }
+            applyHorrorEffect(dom.horrorEffectSelect.value);
+        }
         renderPlaylist();
         loadScene(0);
         updateThumbnailUI();
@@ -1057,6 +1091,18 @@ function resetThumbnailUI() {
                             "Sem Thumbnail";
     }
     if (dom.btnDownloadThumbnail) dom.btnDownloadThumbnail.disabled = true;
+}
+
+function applyHorrorEffect(effect) {
+    if (!dom.horrorOverlay) return;
+    
+    // Remove all classes except base 'horror-overlay'
+    dom.horrorOverlay.className = 'horror-overlay';
+    
+    if (effect && effect !== 'none') {
+        dom.horrorOverlay.classList.add(`effect-${effect}`);
+        dom.horrorOverlay.classList.add('active');
+    }
 }
 
 // Bind Thumbnail Events

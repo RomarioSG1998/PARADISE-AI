@@ -183,6 +183,9 @@
                         <!-- Main image display with smooth fade in/out -->
                         <img src="" alt="Cena da Narrativa" id="screen-image">
                         
+                        <!-- Horror Overlay Element -->
+                        <div class="horror-overlay" id="horror-overlay"></div>
+                        
                         <!-- Subtitles Glass Container -->
                         <div class="subtitle-overlay">
                             <p id="subtitle-text">Carregando narração...</p>
@@ -222,6 +225,16 @@
                                 <option value="neon">⚡ Neon</option>
                                 <option value="minimalist">⚪ Minimalista</option>
                                 <option value="karaoke">🎤 Karaokê</option>
+                            </select>
+
+                            <!-- Horror Effects Select -->
+                            <select id="horror-effect-select" class="speed-select" title="Efeito de Terror" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171;">
+                                <option value="none">🎬 Sem Efeito</option>
+                                <option value="vhs">📺 Chuvisco VHS</option>
+                                <option value="fog">🌫️ Névoa Sombria</option>
+                                <option value="blood">🩸 Gotas de Sangue</option>
+                                <option value="flashlight">🔦 Lanterna Trêmula</option>
+                                <option value="vintage">🎞️ Filme Antigo</option>
                             </select>
 
                             <!-- Volume slider -->

@@ -1062,3 +1062,113 @@ header {
     right: 10% !important;
 }
 
+/* Horror Overlay Effects (Spooky Cinema Overlays) */
+.horror-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+    mix-blend-mode: normal;
+    transition: all 0.3s ease;
+    opacity: 0;
+}
+
+.horror-overlay.active {
+    opacity: 1;
+}
+
+/* VHS Glitch Effect */
+.horror-overlay.effect-vhs {
+    opacity: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.18),
+        rgba(0, 0, 0, 0.18) 1px,
+        transparent 2px,
+        transparent 3px
+    );
+}
+.horror-overlay.effect-vhs.active {
+    opacity: 0.85;
+    animation: vhs-flicker 0.15s infinite;
+}
+@keyframes vhs-flicker {
+    0% { opacity: 0.8; filter: hue-rotate(0deg) contrast(1.1); }
+    50% { opacity: 0.9; filter: hue-rotate(5deg) contrast(1.2); }
+    100% { opacity: 0.75; filter: hue-rotate(-3deg) contrast(1); }
+}
+
+/* Dark Mist Effect */
+.horror-overlay.effect-fog {
+    opacity: 0;
+}
+.horror-overlay.effect-fog.active {
+    opacity: 0.45;
+    mix-blend-mode: screen;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><filter id="f"><feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" result="noise"/><feColorMatrix type="matrix" values="0.2 0 0 0 0  0.2 0 0 0 0  0.2 0 0 0 0  0 0 0 0.45 0"/></filter><rect width="800" height="400" filter="url(#f)" fill="white"/></svg>');
+    filter: blur(4px);
+    animation: fog-drift 30s linear infinite;
+}
+@keyframes fog-drift {
+    from { background-position: 0 0; }
+    to { background-position: 800px 400px; }
+}
+
+/* Blood Splatter Effect */
+.horror-overlay.effect-blood {
+    opacity: 0;
+}
+.horror-overlay.effect-blood.active {
+    opacity: 0.9;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,10 L92,13 C87,15 82,6 77,18 C72,28 67,32 62,10 C57,7 52,20 47,35 C42,50 37,52 32,12 C27,4 22,24 17,28 C12,32 7,6 0,8 Z" fill="%237a0010"/><circle cx="17" cy="40" r="1.5" fill="%237a0010"/><circle cx="47" cy="55" r="2" fill="%237a0010"/><circle cx="77" cy="30" r="1" fill="%237a0010"/></svg>');
+    background-size: 100% 100%;
+    animation: blood-drip 15s ease-in-out infinite alternate;
+}
+@keyframes blood-drip {
+    0% { transform: translateY(-3%); }
+    100% { transform: translateY(3%); }
+}
+
+/* Flickering Flashlight */
+.horror-overlay.effect-flashlight {
+    opacity: 0;
+}
+.horror-overlay.effect-flashlight.active {
+    opacity: 1;
+    background: radial-gradient(circle, transparent 25%, rgba(0, 0, 0, 0.96) 80%);
+    animation: flashlight-pulse 3s infinite;
+}
+@keyframes flashlight-pulse {
+    0%, 100% { opacity: 0.96; }
+    45% { opacity: 0.98; }
+    47% { opacity: 0.4; }
+    49% { opacity: 0.96; }
+    51% { opacity: 0.8; }
+    53% { opacity: 0.96; }
+    75% { opacity: 0.96; }
+    77% { opacity: 0.3; }
+    79% { opacity: 0.96; }
+}
+
+/* Scratched Vintage Film */
+.horror-overlay.effect-vintage {
+    opacity: 0;
+}
+.horror-overlay.effect-vintage.active {
+    opacity: 0.7;
+    background-image: 
+        radial-gradient(circle, transparent 55%, rgba(0, 0, 0, 0.4)),
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect x="15" y="0" width="1" height="120" fill="rgba(255,255,255,0.12)"/><rect x="85" y="0" width="1" height="120" fill="rgba(0,0,0,0.2)"/><circle cx="60" cy="40" r="1" fill="rgba(255,255,255,0.25)"/><circle cx="30" cy="90" r="1.5" fill="rgba(255,255,255,0.18)"/></svg>');
+    animation: vintage-scratch 0.25s steps(4) infinite;
+}
+@keyframes vintage-scratch {
+    0% { background-position: 0px 0px; filter: sepia(0.35) contrast(1.15) brightness(0.9); }
+    25% { background-position: 15px -15px; }
+    50% { background-position: -8px 20px; }
+    75% { background-position: 12px 8px; }
+    100% { background-position: -15px -12px; }
+}
+
