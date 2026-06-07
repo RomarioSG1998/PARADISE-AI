@@ -508,26 +508,21 @@ function setupEvents() {
                     }, 800);
                 });
                 
+                const onBookFinished = () => {
+                    setTimeout(() => {
+                        if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+                    }, 2000); // 2 second buffer after speech ends
+                    window.removeEventListener('book-finished', onBookFinished);
+                };
+                window.addEventListener('book-finished', onBookFinished);
+                
                 stream.getVideoTracks()[0].onended = () => {
                     if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
                     stopNarration();
                     isExporting = false;
                     elements.btnExportBookVideo.disabled = false;
+                    window.removeEventListener('book-finished', onBookFinished);
                 };
-                
-                // Auto-stop checking loop
-                stopCheckInterval = setInterval(() => {
-                    if (state.currentChapterIndex >= state.currentBook.chapters.length - 1) {
-                        import('./player.js').then(module => {
-                            if (!module.isPlaying()) {
-                                setTimeout(() => {
-                                    if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-                                }, 2000); // 2 second buffer after speech ends
-                                clearInterval(stopCheckInterval);
-                            }
-                        });
-                    }
-                }, 1000);
                 
             } catch (err) {
                 console.error("Error starting screen record: ", err);

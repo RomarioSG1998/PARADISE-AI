@@ -269,6 +269,7 @@ export function speakQueue() {
                 }
             }, 500);
         } else if (state.autoPlayEnabled && state.currentBook && state.currentChapterIndex === state.currentBook.chapters.length - 1) {
+            window.dispatchEvent(new Event('book-finished'));
             setTimeout(() => {
                 alert("Fim da aventura ilustrada! Deseja criar mais histórias?");
             }, 500);
