@@ -69,7 +69,12 @@ const dom = {
     btnFullscreen: document.getElementById('btn-fullscreen'),
     
     loadingStepTitle: document.getElementById('loading-step-title'),
-    loadingStepDesc: document.getElementById('loading-step-desc')
+    loadingStepDesc: document.getElementById('loading-step-desc'),
+    
+    thumbnailImg: document.getElementById('thumbnail-img'),
+    thumbnailPlaceholder: document.getElementById('thumbnail-placeholder'),
+    btnDownloadThumbnail: document.getElementById('btn-download-thumbnail'),
+    btnChangeThumbnail: document.getElementById('btn-change-thumbnail')
 };
 
 // Translations
@@ -520,6 +525,7 @@ function setupEvents() {
             applyAmbientEffects(dom.genreSelect.value);
             renderPlaylist();
             loadScene(0);
+            updateThumbnailUI();
             saveNarrativeToHistory(state.narrativeData);
         } catch (e) {
             clearTimeout(stepInterval);
@@ -616,7 +622,6 @@ function setupEvents() {
         dom.audioEl.playbackRate = parseFloat(dom.speedSelect.value);
     });
     
-    // Reset to New Story
     dom.btnNewStory.addEventListener('click', () => {
         dom.audioEl.pause();
         dom.audioEl.src = '';
@@ -632,6 +637,7 @@ function setupEvents() {
         dom.pdfFileInput.value = '';
         dom.selectedFilename.style.display = 'none';
         dom.btnGenerate.disabled = true;
+        resetThumbnailUI();
     });
     
     // Subtitle Toggle Click
@@ -903,6 +909,7 @@ function loadNarrativeFromHistory(id) {
         applyAmbientEffects(genre);
         renderPlaylist();
         loadScene(0);
+        updateThumbnailUI();
     }
 }
 
@@ -1015,6 +1022,117 @@ function renderHistoryList() {
         card.appendChild(footer);
         
         dom.historyList.appendChild(card);
+    });
+}
+
+function updateThumbnailUI() {
+    if (!dom.thumbnailImg || !dom.thumbnailPlaceholder) return;
+    
+    if (state.narrativeData && state.narrativeData.thumbnail_url) {
+        let rawUrl = state.narrativeData.thumbnail_url;
+        let proxyUrl = rawUrl;
+        if (rawUrl && (rawUrl.includes("googleusercontent.com") || rawUrl.includes("google.com"))) {
+            proxyUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
+        }
+        dom.thumbnailImg.src = proxyUrl;
+        dom.thumbnailImg.style.display = 'block';
+        dom.thumbnailPlaceholder.style.display = 'none';
+        if (dom.btnDownloadThumbnail) dom.btnDownloadThumbnail.disabled = false;
+    } else {
+        resetThumbnailUI();
+    }
+}
+
+function resetThumbnailUI() {
+    if (dom.thumbnailImg) {
+        dom.thumbnailImg.src = '';
+        dom.thumbnailImg.style.display = 'none';
+    }
+    if (dom.thumbnailPlaceholder) {
+        dom.thumbnailPlaceholder.style.display = 'flex';
+        const lang = localStorage.getItem('paradise_language');
+        dom.thumbnailPlaceholder.textContent = 
+            lang === 'en' ? "No Thumbnail" :
+            lang === 'es' ? "Sin Miniatura" :
+                            "Sem Thumbnail";
+    }
+    if (dom.btnDownloadThumbnail) dom.btnDownloadThumbnail.disabled = true;
+}
+
+// Bind Thumbnail Events
+if (dom.btnChangeThumbnail) {
+    dom.btnChangeThumbnail.addEventListener('click', async () => {
+        const customPrompt = prompt(
+            localStorage.getItem('paradise_language') === 'en' 
+                ? "Enter instructions/prompt for the new YouTube thumbnail (or leave blank to regenerate based on story title):" 
+                : localStorage.getItem('paradise_language') === 'es'
+                    ? "Ingrese instrucciones/prompt para la nueva miniatura de YouTube (o deixe en blanco para regenerar según el título):"
+                    : "Digite as instruções/prompt para a nova Thumbnail do YouTube (ou deixe em branco para regenerar baseado no título):"
+        );
+        if (customPrompt === null) return;
+        
+        dom.thumbnailPlaceholder.style.display = 'flex';
+        dom.thumbnailPlaceholder.textContent = 
+            localStorage.getItem('paradise_language') === 'en' ? "Generating..." :
+            localStorage.getItem('paradise_language') === 'es' ? "Generando..." :
+                                                                "Gerando...";
+        dom.thumbnailImg.style.display = 'none';
+        dom.btnChangeThumbnail.disabled = true;
+        dom.btnDownloadThumbnail.disabled = true;
+        
+        try {
+            const res = await fetch('/api/narrative/regenerate-thumbnail', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: state.narrativeData.title,
+                    genre: state.narrativeData.genre || 'fantasia',
+                    custom_prompt: customPrompt
+                })
+            });
+            const data = await res.json();
+            if (data.thumbnail_url) {
+                state.narrativeData.thumbnail_url = data.thumbnail_url;
+                
+                let finalUrl = data.thumbnail_url;
+                if (finalUrl.includes("googleusercontent.com") || finalUrl.includes("google.com")) {
+                    finalUrl = `/api/proxy-image?url=${encodeURIComponent(finalUrl)}`;
+                }
+                dom.thumbnailImg.src = finalUrl;
+                dom.thumbnailImg.style.display = 'block';
+                dom.thumbnailPlaceholder.style.display = 'none';
+                dom.btnDownloadThumbnail.disabled = false;
+                
+                saveNarrativeToHistory(state.narrativeData);
+            } else {
+                alert("Erro: " + (data.error || "Nenhuma URL retornada"));
+                resetThumbnailUI();
+            }
+        } catch (err) {
+            console.error("Error regenerating thumbnail:", err);
+            alert("Erro ao regenerar thumbnail.");
+            resetThumbnailUI();
+        } finally {
+            dom.btnChangeThumbnail.disabled = false;
+        }
+    });
+}
+
+if (dom.btnDownloadThumbnail) {
+    dom.btnDownloadThumbnail.addEventListener('click', () => {
+        if (state.narrativeData && state.narrativeData.thumbnail_url) {
+            let downloadUrl = state.narrativeData.thumbnail_url;
+            if (downloadUrl.includes("googleusercontent.com") || downloadUrl.includes("google.com")) {
+                downloadUrl = `/api/proxy-image?url=${encodeURIComponent(downloadUrl)}`;
+            }
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = 'youtube-thumbnail.png';
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
     });
 }
 

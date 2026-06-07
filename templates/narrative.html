@@ -248,11 +248,30 @@
                     </div>
                 </div>
 
-                <!-- Right Sidebar: Scene playlist -->
+                <!-- Right Sidebar: Scene playlist & Thumbnail -->
                 <div class="theater-sidebar">
                     <h3>Cenas da História</h3>
                     <div class="scenes-list" id="scenes-list">
                         <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- YouTube Thumbnail Section -->
+                    <div class="thumbnail-section" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+                        <h3 style="margin-bottom: 0.75rem;"><i class="fa-solid fa-image"></i> Thumbnail do YouTube</h3>
+                        <div class="thumbnail-container" style="position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1);">
+                            <img id="thumbnail-img" src="" alt="Thumbnail" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                            <div id="thumbnail-placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: rgba(255, 255, 255, 0.4); font-size: 0.9rem;">
+                                Sem Thumbnail
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                            <button id="btn-download-thumbnail" class="action-btn" style="flex: 1; padding: 0.5rem; font-size: 0.8rem; border-radius: 6px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;" title="Download Thumbnail" disabled>
+                                <i class="fa-solid fa-download"></i> Baixar
+                            </button>
+                            <button id="btn-change-thumbnail" class="action-btn" style="flex: 1; padding: 0.5rem; font-size: 0.8rem; border-radius: 6px; background: var(--accent-pink); color: #fff; border: none; cursor: pointer;" title="Mudar Thumbnail">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Mudar
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -99,3 +99,39 @@ def narrative_tts():
     except Exception as e:
         print(f"[Narrative TTS Error] {e}")
         return str(e), 500
+
+@narrative_bp.route("/api/narrative/regenerate-thumbnail", methods=["POST"])
+def regenerate_thumbnail():
+    if not session.get("authenticated"):
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json() or {}
+    title = data.get("title", "História")
+    genre = data.get("genre", "fantasia")
+    custom_prompt = data.get("custom_prompt", "").strip()
+    username = session.get("username")
+    
+    # Match genre styles for stable diffusion/imagen prompts
+    genre_styles = {
+        "terror": "dark fantasy, gothic horror, eerie atmosphere, misty shadows, cinematic lighting, dramatic contrast, highly detailed, photorealistic, 8k",
+        "suspense": "film noir style, dark alleyways, dramatic side lighting, high contrast, mysterious silhouettes, cinematic composition, moody, realism",
+        "infantil": "colorful cartoon, cute digital painting, children's book illustration, whimsical, soft lightning, friendly characters, pastel color palette",
+        "fantasia": "epic fantasy, mystical glowing elements, vibrant magical environment, digital painting, majestic landscape, concept art, magical realism",
+        "scifi": "futuristic science fiction, cyberpunk cityscapes, space nebulas, neon glow, high tech holographic displays, cinematic digital concept art",
+        "romance": "romantic digital painting, warm golden hour lighting, soft focus, intimate cinematic composition, aesthetic pastel tones, detailed realism"
+    }
+    style_modifier = genre_styles.get(genre.lower(), "cinematic digital painting, highly detailed, expressive lighting")
+    
+    from services.ai_service import generate_image_unified_async
+    if custom_prompt:
+        prompt = f"YouTube video thumbnail artwork showing: {custom_prompt}. ({style_modifier}, vibrant colors, textless, cinematic composition, award-winning illustration, 8k)"
+    else:
+        prompt = f"YouTube video thumbnail artwork for a story titled '{title}'. Genre: {genre}. ({style_modifier}, vibrant colors, textless, cinematic composition, award-winning illustration, 8k)"
+        
+    try:
+        thumb_url, err = run_in_background(generate_image_unified_async(prompt, username=username))
+        if err:
+            return jsonify({"error": err}), 500
+        return jsonify({"thumbnail_url": thumb_url})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

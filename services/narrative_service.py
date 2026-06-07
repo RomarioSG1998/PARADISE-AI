@@ -88,4 +88,13 @@ Retorne apenas o bloco JSON válido, sem texto adicional antes ou depois. Envolv
         else:
             segment["image_error"] = img_err or "Nenhuma imagem retornada"
 
+    # Generate YouTube thumbnail for the story
+    title = narrative_data.get("title", "Uma História Incrível")
+    thumb_prompt = f"YouTube video thumbnail artwork for a story titled '{title}'. Genre: {genre}. ({style_modifier}, vibrant colors, textless, cinematic composition, award-winning illustration, 8k resolution)"
+    thumb_url, thumb_err = await generate_image_unified_async(thumb_prompt, username=username)
+    if thumb_url:
+        narrative_data["thumbnail_url"] = thumb_url
+    else:
+        narrative_data["thumbnail_url"] = ""
+
     return narrative_data
