@@ -7,6 +7,7 @@ from routes.auth import auth_bp
 from routes.book import book_bp
 from routes.classroom import classroom_bp
 from routes.portal import portal_bp
+from routes.narrative import narrative_bp
 
 # Async manager
 from utils.async_loop import run_in_background
@@ -25,6 +26,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(book_bp)
 app.register_blueprint(classroom_bp)
 app.register_blueprint(portal_bp)
+app.register_blueprint(narrative_bp)
 
 @app.before_request
 def check_auth():

@@ -95,14 +95,14 @@ export async function loadSlide(idx) {
             proxyUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
         }
         
-        elements.boardImage.src = proxyUrl;
-        elements.boardImage.onclick = () => window.open(rawUrl, '_blank');
-        elements.boardImage.style.cursor = 'pointer';
         elements.boardImage.onload = () => {
             elements.boardImage.className = '';
             elements.downloadBoardBtn.href = proxyUrl;
             elements.downloadBoardBtn.style.display = 'flex';
         };
+        elements.boardImage.src = proxyUrl;
+        elements.boardImage.onclick = () => window.open(rawUrl, '_blank');
+        elements.boardImage.style.cursor = 'pointer';
     } else {
         elements.boardImage.src = '';
     }
@@ -285,14 +285,14 @@ export async function loadExplanation(explanation) {
         if (rawUrl && (rawUrl.includes("googleusercontent.com") || rawUrl.includes("google.com"))) {
             proxyUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
         }
-        elements.boardImage.src = proxyUrl;
-        elements.boardImage.onclick = () => window.open(rawUrl, '_blank');
-        elements.boardImage.style.cursor = 'pointer';
         elements.boardImage.onload = () => {
             elements.boardImage.className = '';
             elements.downloadBoardBtn.href = proxyUrl;
             elements.downloadBoardBtn.style.display = 'flex';
         };
+        elements.boardImage.src = proxyUrl;
+        elements.boardImage.onclick = () => window.open(rawUrl, '_blank');
+        elements.boardImage.style.cursor = 'pointer';
     } else {
         elements.boardImage.src = '';
     }

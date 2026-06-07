@@ -257,6 +257,7 @@ export function renderChapter() {
     elements.readIllustrationImg.className = 'loading';
     if (chapter.image_url) {
         const imgUrl = getProxyUrl(chapter.image_url);
+        elements.readIllustrationImg.onload = () => elements.readIllustrationImg.className = '';
         elements.readIllustrationImg.src = imgUrl;
         elements.readIllustrationImg.style.display = 'block';
         elements.readIllustrationImg.style.cursor = 'pointer';
@@ -266,7 +267,6 @@ export function renderChapter() {
         elements.downloadIllustrationBtn.style.display = 'flex';
         
         document.getElementById('illustration-error').style.display = 'none';
-        elements.readIllustrationImg.onload = () => elements.readIllustrationImg.className = '';
     } else {
         elements.readIllustrationImg.src = '';
         elements.readIllustrationImg.alt = 'Sem desenho';

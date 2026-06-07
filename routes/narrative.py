@@ -1,0 +1,101 @@
+import io
+from flask import Blueprint, request, jsonify, render_template, session, send_file
+from services.narrative_service import generate_narrative_async
+from utils.async_loop import run_in_background
+from pypdf import PdfReader
+
+narrative_bp = Blueprint("narrative", __name__)
+
+@narrative_bp.route("/narrative")
+def index_narrative():
+    if not session.get("authenticated"):
+        from flask import redirect, url_for
+        return redirect(url_for("auth.login"))
+    return render_template("narrative.html")
+
+@narrative_bp.route("/api/narrative/generate", methods=["POST"])
+def generate_narrative():
+    input_type = "theme"
+    content = ""
+    genre = "fantasia"
+    duration = 1
+    voice = "pt-BR-AntonioNeural"
+
+    if request.is_json:
+        data = request.get_json() or {}
+        input_type = data.get("type", "theme")
+        content = data.get("content", "").strip()
+        genre = data.get("genre", "fantasia")
+        duration = int(data.get("duration", 1))
+        voice = data.get("voice", "pt-BR-AntonioNeural")
+    else:
+        input_type = request.form.get("type", "theme")
+        genre = request.form.get("genre", "fantasia")
+        duration = int(request.form.get("duration", 1))
+        voice = request.form.get("voice", "pt-BR-AntonioNeural")
+
+        if input_type == "pdf":
+            if "file" not in request.files:
+                return jsonify({"error": "Nenhum arquivo enviado"}), 400
+            file = request.files["file"]
+            if file.filename == "":
+                return jsonify({"error": "Nome do arquivo vazio"}), 400
+                
+            try:
+                reader = PdfReader(file.stream)
+                extracted_text = []
+                for page in reader.pages:
+                    text_page = page.extract_text()
+                    if text_page:
+                        extracted_text.append(text_page)
+                content = "\n".join(extracted_text)
+                if not content.strip():
+                    return jsonify({"error": "Não foi possível extrair texto do PDF"}), 400
+            except Exception as e:
+                return jsonify({"error": f"Erro ao processar PDF: {str(e)}"}), 500
+        else:
+            content = request.form.get("content", "").strip()
+
+    if not content:
+        return jsonify({"error": "Conteúdo ou tema não especificado"}), 400
+
+    try:
+        username = session.get("username")
+        narrative_data = run_in_background(generate_narrative_async(
+            content=content,
+            genre=genre,
+            duration_min=duration,
+            voice_id=voice,
+            username=username
+        ))
+        return jsonify(narrative_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@narrative_bp.route("/api/narrative/tts")
+def narrative_tts():
+    text = request.args.get("text", "").strip()
+    voice = request.args.get("voice", "").strip()
+    if not text:
+        return "Text is required", 400
+    if not voice:
+        voice = "pt-BR-AntonioNeural"
+
+    try:
+        import edge_tts
+        
+        async def gen():
+            communicate = edge_tts.Communicate(text, voice)
+            data = b""
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    data += chunk["data"]
+            return data
+            
+        audio_data = run_in_background(gen())
+        fp = io.BytesIO(audio_data)
+        fp.seek(0)
+        return send_file(fp, mimetype="audio/mpeg")
+    except Exception as e:
+        print(f"[Narrative TTS Error] {e}")
+        return str(e), 500
