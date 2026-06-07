@@ -545,6 +545,7 @@ function setupEvents() {
                     dom.horrorEffectSelect.value = 'none';
                 }
                 applyHorrorEffect(dom.horrorEffectSelect.value);
+                localStorage.setItem('narrative_horror_effect', dom.horrorEffectSelect.value);
             }
             // Auto-select image animation based on genre
             if (dom.imageAnimationSelect) {
@@ -557,6 +558,7 @@ function setupEvents() {
                     dom.imageAnimationSelect.value = 'none';
                 }
                 applyImageAnimation(dom.imageAnimationSelect.value);
+                localStorage.setItem('narrative_image_animation', dom.imageAnimationSelect.value);
             }
             renderPlaylist();
             loadScene(0);
@@ -641,7 +643,8 @@ function setupEvents() {
     
     // Volume Control
     dom.volumeSlider.addEventListener('input', () => {
-        const vol = dom.volumeSlider.value / 100;
+        const volVal = dom.volumeSlider.value;
+        const vol = volVal / 100;
         dom.audioEl.volume = vol;
         if (vol === 0) {
             dom.volumeIcon.className = "fa-solid fa-volume-xmark";
@@ -650,11 +653,14 @@ function setupEvents() {
         } else {
             dom.volumeIcon.className = "fa-solid fa-volume-high";
         }
+        localStorage.setItem('narrative_volume', volVal);
     });
     
     // Playback Speed Rate
     dom.speedSelect.addEventListener('change', () => {
-        dom.audioEl.playbackRate = parseFloat(dom.speedSelect.value);
+        const speedVal = dom.speedSelect.value;
+        dom.audioEl.playbackRate = parseFloat(speedVal);
+        localStorage.setItem('narrative_speed', speedVal);
     });
     
     dom.btnNewStory.addEventListener('click', () => {
@@ -683,6 +689,7 @@ function setupEvents() {
     if (dom.btnToggleSubtitles) {
         dom.btnToggleSubtitles.addEventListener('click', () => {
             state.subtitlesVisible = !state.subtitlesVisible;
+            localStorage.setItem('narrative_subtitles_visible', state.subtitlesVisible);
             if (state.subtitlesVisible) {
                 dom.subtitleOverlay.style.display = 'block';
                 dom.btnToggleSubtitles.style.opacity = '1';
@@ -702,10 +709,8 @@ function setupEvents() {
             dom.subtitleOverlay.classList.remove('sub-style-classic', 'sub-style-neon', 'sub-style-minimalist', 'sub-style-karaoke');
             dom.subtitleOverlay.classList.add(`sub-style-${style}`);
             state.currentSubtitleStyle = style;
+            localStorage.setItem('narrative_subtitle_style', style);
         });
-        
-        // Initial setup
-        dom.subtitleOverlay.classList.add('sub-style-classic');
     }
 
     // Mic dictation binding
@@ -780,14 +785,18 @@ function setupEvents() {
     // Horror Effect Selector Change
     if (dom.horrorEffectSelect) {
         dom.horrorEffectSelect.addEventListener('change', () => {
-            applyHorrorEffect(dom.horrorEffectSelect.value);
+            const val = dom.horrorEffectSelect.value;
+            applyHorrorEffect(val);
+            localStorage.setItem('narrative_horror_effect', val);
         });
     }
 
     // Image Animation Selector Change
     if (dom.imageAnimationSelect) {
         dom.imageAnimationSelect.addEventListener('change', () => {
-            applyImageAnimation(dom.imageAnimationSelect.value);
+            const val = dom.imageAnimationSelect.value;
+            applyImageAnimation(val);
+            localStorage.setItem('narrative_image_animation', val);
         });
     }
 }// Global Language selectors updates
@@ -970,6 +979,7 @@ function loadNarrativeFromHistory(id) {
                 dom.horrorEffectSelect.value = 'none';
             }
             applyHorrorEffect(dom.horrorEffectSelect.value);
+            localStorage.setItem('narrative_horror_effect', dom.horrorEffectSelect.value);
         }
         // Auto-select image animation based on genre
         if (dom.imageAnimationSelect) {
@@ -981,6 +991,7 @@ function loadNarrativeFromHistory(id) {
                 dom.imageAnimationSelect.value = 'none';
             }
             applyImageAnimation(dom.imageAnimationSelect.value);
+            localStorage.setItem('narrative_image_animation', dom.imageAnimationSelect.value);
         }
         renderPlaylist();
         loadScene(0);
@@ -1242,6 +1253,70 @@ if (dom.btnDownloadThumbnail) {
     });
 }
 
+function loadSavedSettings() {
+    // 1. Subtitles Visibility
+    const savedSubtitlesVisible = localStorage.getItem('narrative_subtitles_visible');
+    if (savedSubtitlesVisible !== null) {
+        state.subtitlesVisible = savedSubtitlesVisible === 'true';
+    }
+    if (dom.btnToggleSubtitles && dom.subtitleOverlay) {
+        if (state.subtitlesVisible) {
+            dom.subtitleOverlay.style.display = 'block';
+            dom.btnToggleSubtitles.style.opacity = '1';
+            dom.btnToggleSubtitles.style.color = 'var(--accent-pink)';
+        } else {
+            dom.subtitleOverlay.style.display = 'none';
+            dom.btnToggleSubtitles.style.opacity = '0.5';
+            dom.btnToggleSubtitles.style.color = 'var(--text-secondary)';
+        }
+    }
+
+    // 2. Subtitle Style
+    const savedSubtitleStyle = localStorage.getItem('narrative_subtitle_style') || 'classic';
+    state.currentSubtitleStyle = savedSubtitleStyle;
+    if (dom.subtitleStyleSelect && dom.subtitleOverlay) {
+        dom.subtitleStyleSelect.value = savedSubtitleStyle;
+        dom.subtitleOverlay.className = 'subtitle-overlay';
+        dom.subtitleOverlay.classList.add(`sub-style-${savedSubtitleStyle}`);
+    }
+
+    // 3. Horror Effect
+    const savedHorrorEffect = localStorage.getItem('narrative_horror_effect');
+    if (savedHorrorEffect && dom.horrorEffectSelect) {
+        dom.horrorEffectSelect.value = savedHorrorEffect;
+        applyHorrorEffect(savedHorrorEffect);
+    }
+
+    // 4. Image Animation
+    const savedImageAnimation = localStorage.getItem('narrative_image_animation');
+    if (savedImageAnimation && dom.imageAnimationSelect) {
+        dom.imageAnimationSelect.value = savedImageAnimation;
+        applyImageAnimation(savedImageAnimation);
+    }
+
+    // 5. Playback Speed
+    const savedSpeed = localStorage.getItem('narrative_speed') || '1.0';
+    if (dom.speedSelect) {
+        dom.speedSelect.value = savedSpeed;
+        dom.audioEl.playbackRate = parseFloat(savedSpeed);
+    }
+
+    // 6. Volume
+    const savedVolume = localStorage.getItem('narrative_volume') || '80';
+    if (dom.volumeSlider) {
+        dom.volumeSlider.value = savedVolume;
+        const vol = parseFloat(savedVolume) / 100;
+        dom.audioEl.volume = vol;
+        if (vol === 0) {
+            dom.volumeIcon.className = "fa-solid fa-volume-xmark";
+        } else if (vol < 0.5) {
+            dom.volumeIcon.className = "fa-solid fa-volume-low";
+        } else {
+            dom.volumeIcon.className = "fa-solid fa-volume-high";
+        }
+    }
+}
+
 // Initializer
 document.addEventListener('DOMContentLoaded', () => {
     setupEvents();
@@ -1249,6 +1324,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeLang = getActiveLanguage();
     applyLanguageUpdates(activeLang);
     renderHistoryList();
+    loadSavedSettings();
     
     document.getElementById('global-lang-select').addEventListener('change', (e) => {
         applyLanguageUpdates(e.target.value);
