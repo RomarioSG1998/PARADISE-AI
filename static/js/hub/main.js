@@ -200,12 +200,20 @@ function setupEvents() {
 
     if (elements.btnSaveCookies) {
         elements.btnSaveCookies.onclick = async () => {
+            const providerEl = document.getElementById('cookie-provider');
+            const provider = providerEl ? providerEl.value : 'gemini';
             const psid = elements.cookiePsid.value.trim();
             const psidts = elements.cookiePsidts.value.trim();
 
-            if (!psid || !psidts) {
+            if (provider === 'gemini' && (!psid || !psidts)) {
                 if (elements.configError) {
-                    elements.configError.textContent = 'Ambos os cookies são obrigatórios!';
+                    elements.configError.textContent = 'Ambos os cookies são obrigatórios para o Gemini!';
+                    elements.configError.style.display = 'block';
+                }
+                return;
+            } else if (provider === 'copilot' && !psid) {
+                if (elements.configError) {
+                    elements.configError.textContent = 'O cookie _U é obrigatório para o Copilot!';
                     elements.configError.style.display = 'block';
                 }
                 return;
@@ -218,7 +226,7 @@ function setupEvents() {
                 const resp = await fetch('/api/save-cookies', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ secure_1psid: psid, secure_1psidts: psidts })
+                    body: JSON.stringify({ provider: provider, secure_1psid: psid, secure_1psidts: psidts })
                 });
                 
                 const data = await resp.json();
@@ -298,7 +306,6 @@ function setupEvents() {
     if (elements.globalLangSelect) {
         elements.globalLangSelect.addEventListener('change', (e) => {
             applyLanguage(e.target.value);
-            // Optionally save the lang to profile too
             const lang = e.target.value;
             const fullname = elements.profileFullname ? elements.profileFullname.value.trim() : '';
             if (fullname) {
@@ -316,6 +323,34 @@ function setupEvents() {
                         avatar_image_url: avatarUrl
                     })
                 });
+            }
+        });
+    }
+
+    const providerSelect = document.getElementById('cookie-provider');
+    if (providerSelect) {
+        providerSelect.addEventListener('change', (e) => {
+            const provider = e.target.value;
+            const psidtsGrp = document.getElementById('psidts-group');
+            const lblPsid = document.getElementById('lbl-cookie-psid');
+            const lblPsidts = document.getElementById('lbl-cookie-psidts');
+            const inPsid = document.getElementById('cookie-psid');
+            const inPsidts = document.getElementById('cookie-psidts');
+            
+            if (provider === 'gemini') {
+                lblPsid.innerText = 'Cookie __Secure-1PSID';
+                inPsid.placeholder = 'Cole o valor do cookie __Secure-1PSID';
+                if(psidtsGrp) psidtsGrp.style.display = 'block';
+                if(lblPsidts) lblPsidts.innerText = 'Cookie __Secure-1PSIDTS';
+                if(inPsidts) inPsidts.placeholder = 'Cole o valor do cookie __Secure-1PSIDTS';
+            } else if (provider === 'copilot') {
+                lblPsid.innerText = 'Cookie _U da Microsoft';
+                inPsid.placeholder = 'Cole o valor do cookie _U de bing.com/chat';
+                if(psidtsGrp) psidtsGrp.style.display = 'none';
+            } else if (provider === 'gpt') {
+                lblPsid.innerText = 'Token de Acesso (Opcional)';
+                inPsid.placeholder = 'Geralmente opcional para g4f. Deixe em branco.';
+                if(psidtsGrp) psidtsGrp.style.display = 'none';
             }
         });
     }

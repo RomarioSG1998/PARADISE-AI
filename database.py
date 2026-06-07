@@ -59,6 +59,7 @@ def init_db():
             name TEXT NOT NULL,
             secure_1psid TEXT NOT NULL,
             secure_1psidts TEXT NOT NULL,
+            provider TEXT DEFAULT 'gemini',
             status TEXT DEFAULT 'active',
             error_message TEXT,
             last_used TIMESTAMP,
@@ -156,6 +157,16 @@ def init_db():
             conn.commit()
             print("[AI Hub DB] Successfully migrated old .env cookies to database pool.")
 
+    if DATABASE_URL:
+        cursor.execute("ALTER TABLE public.gemini_accounts ADD COLUMN IF NOT EXISTS provider TEXT DEFAULT 'gemini'")
+        conn.commit()
+    else:
+        try:
+            cursor.execute("ALTER TABLE gemini_accounts ADD COLUMN provider TEXT DEFAULT 'gemini'")
+            conn.commit()
+        except:
+            pass
+
     conn.close()
 
 def validate_api_key(api_key):
@@ -176,7 +187,7 @@ def get_next_available_account(username=None):
     row = None
     if username:
         cursor.execute(qry(f"""
-            SELECT id, name, secure_1psid, secure_1psidts 
+            SELECT id, name, secure_1psid, secure_1psidts, provider 
             FROM {table_name} 
             WHERE username = ? AND status = 'active' 
             ORDER BY last_used ASC NULLS FIRST 
@@ -186,7 +197,7 @@ def get_next_available_account(username=None):
         
     if not row:
         cursor.execute(qry(f"""
-            SELECT id, name, secure_1psid, secure_1psidts 
+            SELECT id, name, secure_1psid, secure_1psidts, provider 
             FROM {table_name} 
             WHERE username IS NULL AND status = 'active' 
             ORDER BY last_used ASC NULLS FIRST 
@@ -200,7 +211,8 @@ def get_next_available_account(username=None):
             "id": row["id"],
             "name": row["name"],
             "secure_1psid": row["secure_1psid"],
-            "secure_1psidts": row["secure_1psidts"]
+            "secure_1psidts": row["secure_1psidts"],
+            "provider": row["provider"] if "provider" in row.keys() else "gemini"
         }
     return None
 
@@ -260,20 +272,20 @@ def get_accounts():
     conn = get_db_connection()
     cursor = get_cursor(conn)
     table_name = "public.gemini_accounts" if DATABASE_URL else "gemini_accounts"
-    cursor.execute(qry(f"SELECT id, username, name, status, error_message, last_used, created_at FROM {table_name} ORDER BY id DESC"))
+    cursor.execute(qry(f"SELECT id, username, name, status, error_message, last_used, provider, created_at FROM {table_name} ORDER BY id DESC"))
     rows = cursor.fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
-def add_account(username, name, secure_1psid, secure_1psidts):
+def add_account(username, name, secure_1psid, secure_1psidts, provider="gemini"):
     conn = get_db_connection()
     cursor = get_cursor(conn)
     table_name = "public.gemini_accounts" if DATABASE_URL else "gemini_accounts"
     if username:
         cursor.execute(qry(f"DELETE FROM {table_name} WHERE username = ?"), (username,))
     cursor.execute(
-        qry(f"INSERT INTO {table_name} (username, name, secure_1psid, secure_1psidts, status) VALUES (?, ?, ?, ?, ?)"),
-        (username, name, secure_1psid, secure_1psidts, "active")
+        qry(f"INSERT INTO {table_name} (username, name, secure_1psid, secure_1psidts, provider, status) VALUES (?, ?, ?, ?, ?, ?)"),
+        (username, name, secure_1psid, secure_1psidts, provider, "active")
     )
     conn.commit()
     conn.close()

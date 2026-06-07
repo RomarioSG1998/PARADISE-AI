@@ -13,6 +13,7 @@ const state = {
     autoPlayEnabled: true,
     subtitlesVisible: true,
     currentSubtitleStyle: 'classic',
+    outputFormat: 'youtube',   // 'youtube' | 'stories'
     // Audio preload cache: Map<segmentIndex, HTMLAudioElement>
     audioCache: new Map(),
     // Image preload cache: Map<segmentIndex, HTMLImageElement (fully loaded)>
@@ -82,7 +83,10 @@ const dom = {
     btnChangeThumbnail: document.getElementById('btn-change-thumbnail'),
     horrorEffectSelect: document.getElementById('horror-effect-select'),
     horrorOverlay: document.getElementById('horror-overlay'),
-    imageAnimationSelect: document.getElementById('image-animation-select')
+    imageAnimationSelect: document.getElementById('image-animation-select'),
+    formatBtnYoutube: document.getElementById('format-btn-youtube'),
+    formatBtnStories: document.getElementById('format-btn-stories'),
+    generateBtnLabel: document.getElementById('generate-btn-label')
 };
 
 // Translations
@@ -644,6 +648,7 @@ function setupEvents() {
         formData.append('duration', dom.durationSelect.value);
         formData.append('voice', dom.voiceSelect.value);
         formData.append('language', getActiveLanguage());
+        formData.append('format', state.outputFormat);
         
         if (state.currentType === 'theme') {
             formData.append('content', dom.themeInput.value.trim());
@@ -676,6 +681,13 @@ function setupEvents() {
             clearTimeout(stepInterval);
             dom.loadingPanel.style.display = 'none';
             dom.theaterArena.style.display = 'flex';
+
+            // Apply output format mode
+            if (state.outputFormat === 'stories') {
+                dom.theaterArena.classList.add('stories-mode');
+            } else {
+                dom.theaterArena.classList.remove('stories-mode');
+            }
             
             // Populate titles
             dom.storyTitle.textContent = state.narrativeData.title || "Narrativa";
@@ -801,6 +813,7 @@ function setupEvents() {
         stopSubtitleLoop();
         
         dom.theaterArena.style.display = 'none';
+        dom.theaterArena.classList.remove('stories-mode');   // reset format on new story
         dom.setupPanel.style.display = 'flex';
         
         dom.themeInput.value = '';
@@ -945,6 +958,33 @@ function setupEvents() {
             clearAudioCache();
         });
     }
+
+    // ─── Format Selector (YouTube / Stories) ────────────────────────────────
+    [dom.formatBtnYoutube, dom.formatBtnStories].forEach(btn => {
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+            dom.formatBtnYoutube?.classList.remove('active');
+            dom.formatBtnStories?.classList.remove('active');
+            btn.classList.add('active');
+            state.outputFormat = btn.dataset.format;
+
+            // Update generate button label
+            if (dom.generateBtnLabel) {
+                const lang = localStorage.getItem('paradise_language') || 'pt';
+                if (state.outputFormat === 'stories') {
+                    dom.generateBtnLabel.textContent =
+                        lang === 'en' ? 'Generate Stories' :
+                        lang === 'es' ? 'Generar Stories' :
+                                        'Gerar Stories';
+                } else {
+                    dom.generateBtnLabel.textContent =
+                        lang === 'en' ? 'Generate Narrative Video' :
+                        lang === 'es' ? 'Generar Video Narrativa' :
+                                        'Gerar Vídeo Narrativa';
+                }
+            }
+        });
+    });
 
     // Horror Effect Selector Change
     if (dom.horrorEffectSelect) {
@@ -1141,6 +1181,14 @@ function loadNarrativeFromHistory(id) {
         
         dom.setupPanel.style.display = 'none';
         dom.theaterArena.style.display = 'flex';
+        // Apply format from saved narrative (default youtube if not stored)
+        const savedFormat = narrative.format || 'youtube';
+        state.outputFormat = savedFormat;
+        if (savedFormat === 'stories') {
+            dom.theaterArena.classList.add('stories-mode');
+        } else {
+            dom.theaterArena.classList.remove('stories-mode');
+        }
         
         dom.storyTitle.textContent = narrative.title || "Narrativa";
         

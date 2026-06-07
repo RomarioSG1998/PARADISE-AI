@@ -12,6 +12,45 @@ gemini_clients = {}
 current_account_ids = {}
 image_cache = {}
 
+class G4FClientWrapper:
+    def __init__(self, provider_type, account_data):
+        self.provider_type = provider_type
+        self.account_data = account_data
+        
+    async def generate_content(self, prompt):
+        import g4f
+        from g4f.client import AsyncClient
+        
+        client = AsyncClient()
+        provider = None
+        model = g4f.models.default
+        
+        if self.provider_type == "copilot":
+            provider = g4f.Provider.Bing
+            u_cookie = self.account_data.get("secure_1psid", "")
+            if u_cookie:
+                try:
+                    import g4f.cookies
+                    g4f.cookies.set_cookies(".bing.com", {"_U": u_cookie})
+                except:
+                    pass
+                    
+        try:
+            response = await client.chat.completions.create(
+                model=model,
+                provider=provider,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            content = response.choices[0].message.content if response.choices else "Empty response"
+        except Exception as e:
+            content = f"Erro no provedor {self.provider_type.upper()}: {str(e)}"
+            
+        class MockResponse:
+            def __init__(self, text):
+                self.text = text
+                self.images = []
+        return MockResponse(content)
+
 async def get_or_create_client_async(username=None, force_reinit=False, tried_ids=None):
     global gemini_clients, current_account_ids
     
@@ -62,6 +101,16 @@ async def get_or_create_client_async(username=None, force_reinit=False, tried_id
         return None, f"Todas as contas disponíveis para '{user_key}' falharam na autenticação."
 
     tried_ids.add(account["id"])
+
+    # If provider is GPT or Copilot, use G4F Wrapper
+    provider_type = account.get("provider", "gemini")
+    if provider_type in ["gpt", "copilot"]:
+        gemini_clients[user_key] = G4FClientWrapper(provider_type, account)
+        current_account_ids[user_key] = account["id"]
+        if account["id"] != 0:
+            mark_account_used(account["id"])
+        print(f"[Paradise AI] Client for user '{user_key}' initialized via G4F (provider: {provider_type})!")
+        return gemini_clients[user_key], None
 
     try:
         from gemini_webapi import GeminiClient
@@ -159,6 +208,34 @@ async def generate_image_unified_async(prompt, username=None):
     client, err = await get_or_create_client_async(username=username)
     if err:
         return None, err
+
+    if isinstance(client, G4FClientWrapper):
+        try:
+            import urllib.parse
+            from g4f.client import AsyncClient
+            import g4f.Provider
+            g4f_client = AsyncClient()
+            
+            if client.provider_type == "copilot" and client.account_data.get("secure_1psid"):
+                import g4f.cookies
+                g4f.cookies.set_cookies(".bing.com", {"_U": client.account_data["secure_1psid"]})
+                img_response = await g4f_client.images.generate(model='dall-e-3', prompt=prompt)
+            else:
+                img_response = await g4f_client.images.generate(model='flux', prompt=prompt, provider=g4f.Provider.OperaAria)
+                
+            if img_response and img_response.data:
+                raw_url = img_response.data[0].url
+                if 'url=' in raw_url:
+                    parsed = urllib.parse.urlparse(raw_url)
+                    query = urllib.parse.parse_qs(parsed.query)
+                    actual_url = query.get('url', [raw_url])[0]
+                else:
+                    actual_url = raw_url
+                return actual_url, None
+            return None, "O provedor gratuito de imagem não retornou um link válido."
+        except Exception as e:
+            return None, f"Erro ao gerar imagem via G4F (OperaAria/DALL-E): {str(e)}"
+
     try:
         response = await client.generate_content(prompt)
         if hasattr(response, "images") and response.images:

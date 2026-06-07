@@ -2,7 +2,7 @@ import json
 import os
 from services.ai_service import generate_text_unified_async, generate_image_unified_async
 
-async def generate_narrative_async(content: str, genre: str, duration_min: int, voice_id: str, language: str = "pt", username=None):
+async def generate_narrative_async(content: str, genre: str, duration_min: int, voice_id: str, language: str = "pt", output_format: str = "youtube", username=None):
     # Set segments count based on duration
     # 1 min -> 3 segments (~45 words per segment, total ~135 words)
     # 2 min -> 6 segments (~45 words per segment, total ~270 words)
@@ -93,7 +93,7 @@ Return only the valid JSON block, without any additional text before or after. W
     for idx, segment in enumerate(segments):
         img_prompt = segment.get("image_prompt", f"A beautiful cinematic scene illustrating the story: {narrative_data.get('title', 'story')}")
         # Inject style modifier corresponding to the genre
-        full_img_prompt = f"Gere uma imagem de: {img_prompt}. ({style_modifier}, no text, no letters, cinematic composition, atmospheric lighting, detailed artwork)"
+        full_img_prompt = f"{img_prompt}. ({style_modifier}, no text, no letters, cinematic composition, atmospheric lighting, detailed artwork)"
 
         img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username)
         if img_url:

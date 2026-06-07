@@ -135,10 +135,26 @@
                         </select>
                     </div>
                 </div>
+                <!-- Output Format Selection -->
+                <div class="form-group" style="margin-top: 0.5rem;">
+                    <label><i class="fa-solid fa-photo-film"></i> Formato de Saída</label>
+                    <div class="format-selector" id="format-selector">
+                        <button class="format-btn active" data-format="youtube" id="format-btn-youtube">
+                            <i class="fa-brands fa-youtube"></i>
+                            <span class="format-label">YouTube</span>
+                            <span class="format-sub">Vídeo 16:9</span>
+                        </button>
+                        <button class="format-btn" data-format="stories" id="format-btn-stories">
+                            <i class="fa-solid fa-mobile-screen-button"></i>
+                            <span class="format-label">Stories</span>
+                            <span class="format-sub">Vertical 9:16</span>
+                        </button>
+                    </div>
+                </div>
             </form>
 
             <button class="generate-btn" id="btn-generate-narrative" disabled>
-                <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Vídeo Narrativa
+                <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="generate-btn-label">Gerar Vídeo Narrativa</span>
             </button>
 
             <!-- History / Saved Narratives Panel -->
