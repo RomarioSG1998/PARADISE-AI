@@ -103,12 +103,9 @@
 
                     <!-- Duration Selection -->
                     <div class="form-group">
-                        <label for="duration-select"><i class="fa-solid fa-clock"></i> Duração Estimada</label>
-                        <select id="duration-select">
-                            <option value="1">⏱️ 1 Minuto (~3 cenas)</option>
-                            <option value="2">⏱️ 2 Minutos (~6 cenas)</option>
-                            <option value="3">⏱️ 3 Minutos (~9 cenas)</option>
-                        </select>
+                        <label for="duration-select"><i class="fa-solid fa-clock"></i> Minutos do Vídeo</label>
+                        <input type="number" id="duration-select" min="1" max="15" value="1" placeholder="Ex: 5" autocomplete="off" style="width: 100%;">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem;">A IA definirá o nº de cenas automaticamente (~3/min)</small>
                     </div>
 
                     <!-- Voice / Narrator Selection -->
