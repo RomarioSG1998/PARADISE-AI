@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Narrativa AI — Paradise AI</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/narrative.css') }}">
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <a href="/" class="brand">
+            <div class="brand-logo">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div class="brand-title">Paradise AI</div>
+        </a>
+        
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <!-- Language Dropdown -->
+            <div class="language-selector" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-globe" style="color: var(--text-secondary); font-size: 0.95rem;"></i>
+                <select id="global-lang-select" class="lang-select">
+                    <option value="pt">Português 🇧🇷</option>
+                    <option value="en">English 🇺🇸</option>
+                    <option value="es">Español 🇪🇸</option>
+                </select>
+            </div>
+            <a href="/" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Painel Geral</a>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container main-container">
+        
+        <!-- SETUP CONFIGURATION PANEL -->
+        <div class="panel input-panel" id="setup-panel">
+            <div class="panel-header">
+                <h2>Narrativa AI (Narrator AI)</h2>
+                <p>Gere histórias fascinantes com dublagem profissional e imagens sincronizadas sob medida.</p>
+            </div>
+
+            <!-- Tabs -->
+            <div class="input-types">
+                <button class="type-tab active" data-type="theme"><i class="fa-solid fa-lightbulb"></i> Tema/Ideia</button>
+                <button class="type-tab" data-type="text"><i class="fa-solid fa-align-left"></i> Texto Completo</button>
+                <button class="type-tab" data-type="pdf"><i class="fa-solid fa-file-pdf"></i> Enviar PDF</button>
+            </div>
+
+            <form id="narrative-form" onsubmit="event.preventDefault();">
+                <!-- Theme Input Group -->
+                <div class="form-group" id="group-theme">
+                    <label for="theme-input">Qual é a ideia principal ou tema da sua história?</label>
+                    <div class="input-with-mic">
+                        <input type="text" id="theme-input" placeholder="Ex: Um navio fantasma perdido em uma tempestade eterna no Triângulo das Bermudas" autocomplete="off">
+                        <button type="button" id="btn-mic-theme" class="mic-btn" title="Falar ideia"><i class="fa-solid fa-microphone"></i></button>
+                    </div>
+                </div>
+
+                <!-- Text Input Group -->
+                <div class="form-group" id="group-text" style="display: none;">
+                    <label for="text-input">Cole ou digite o texto da sua história</label>
+                    <div class="textarea-with-mic">
+                        <textarea id="text-input" rows="6" placeholder="Cole o texto original aqui. A IA irá reescrever, segmentar e ilustrar a história completa..."></textarea>
+                        <button type="button" id="btn-mic-text" class="mic-btn" title="Falar texto"><i class="fa-solid fa-microphone"></i></button>
+                    </div>
+                </div>
+
+                <!-- PDF Input Group -->
+                <div class="form-group" id="group-pdf" style="display: none;">
+                    <label>Selecione um arquivo PDF para servir de roteiro</label>
+                    <div class="file-drop-zone" id="pdf-drop-zone">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <p>Arraste seu PDF aqui ou <span style="color:#a78bfa; text-decoration: underline;">clique para escolher</span></p>
+                        <span class="filename" id="selected-filename" style="display: none;"></span>
+                        <input type="file" id="pdf-file-input" accept="application/pdf" style="display: none;">
+                    </div>
+                </div>
+
+                <!-- Genre & Voice Configs Grid -->
+                <div class="configs-grid">
+                    <!-- Genre Selection -->
+                    <div class="form-group">
+                        <label for="genre-select"><i class="fa-solid fa-masks-theater"></i> Estilo/Gênero da História</label>
+                        <select id="genre-select">
+                            <option value="fantasia">✨ Fantasia & Aventura</option>
+                            <option value="terror">💀 Terror & Sobrenatural</option>
+                            <option value="suspense">🕵️ Suspense & Mistério</option>
+                            <option value="infantil">🧸 História Infantil</option>
+                            <option value="scifi">🚀 Ficção Científica</option>
+                            <option value="romance">💖 Romance & Drama</option>
+                        </select>
+                    </div>
+
+                    <!-- Duration Selection -->
+                    <div class="form-group">
+                        <label for="duration-select"><i class="fa-solid fa-clock"></i> Duração Estimada</label>
+                        <select id="duration-select">
+                            <option value="1">⏱️ 1 Minuto (~3 cenas)</option>
+                            <option value="2">⏱️ 2 Minutos (~6 cenas)</option>
+                            <option value="3">⏱️ 3 Minutos (~9 cenas)</option>
+                        </select>
+                    </div>
+
+                    <!-- Voice / Narrator Selection -->
+                    <div class="form-group">
+                        <label for="voice-select"><i class="fa-solid fa-circle-user"></i> Voz do Narrador</label>
+                        <select id="voice-select">
+                            <optgroup label="Português (Brasil)">
+                                <option value="pt-BR-AntonioNeural" selected>Antônio (Masculino - Narrador Natural)</option>
+                                <option value="pt-BR-FranciscaNeural">Francisca (Feminino - Contadora de Histórias)</option>
+                                <option value="pt-BR-ThalitaMultilingualNeural">Thalita (Feminino - Expressiva Premium)</option>
+                            </optgroup>
+                            <optgroup label="English (US)">
+                                <option value="en-US-AndrewNeural">Andrew (Male - Premium Cinematic)</option>
+                                <option value="en-US-BrianNeural">Brian (Male - Natural Storyteller)</option>
+                                <option value="en-US-EmmaNeural">Emma (Female - Smooth Storyteller)</option>
+                                <option value="en-US-AvaNeural">Ava (Female - Expressive Premium)</option>
+                            </optgroup>
+                            <optgroup label="Español (España / México)">
+                                <option value="es-ES-AlvaroNeural">Álvaro (Masculino - Relator Natural)</option>
+                                <option value="es-ES-ElviraNeural">Elvira (Femenino - Narración Calma)</option>
+                                <option value="es-MX-DaliaNeural">Dalia (Femenino - Expresivo Premium)</option>
+                                <option value="es-MX-JorgeNeural">Jorge (Masculino - Natural Premium)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+            </form>
+
+            <button class="generate-btn" id="btn-generate-narrative" disabled>
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Vídeo Narrativa
+            </button>
+
+            <!-- History / Saved Narratives Panel -->
+            <div id="history-panel" class="form-group" style="margin-top: 2rem; display: none; width: 100%;">
+                <label id="history-title-label" style="margin-bottom: 1rem;"><i class="fa-solid fa-folder-open"></i> Histórico de Narrativas</label>
+                <div id="history-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; width: 100%;">
+                    <!-- Cards populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- LOADING PANEL -->
+        <div class="panel loading-panel" id="loading-panel" style="display: none;">
+            <div class="loader-visual">
+                <div class="spinner"></div>
+                <i class="fa-solid fa-book-open loader-icon"></i>
+            </div>
+            <div class="loading-info">
+                <h3 id="loading-step-title">Escrevendo roteiro da história...</h3>
+                <p id="loading-step-desc">A inteligência do Gemini está estruturando os parágrafos e gerando ilustrações cinematográficas sob medida.</p>
+            </div>
+        </div>
+
+        <!-- THEATER / VIDEO NARRATIVE ARENA -->
+        <div class="theater-arena" id="theater-arena" style="display: none;">
+            <div class="theater-header">
+                <div class="story-title-group">
+                    <h2 id="story-title">Título da Narrativa</h2>
+                    <span id="story-badge" class="genre-badge">Fantasia</span>
+                </div>
+                <button class="new-story-btn" id="btn-new-story"><i class="fa-solid fa-arrow-rotate-left"></i> Nova História</button>
+            </div>
+
+            <!-- Immersive Screen Area -->
+            <div class="theater-main">
+                
+                <!-- Center Screen -->
+                <div class="theater-screen">
+                    <div class="screen-canvas">
+                        <!-- Background blurred backplate -->
+                        <div class="screen-backplate" id="screen-backplate"></div>
+                        <!-- Main image display with smooth fade in/out -->
+                        <img src="" alt="Cena da Narrativa" id="screen-image">
+                        
+                        <!-- Subtitles Glass Container -->
+                        <div class="subtitle-overlay">
+                            <p id="subtitle-text">Carregando narração...</p>
+                        </div>
+                        
+                        <!-- Ambient Particles Layer for immersive feel -->
+                        <div class="ambient-layer" id="ambient-layer"></div>
+                    </div>
+
+                    <!-- Media Player Control Bar -->
+                    <div class="media-controls">
+                        <div class="controls-left">
+                            <button class="control-btn" id="btn-prev" title="Cena Anterior"><i class="fa-solid fa-backward-step"></i></button>
+                            <button class="control-btn play-pause" id="btn-play" title="Reproduzir/Pausar"><i class="fa-solid fa-play"></i></button>
+                            <button class="control-btn" id="btn-next" title="Próxima Cena"><i class="fa-solid fa-forward-step"></i></button>
+                            
+                            <!-- Audio Waveform Visualizer simulation -->
+                            <div class="voice-wave" id="voice-wave">
+                                <span></span><span></span><span></span><span></span><span></span><span></span>
+                            </div>
+                        </div>
+
+                        <!-- Progress timeline slider -->
+                        <div class="controls-center">
+                            <span class="time-label" id="current-time">00:00</span>
+                            <input type="range" class="timeline-slider" id="timeline-slider" min="0" max="100" value="0">
+                            <span class="time-label" id="total-time">00:00</span>
+                        </div>
+
+                        <div class="controls-right">
+                            <!-- Subtitle Options -->
+                            <button class="control-btn" id="btn-toggle-subtitles" title="Legendas (Ativar/Desativar)" style="color: var(--accent-pink);">
+                                <i class="fa-solid fa-closed-captioning"></i>
+                            </button>
+                            <select id="subtitle-style-select" class="speed-select" title="Estilo da Legenda">
+                                <option value="classic">🟡 Amarelo</option>
+                                <option value="neon">⚡ Neon</option>
+                                <option value="minimalist">⚪ Minimalista</option>
+                                <option value="karaoke">🎤 Karaokê</option>
+                            </select>
+
+                            <!-- Volume slider -->
+                            <div class="volume-container">
+                                <i class="fa-solid fa-volume-high" id="volume-icon"></i>
+                                <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="80">
+                            </div>
+                            
+                            <!-- Speed dropdown -->
+                            <select id="speed-select" class="speed-select">
+                                <option value="0.75">0.75x</option>
+                                <option value="1.0" selected>1.0x</option>
+                                <option value="1.25">1.25x</option>
+                                <option value="1.5">1.5x</option>
+                            </select>
+
+                            <span class="scene-counter" id="scene-counter">Cena 1 / 3</span>
+
+                            <!-- Fullscreen Button -->
+                            <button class="control-btn" id="btn-fullscreen" title="Tela Cheia">
+                                <i class="fa-solid fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar: Scene playlist -->
+                <div class="theater-sidebar">
+                    <h3>Cenas da História</h3>
+                    <div class="scenes-list" id="scenes-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden HTML5 Audio Element -->
+    <audio id="narrative-audio" style="display: none;"></audio>
+
+    <!-- Shared Voice Input script for voice dictates -->
+    <script type="module" src="{{ url_for('static', filename='js/voice_input.js') }}"></script>
+    <!-- Narrator application script -->
+    <script type="module" src="{{ url_for('static', filename='js/narrative/main.js') }}"></script>
+</body>
+</html>

@@ -42,6 +42,14 @@ def proxy_image():
     if not any(domain in parsed.netloc for domain in ["googleusercontent.com", "google.com"]):
         return "Forbidden domain", 403
 
+    # Force high-resolution for Google CDN images by removing low-res tags and appending =s1600
+    import re
+    if any(domain in parsed.netloc for domain in ["googleusercontent.com", "google.com"]):
+        url_clean = re.sub(r'=[ws]\d+$', '', url)
+        url_clean = re.sub(r'=s\d+$', '', url_clean)
+        url_clean = re.sub(r'=s0$', '', url_clean)
+        url = f"{url_clean}=s1600"
+
     try:
         username = session.get("username")
         account = get_next_available_account(username=username)
@@ -149,3 +157,75 @@ def text_to_speech():
         except Exception as ge:
             print(f"[Paradise AI TTS Error] Fallback failed: {str(ge)}")
             return f"Error generating TTS: {str(ge)}", 500
+
+# Admin routes
+@portal_bp.route("/admin")
+def admin_dashboard():
+    if not session.get("authenticated"):
+        return redirect(url_for("auth.login"))
+    return render_template("admin.html")
+
+@portal_bp.route("/admin/api/apps", methods=["GET", "POST"])
+def admin_apps():
+    if not session.get("authenticated"):
+        return jsonify({"error": "Unauthorized"}), 401
+    from database import get_apps, create_app
+    if request.method == "POST":
+        data = request.get_json() or {}
+        name = data.get("name", "").strip()
+        if not name:
+            return jsonify({"error": "App name is required"}), 400
+        api_key = create_app(name)
+        return jsonify({"api_key": api_key})
+    return jsonify(get_apps())
+
+@portal_bp.route("/admin/api/accounts", methods=["GET", "POST"])
+def admin_accounts():
+    if not session.get("authenticated"):
+        return jsonify({"error": "Unauthorized"}), 401
+    from database import get_accounts, add_account, delete_account
+    if request.method == "POST":
+        data = request.get_json() or {}
+        name = data.get("name", "").strip()
+        secure_1psid = data.get("secure_1psid", "").strip()
+        secure_1psidts = data.get("secure_1psidts", "").strip()
+        if not name or not secure_1psid or not secure_1psidts:
+            return jsonify({"success": False, "error": "Preencha todos os campos!"}), 400
+        
+        # Add account
+        add_account(None, name, secure_1psid, secure_1psidts)
+        
+        # Test account
+        from gemini_webapi import GeminiClient
+        from gemini_webapi.client import AccountStatus
+        try:
+            client = GeminiClient(secure_1psid, secure_1psidts)
+            run_in_background(client.init())
+            if client.account_status != AccountStatus.AVAILABLE:
+                accounts = get_accounts()
+                if accounts:
+                    delete_account(accounts[0]["id"])
+                return jsonify({"success": False, "error": f"Erro de autenticação: {client.account_status.description}"})
+            return jsonify({"success": True})
+        except Exception as e:
+            accounts = get_accounts()
+            if accounts:
+                delete_account(accounts[0]["id"])
+            return jsonify({"success": False, "error": f"Erro de conexão: {str(e)}"})
+            
+    return jsonify(get_accounts())
+
+@portal_bp.route("/admin/api/accounts/<account_id>", methods=["DELETE"])
+def admin_delete_account(account_id):
+    if not session.get("authenticated"):
+        return jsonify({"error": "Unauthorized"}), 401
+    from database import delete_account
+    delete_account(account_id)
+    return jsonify({"success": True})
+
+@portal_bp.route("/admin/api/stats")
+def admin_stats():
+    if not session.get("authenticated"):
+        return jsonify({"error": "Unauthorized"}), 401
+    from database import get_stats
+    return jsonify(get_stats())

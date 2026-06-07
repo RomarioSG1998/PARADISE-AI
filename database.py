@@ -95,6 +95,33 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """)
+
+        # Create narratives table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS narratives (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT REFERENCES profiles(username) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            genre TEXT NOT NULL,
+            duration INTEGER NOT NULL,
+            voice_id TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        # Create narrative_segments table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS narrative_segments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            narrative_id INTEGER NOT NULL REFERENCES narratives(id) ON DELETE CASCADE,
+            segment_index INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            image_prompt TEXT,
+            image_url TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (narrative_id, segment_index)
+        )
+        """)
         conn.commit()
 
     # Check if we have any registered apps. If not, seed the first one

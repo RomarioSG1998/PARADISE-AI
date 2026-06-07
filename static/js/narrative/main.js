@@ -1,0 +1,1033 @@
+import { attachVoiceInput } from '../voice_input.js';
+
+// Application state
+const state = {
+    currentType: 'theme',
+    selectedPdfFile: null,
+    isPlaying: false,
+    currentSceneIdx: 0,
+    narrativeData: null,
+    audioLoading: false,
+    wordRanges: [],
+    animationFrameId: null,
+    autoPlayEnabled: true,
+    subtitlesVisible: true,
+    currentSubtitleStyle: 'classic'
+};
+
+// DOM Cache
+const dom = {
+    setupPanel: document.getElementById('setup-panel'),
+    loadingPanel: document.getElementById('loading-panel'),
+    theaterArena: document.getElementById('theater-arena'),
+    btnToggleSubtitles: document.getElementById('btn-toggle-subtitles'),
+    subtitleStyleSelect: document.getElementById('subtitle-style-select'),
+    subtitleOverlay: document.querySelector('.subtitle-overlay'),
+    historyPanel: document.getElementById('history-panel'),
+    historyList: document.getElementById('history-list'),
+    historyTitleLabel: document.getElementById('history-title-label'),
+    
+    themeInput: document.getElementById('theme-input'),
+    textInput: document.getElementById('text-input'),
+    pdfFileInput: document.getElementById('pdf-file-input'),
+    selectedFilename: document.getElementById('selected-filename'),
+    pdfDropZone: document.getElementById('pdf-drop-zone'),
+    
+    genreSelect: document.getElementById('genre-select'),
+    durationSelect: document.getElementById('duration-select'),
+    voiceSelect: document.getElementById('voice-select'),
+    
+    btnGenerate: document.getElementById('btn-generate-narrative'),
+    btnNewStory: document.getElementById('btn-new-story'),
+    
+    btnMicTheme: document.getElementById('btn-mic-theme'),
+    btnMicText: document.getElementById('btn-mic-text'),
+    
+    storyTitle: document.getElementById('story-title'),
+    storyBadge: document.getElementById('story-badge'),
+    screenImage: document.getElementById('screen-image'),
+    screenBackplate: document.getElementById('screen-backplate'),
+    subtitleText: document.getElementById('subtitle-text'),
+    ambientLayer: document.getElementById('ambient-layer'),
+    
+    btnPrev: document.getElementById('btn-prev'),
+    btnPlay: document.getElementById('btn-play'),
+    btnNext: document.getElementById('btn-next'),
+    voiceWave: document.getElementById('voice-wave'),
+    
+    currentTime: document.getElementById('current-time'),
+    totalTime: document.getElementById('total-time'),
+    timelineSlider: document.getElementById('timeline-slider'),
+    
+    volumeSlider: document.getElementById('volume-slider'),
+    volumeIcon: document.getElementById('volume-icon'),
+    speedSelect: document.getElementById('speed-select'),
+    sceneCounter: document.getElementById('scene-counter'),
+    scenesList: document.getElementById('scenes-list'),
+    
+    audioEl: document.getElementById('narrative-audio'),
+    btnFullscreen: document.getElementById('btn-fullscreen'),
+    
+    loadingStepTitle: document.getElementById('loading-step-title'),
+    loadingStepDesc: document.getElementById('loading-step-desc')
+};
+
+// Translations
+const translations = {
+    pt: {
+        stepRoteiro: "Escrevendo roteiro da história...",
+        stepRoteiroDesc: "A inteligência do Gemini está estruturando os parágrafos e gerando ilustrações cinematográficas sob medida.",
+        stepImagens: "Ilustrando cenas...",
+        stepImagensDesc: "Gera ilustrações ricas com IA correspondendo perfeitamente ao gênero selecionado.",
+        audioPreparando: "Preparando a voz da narração para esta cena...",
+        audioErro: "(Áudio indisponível)",
+        pdfAlert: "Apenas arquivos PDF são aceitos!",
+        newStoryBtn: "<i class='fa-solid fa-arrow-rotate-left'></i> Nova História",
+        generateBtn: "<i class='fa-solid fa-wand-magic-sparkles'></i> Gerar Vídeo Narrativa",
+        themePlaceholder: "Ex: Um navio fantasma perdido em uma tempestade eterna no Triângulo das Bermudas",
+        textPlaceholder: "Cole o texto original aqui. A IA irá reescrever, segmentar e ilustrar a história completa...",
+        loadingContent: "Carregando narração...",
+        subStyleClassic: "🟡 Amarelo Clássico",
+        subStyleNeon: "⚡ Brilho Neon",
+        subStyleMinimalist: "⚪ Minimalista",
+        subStyleKaraoke: "🎤 Karaokê",
+        historyTitle: "Histórico de Narrativas",
+        deleteNarrativeConfirm: "Tem certeza que deseja excluir esta história do seu histórico?",
+        emptyHistory: "Nenhuma narrativa produzida ainda. Crie uma nova história para começar!",
+        scenesText: "cenas",
+        minutesText: "minutos"
+    },
+    en: {
+        stepRoteiro: "Writing story script...",
+        stepRoteiroDesc: "Gemini intelligence is structuring paragraphs and creating tailored cinematic illustrations.",
+        stepImagens: "Illustrating scenes...",
+        stepImagensDesc: "Generating rich AI illustrations perfectly matching the selected genre.",
+        audioPreparando: "Preparing narrator voice for this scene...",
+        audioErro: "(Audio unavailable)",
+        pdfAlert: "Only PDF files are accepted!",
+        newStoryBtn: "<i class='fa-solid fa-arrow-rotate-left'></i> New Story",
+        generateBtn: "<i class='fa-solid fa-wand-magic-sparkles'></i> Generate Video Narrative",
+        themePlaceholder: "E.g. A ghost ship lost in an eternal storm in the Bermuda Triangle",
+        textPlaceholder: "Paste original text here. AI will rewrite, segment, and illustrate the complete story...",
+        loadingContent: "Loading narration...",
+        subStyleClassic: "🟡 Classic Yellow",
+        subStyleNeon: "⚡ Neon Glow",
+        subStyleMinimalist: "⚪ Minimalist",
+        subStyleKaraoke: "🎤 Karaoke",
+        historyTitle: "Narrative History",
+        deleteNarrativeConfirm: "Are you sure you want to delete this story from your history?",
+        emptyHistory: "No narratives produced yet. Create a new story to start!",
+        scenesText: "scenes",
+        minutesText: "minutes"
+    },
+    es: {
+        stepRoteiro: "Escribiendo guión de la historia...",
+        stepRoteiroDesc: "La inteligencia de Gemini está estruturando los párrafos y creando ilustraciones cinematográficas a medida.",
+        stepImagens: "Ilustrando cenas...",
+        stepImagensDesc: "Generando ricas ilustraciones con IA correspondientes al género seleccionado.",
+        audioPreparando: "Preparando la voz del narrador para esta escena...",
+        audioErro: "(Audio no disponible)",
+        pdfAlert: "¡Solo se aceptan archivos PDF!",
+        newStoryBtn: "<i class='fa-solid fa-arrow-rotate-left'></i> Nueva Historia",
+        generateBtn: "<i class='fa-solid fa-wand-magic-sparkles'></i> Generar Video Narrativa",
+        themePlaceholder: "Ej: Un barco fantasma perdido en una tormenta eterna en el Triángulo de las Bermudas",
+        textPlaceholder: "Pegue el texto original aquí. La IA reescribirá, segmentará e ilustrará la historia completa...",
+        loadingContent: "Cargando narración...",
+        subStyleClassic: "🟡 Amarillo Clásico",
+        subStyleNeon: "⚡ Brillo Neon",
+        subStyleMinimalist: "⚪ Minimalista",
+        subStyleKaraoke: "🎤 Karaoke",
+        historyTitle: "Historial de Narrativas",
+        deleteNarrativeConfirm: "¿Está seguro de que desea eliminar esta historia de su historial?",
+        emptyHistory: "¡Ninguna narrativa producida todavía. Cree una historia para comenzar!",
+        scenesText: "escenas",
+        minutesText: "minutos"
+    }
+};
+
+function getActiveLanguage() {
+    return localStorage.getItem('paradise_language') || 'pt';
+}
+
+function getT() {
+    return translations[getActiveLanguage()] || translations.pt;
+}
+
+// Form validation check
+function checkInputs() {
+    let valid = false;
+    if (state.currentType === 'theme' && dom.themeInput.value.trim() !== '') {
+        valid = true;
+    } else if (state.currentType === 'text' && dom.textInput.value.trim() !== '') {
+        valid = true;
+    } else if (state.currentType === 'pdf' && state.selectedPdfFile !== null) {
+        valid = true;
+    }
+    dom.btnGenerate.disabled = !valid;
+}
+
+// PDF File select handler
+function handlePdfFile(file) {
+    const t = getT();
+    if (file.type !== 'application/pdf') {
+        alert(t.pdfAlert);
+        return;
+    }
+    state.selectedPdfFile = file;
+    dom.selectedFilename.textContent = `PDF: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+    dom.selectedFilename.style.display = 'block';
+    checkInputs();
+}
+
+// Load and render story playlist
+function renderPlaylist() {
+    dom.scenesList.innerHTML = '';
+    const segments = state.narrativeData.segments || [];
+    segments.forEach((seg, idx) => {
+        const card = document.createElement('div');
+        card.className = `scene-card ${idx === state.currentSceneIdx ? 'active' : ''}`;
+        
+        let thumbUrl = seg.image_url || '';
+        if (thumbUrl && (thumbUrl.includes("googleusercontent.com") || thumbUrl.includes("google.com"))) {
+            thumbUrl = `/api/proxy-image?url=${encodeURIComponent(thumbUrl)}`;
+        }
+        
+        card.innerHTML = `
+            <div class="scene-thumb">
+                <img src="${thumbUrl || '/static/images/walle.png'}" alt="Scene Thumbnail">
+            </div>
+            <div class="scene-info">
+                <div class="scene-title">Cena ${idx + 1}</div>
+                <div class="scene-preview">${seg.text}</div>
+            </div>
+        `;
+        
+        card.addEventListener('click', () => {
+            if (state.audioLoading) return;
+            loadScene(idx);
+        });
+        dom.scenesList.appendChild(card);
+    });
+}
+
+// Apply Ambient Particle Effects depending on genre
+function applyAmbientEffects(genre) {
+    if (!dom.ambientLayer) return;
+    dom.ambientLayer.className = `ambient-layer ${genre}`;
+    dom.ambientLayer.innerHTML = '';
+    
+    // Staggered dots count
+    let count = 0;
+    let className = '';
+    
+    if (genre === 'terror') {
+        count = 15;
+        className = 'red-ember';
+    } else if (genre === 'infantil') {
+        count = 12;
+        className = 'pastel-bubble';
+    } else if (genre === 'fantasia') {
+        count = 18;
+        className = 'sparkle-light';
+    } else if (genre === 'scifi') {
+        count = 15;
+        className = 'digital-pixel';
+    } else if (genre === 'suspense') {
+        count = 10;
+        className = 'misty-smoke';
+    }
+    
+    for (let i = 0; i < count; i++) {
+        const p = document.createElement('span');
+        p.className = `particle ${className}`;
+        p.style.left = `${Math.random() * 100}%`;
+        p.style.top = `${Math.random() * 100}%`;
+        p.style.animationDelay = `${Math.random() * 4}s`;
+        p.style.animationDuration = `${Math.random() * 5 + 3}s`;
+        dom.ambientLayer.appendChild(p);
+    }
+}
+
+// Load individual scene
+async function loadScene(idx) {
+    if (!state.narrativeData || !state.narrativeData.segments || idx < 0 || idx >= state.narrativeData.segments.length) return;
+    
+    state.currentSceneIdx = idx;
+    const segment = state.narrativeData.segments[idx];
+    const t = getT();
+    
+    // Highlight sidebar active card
+    const cards = dom.scenesList.querySelectorAll('.scene-card');
+    cards.forEach((c, cIdx) => {
+        if (cIdx === idx) c.classList.add('active');
+        else c.classList.remove('active');
+    });
+    
+    // Update navigation states
+    dom.btnPrev.disabled = idx === 0;
+    dom.btnNext.disabled = idx === state.narrativeData.segments.length - 1;
+    dom.sceneCounter.textContent = `Cena ${idx + 1} / ${state.narrativeData.segments.length}`;
+    
+    // Update scene image
+    dom.screenImage.classList.remove('reveal');
+    if (segment.image_url) {
+        let rawUrl = segment.image_url;
+        let proxyUrl = rawUrl;
+        if (rawUrl && (rawUrl.includes("googleusercontent.com") || rawUrl.includes("google.com"))) {
+            proxyUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
+        }
+        dom.screenImage.onload = () => {
+            dom.screenImage.classList.add('reveal');
+        };
+        dom.screenImage.src = proxyUrl;
+        dom.screenBackplate.style.backgroundImage = `url('${proxyUrl}')`;
+    } else {
+        dom.screenImage.src = '';
+        dom.screenBackplate.style.backgroundImage = 'none';
+    }
+    
+    // Prepare Subtitle timing ranges
+    const words = segment.text.split(' ');
+    let totalChars = words.reduce((acc, w) => acc + w.length, 0);
+    let currentSum = 0;
+    state.wordRanges = words.map(w => {
+        let start = currentSum / totalChars;
+        currentSum += w.length;
+        let end = currentSum / totalChars;
+        return { start, end };
+    });
+    
+    dom.subtitleText.innerHTML = words.map((w, wIdx) => `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ');
+    
+    // Stop previous player states
+    dom.audioEl.pause();
+    dom.audioEl.src = '';
+    state.isPlaying = false;
+    dom.btnPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
+    dom.voiceWave.classList.remove('active');
+    stopSubtitleLoop();
+    
+    dom.timelineSlider.value = 0;
+    dom.currentTime.textContent = '00:00';
+    dom.totalTime.textContent = '00:00';
+    
+    // Prepare new Audio TTS
+    state.audioLoading = true;
+    dom.btnPlay.disabled = true;
+    dom.subtitleText.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">${t.audioPreparando}</span>`;
+    
+    try {
+        const voice = dom.voiceSelect.value;
+        const handleCanPlayThrough = () => {
+            dom.audioEl.oncanplaythrough = null;
+            dom.audioEl.onerror = null;
+            state.audioLoading = false;
+            dom.btnPlay.disabled = false;
+            
+            // Restore words display
+            dom.subtitleText.innerHTML = words.map((w, wIdx) => `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ');
+            
+            // Apply speed rate
+            dom.audioEl.playbackRate = parseFloat(dom.speedSelect.value);
+            
+            // Trigger play
+            dom.audioEl.play().then(() => {
+                dom.btnPlay.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                dom.voiceWave.classList.add('active');
+                state.isPlaying = true;
+                startSubtitleLoop();
+            }).catch((err) => {
+                console.warn("Playback autoplay blocked:", err);
+                dom.btnPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
+                dom.voiceWave.classList.remove('active');
+                state.isPlaying = false;
+            });
+        };
+        
+        const handleAudioError = (err) => {
+            console.error("Audio playback error:", err);
+            dom.audioEl.oncanplaythrough = null;
+            dom.audioEl.onerror = null;
+            state.audioLoading = false;
+            dom.btnPlay.disabled = false;
+            dom.subtitleText.innerHTML = words.map((w, wIdx) => `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ') + ` <span style="color:#ef4444; font-size:0.85em; display:block; margin-top:0.25rem;">${t.audioErro}</span>`;
+        };
+
+        dom.audioEl.oncanplaythrough = handleCanPlayThrough;
+        dom.audioEl.onerror = handleAudioError;
+        dom.audioEl.src = `/api/narrative/tts?text=${encodeURIComponent(segment.text)}&voice=${encodeURIComponent(voice)}`;
+        dom.audioEl.load();
+        
+        if (dom.audioEl.readyState >= 4) {
+            handleCanPlayThrough();
+        }
+    } catch (e) {
+        console.error("Audio generation loading error:", e);
+        dom.subtitleText.textContent = segment.text + ` ${t.audioErro}`;
+        state.audioLoading = false;
+    }
+}
+
+// Subtitles character range matching
+function updateSubtitlesHighlight() {
+    if (!dom.audioEl.duration) return;
+    const current = dom.audioEl.currentTime;
+    const duration = dom.audioEl.duration;
+    const ratio = current / duration;
+    
+    let activeIdx = -1;
+    for (let i = 0; i < state.wordRanges.length; i++) {
+        if (ratio >= state.wordRanges[i].start && ratio < state.wordRanges[i].end) {
+            activeIdx = i;
+            break;
+        }
+    }
+    if (activeIdx === -1 && ratio >= 0.99) {
+        activeIdx = state.wordRanges.length - 1;
+    }
+    
+    const spans = dom.subtitleText.querySelectorAll('.sub-word');
+    spans.forEach((span, idx) => {
+        if (idx === activeIdx) {
+            span.classList.add('highlighted');
+        } else {
+            span.classList.remove('highlighted');
+        }
+    });
+}
+
+function startSubtitleLoop() {
+    if (state.animationFrameId) cancelAnimationFrame(state.animationFrameId);
+    function loop() {
+        updateSubtitlesHighlight();
+        if (state.isPlaying) {
+            state.animationFrameId = requestAnimationFrame(loop);
+        }
+    }
+    state.animationFrameId = requestAnimationFrame(loop);
+}
+
+function stopSubtitleLoop() {
+    if (state.animationFrameId) {
+        cancelAnimationFrame(state.animationFrameId);
+        state.animationFrameId = null;
+    }
+}
+
+function formatTime(secs) {
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+// Bind controls and configurations
+function setupEvents() {
+    dom.themeInput.addEventListener('input', checkInputs);
+    dom.textInput.addEventListener('input', checkInputs);
+    
+    // Tab selectors
+    const tabs = document.querySelectorAll('.type-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            state.currentType = tab.getAttribute('data-type');
+            
+            document.getElementById('group-theme').style.display = state.currentType === 'theme' ? 'flex' : 'none';
+            document.getElementById('group-text').style.display = state.currentType === 'text' ? 'flex' : 'none';
+            document.getElementById('group-pdf').style.display = state.currentType === 'pdf' ? 'flex' : 'none';
+            
+            checkInputs();
+        });
+    });
+    
+    // Drag & Drop PDF
+    dom.pdfDropZone.addEventListener('click', () => dom.pdfFileInput.click());
+    dom.pdfFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handlePdfFile(e.target.files[0]);
+        }
+    });
+    
+    dom.pdfDropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dom.pdfDropZone.style.borderColor = 'rgba(139, 92, 246, 0.7)';
+    });
+    
+    dom.pdfDropZone.addEventListener('dragleave', () => {
+        dom.pdfDropZone.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+    });
+    
+    dom.pdfDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dom.pdfDropZone.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+        if (e.dataTransfer.files.length > 0) {
+            handlePdfFile(e.dataTransfer.files[0]);
+        }
+    });
+    
+    // Generate trigger
+    dom.btnGenerate.addEventListener('click', async () => {
+        const t = getT();
+        dom.setupPanel.style.display = 'none';
+        dom.loadingPanel.style.display = 'flex';
+        
+        dom.loadingStepTitle.textContent = t.stepRoteiro;
+        dom.loadingStepDesc.textContent = t.stepRoteiroDesc;
+        
+        const formData = new FormData();
+        formData.append('type', state.currentType);
+        formData.append('genre', dom.genreSelect.value);
+        formData.append('duration', dom.durationSelect.value);
+        formData.append('voice', dom.voiceSelect.value);
+        
+        if (state.currentType === 'theme') {
+            formData.append('content', dom.themeInput.value.trim());
+        } else if (state.currentType === 'text') {
+            formData.append('content', dom.textInput.value.trim());
+        } else if (state.currentType === 'pdf') {
+            formData.append('file', state.selectedPdfFile);
+        }
+        
+        // Dynamic loader steps
+        const stepInterval = setTimeout(() => {
+            if (dom.loadingPanel.style.display === 'flex') {
+                dom.loadingStepTitle.textContent = t.stepImagens;
+                dom.loadingStepDesc.textContent = t.stepImagensDesc;
+            }
+        }, 9000);
+        
+        try {
+            const resp = await fetch('/api/narrative/generate', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!resp.ok) {
+                throw new Error(await resp.text());
+            }
+            
+            state.narrativeData = await resp.json();
+            
+            clearTimeout(stepInterval);
+            dom.loadingPanel.style.display = 'none';
+            dom.theaterArena.style.display = 'flex';
+            
+            // Populate titles
+            dom.storyTitle.textContent = state.narrativeData.title || "Narrativa";
+            dom.storyBadge.textContent = dom.genreSelect.options[dom.genreSelect.selectedIndex].text.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').trim();
+            
+            applyAmbientEffects(dom.genreSelect.value);
+            renderPlaylist();
+            loadScene(0);
+            saveNarrativeToHistory(state.narrativeData);
+        } catch (e) {
+            clearTimeout(stepInterval);
+            alert(`Falha ao gerar narrativa: ${e.message || e}`);
+            dom.loadingPanel.style.display = 'none';
+            dom.setupPanel.style.display = 'flex';
+        }
+    });
+    
+    // Play/Pause Action
+    dom.btnPlay.addEventListener('click', () => {
+        if (state.audioLoading) return;
+        
+        if (dom.audioEl.paused) {
+            dom.audioEl.play();
+            dom.btnPlay.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            dom.voiceWave.classList.add('active');
+            state.isPlaying = true;
+            startSubtitleLoop();
+        } else {
+            dom.audioEl.pause();
+            dom.btnPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
+            dom.voiceWave.classList.remove('active');
+            state.isPlaying = false;
+            stopSubtitleLoop();
+        }
+    });
+    
+    // Navigation
+    dom.btnPrev.addEventListener('click', () => {
+        if (state.currentSceneIdx > 0) {
+            loadScene(state.currentSceneIdx - 1);
+        }
+    });
+    
+    dom.btnNext.addEventListener('click', () => {
+        if (state.currentSceneIdx < state.narrativeData.segments.length - 1) {
+            loadScene(state.currentSceneIdx + 1);
+        }
+    });
+    
+    // Timeline Seek
+    dom.timelineSlider.addEventListener('input', () => {
+        if (dom.audioEl.duration) {
+            const pct = dom.timelineSlider.value;
+            dom.audioEl.currentTime = (pct / 100) * dom.audioEl.duration;
+        }
+    });
+    
+    dom.audioEl.addEventListener('timeupdate', () => {
+        if (dom.audioEl.duration) {
+            const current = dom.audioEl.currentTime;
+            const duration = dom.audioEl.duration;
+            const pct = (current / duration) * 100;
+            
+            dom.timelineSlider.value = pct;
+            dom.currentTime.textContent = formatTime(current);
+            dom.totalTime.textContent = formatTime(duration);
+        }
+    });
+    
+    dom.audioEl.addEventListener('ended', () => {
+        dom.btnPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
+        dom.voiceWave.classList.remove('active');
+        state.isPlaying = false;
+        stopSubtitleLoop();
+        
+        // Auto transition to next segment scene
+        if (state.autoPlayEnabled && state.currentSceneIdx < state.narrativeData.segments.length - 1) {
+            const endedScene = state.currentSceneIdx;
+            setTimeout(() => {
+                if (state.currentSceneIdx === endedScene) {
+                    loadScene(state.currentSceneIdx + 1);
+                }
+            }, 200);
+        }
+    });
+    
+    // Volume Control
+    dom.volumeSlider.addEventListener('input', () => {
+        const vol = dom.volumeSlider.value / 100;
+        dom.audioEl.volume = vol;
+        if (vol === 0) {
+            dom.volumeIcon.className = "fa-solid fa-volume-xmark";
+        } else if (vol < 0.5) {
+            dom.volumeIcon.className = "fa-solid fa-volume-low";
+        } else {
+            dom.volumeIcon.className = "fa-solid fa-volume-high";
+        }
+    });
+    
+    // Playback Speed Rate
+    dom.speedSelect.addEventListener('change', () => {
+        dom.audioEl.playbackRate = parseFloat(dom.speedSelect.value);
+    });
+    
+    // Reset to New Story
+    dom.btnNewStory.addEventListener('click', () => {
+        dom.audioEl.pause();
+        dom.audioEl.src = '';
+        state.isPlaying = false;
+        stopSubtitleLoop();
+        
+        dom.theaterArena.style.display = 'none';
+        dom.setupPanel.style.display = 'flex';
+        
+        dom.themeInput.value = '';
+        dom.textInput.value = '';
+        state.selectedPdfFile = null;
+        dom.pdfFileInput.value = '';
+        dom.selectedFilename.style.display = 'none';
+        dom.btnGenerate.disabled = true;
+    });
+    
+    // Subtitle Toggle Click
+    if (dom.btnToggleSubtitles) {
+        dom.btnToggleSubtitles.addEventListener('click', () => {
+            state.subtitlesVisible = !state.subtitlesVisible;
+            if (state.subtitlesVisible) {
+                dom.subtitleOverlay.style.display = 'block';
+                dom.btnToggleSubtitles.style.opacity = '1';
+                dom.btnToggleSubtitles.style.color = 'var(--accent-pink)';
+            } else {
+                dom.subtitleOverlay.style.display = 'none';
+                dom.btnToggleSubtitles.style.opacity = '0.5';
+                dom.btnToggleSubtitles.style.color = 'var(--text-secondary)';
+            }
+        });
+    }
+
+    // Subtitle Style Change
+    if (dom.subtitleStyleSelect) {
+        dom.subtitleStyleSelect.addEventListener('change', () => {
+            const style = dom.subtitleStyleSelect.value;
+            dom.subtitleOverlay.classList.remove('sub-style-classic', 'sub-style-neon', 'sub-style-minimalist', 'sub-style-karaoke');
+            dom.subtitleOverlay.classList.add(`sub-style-${style}`);
+            state.currentSubtitleStyle = style;
+        });
+        
+        // Initial setup
+        dom.subtitleOverlay.classList.add('sub-style-classic');
+    }
+
+    // Mic dictation binding
+    if (dom.btnMicTheme && dom.themeInput) {
+        attachVoiceInput(dom.themeInput, dom.btnMicTheme, getActiveLanguage);
+        dom.themeInput.addEventListener('change', checkInputs);
+    }
+    if (dom.btnMicText && dom.textInput) {
+        attachVoiceInput(dom.textInput, dom.btnMicText, getActiveLanguage);
+        dom.textInput.addEventListener('change', checkInputs);
+    }
+
+    // Fullscreen Event Binding
+    if (dom.btnFullscreen) {
+        let hideControlsTimeout;
+        const controls = document.querySelector('.media-controls');
+        
+        function showControls() {
+            if (controls) {
+                controls.style.opacity = '1';
+                controls.style.pointerEvents = 'auto';
+            }
+            document.body.style.cursor = 'default';
+            
+            clearTimeout(hideControlsTimeout);
+            if (document.fullscreenElement) {
+                hideControlsTimeout = setTimeout(() => {
+                    if (controls) {
+                        controls.style.opacity = '0';
+                        controls.style.pointerEvents = 'none';
+                    }
+                    document.body.style.cursor = 'none';
+                }, 3000); // hide controls after 3 seconds of idle mouse
+            }
+        }
+
+        dom.btnFullscreen.addEventListener('click', () => {
+            const container = document.querySelector('.theater-screen');
+            if (!container) return;
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    console.error("Error enabling fullscreen:", err);
+                });
+                dom.btnFullscreen.innerHTML = '<i class="fa-solid fa-compress"></i>';
+            } else {
+                document.exitFullscreen();
+                dom.btnFullscreen.innerHTML = '<i class="fa-solid fa-expand"></i>';
+            }
+        });
+        
+        document.addEventListener('fullscreenchange', () => {
+            const container = document.querySelector('.theater-screen');
+            if (document.fullscreenElement === container) {
+                dom.btnFullscreen.innerHTML = '<i class="fa-solid fa-compress"></i>';
+                container.addEventListener('mousemove', showControls);
+                showControls();
+            } else {
+                dom.btnFullscreen.innerHTML = '<i class="fa-solid fa-expand"></i>';
+                if (container) {
+                    container.removeEventListener('mousemove', showControls);
+                }
+                clearTimeout(hideControlsTimeout);
+                if (controls) {
+                    controls.style.opacity = '1';
+                    controls.style.pointerEvents = 'auto';
+                }
+                document.body.style.cursor = 'default';
+            }
+        });
+    }
+}// Global Language selectors updates
+function applyLanguageUpdates(lang) {
+    localStorage.setItem('paradise_language', lang);
+    document.cookie = `paradise_language=${lang}; path=/; max-age=31536000; SameSite=Lax`;
+    
+    const t = translations[lang] || translations.pt;
+    
+    const backBtn = document.querySelector('.back-btn');
+    if (backBtn) backBtn.innerHTML = lang === 'en' ? '<i class="fa-solid fa-arrow-left"></i> General Panel' : 
+                                     lang === 'es' ? '<i class="fa-solid fa-arrow-left"></i> Panel General' : 
+                                                     '<i class="fa-solid fa-arrow-left"></i> Painel Geral';
+                                                     
+    const headerTitle = document.querySelector('.panel-header h2');
+    if (headerTitle) headerTitle.textContent = lang === 'en' ? 'Narrator AI (Narrative AI)' : 
+                                               lang === 'es' ? 'Narrador AI (Narrativa AI)' : 
+                                                               'Narrativa AI (Narrator AI)';
+                                                               
+    const headerDesc = document.querySelector('.panel-header p');
+    if (headerDesc) headerDesc.textContent = lang === 'en' ? 'Create fascinating stories with professional dubbing and synchronized custom images.' : 
+                                             lang === 'es' ? 'Genera historias fascinantes con doblaje profesional e imágenes sincronizadas a medida.' : 
+                                                             'Gere histórias fascinantes com dublagem profissional e imagens sincronizadas sob medida.';
+                                                             
+    const tabs = document.querySelectorAll('.type-tab');
+    if (tabs.length >= 3) {
+        tabs[0].innerHTML = lang === 'en' ? '<i class="fa-solid fa-lightbulb"></i> Theme/Idea' : 
+                            lang === 'es' ? '<i class="fa-solid fa-lightbulb"></i> Tema/Idea' : 
+                                            '<i class="fa-solid fa-lightbulb"></i> Tema/Ideia';
+        tabs[1].innerHTML = lang === 'en' ? '<i class="fa-solid fa-align-left"></i> Full Text' : 
+                            lang === 'es' ? '<i class="fa-solid fa-align-left"></i> Texto Completo' : 
+                                            '<i class="fa-solid fa-align-left"></i> Texto Completo';
+        tabs[2].innerHTML = lang === 'en' ? '<i class="fa-solid fa-file-pdf"></i> Upload PDF' : 
+                            lang === 'es' ? '<i class="fa-solid fa-file-pdf"></i> Subir PDF' : 
+                                            '<i class="fa-solid fa-file-pdf"></i> Enviar PDF';
+    }
+    
+    const labelTheme = document.querySelector('label[for="theme-input"]');
+    if (labelTheme) labelTheme.textContent = lang === 'en' ? 'What is the main idea or theme of your story?' : 
+                                             lang === 'es' ? '¿Cuál es la idea principal o tema de tu historia?' : 
+                                                             'Qual é a ideia principal ou tema da sua história?';
+                                                             
+    const labelText = document.querySelector('label[for="text-input"]');
+    if (labelText) labelText.textContent = lang === 'en' ? 'Paste or type your story text' : 
+                                            lang === 'es' ? 'Pegue o escriba el texto de su historia' : 
+                                                            'Cole ou digite o texto da sua história';
+                                                            
+    const labelPdf = document.querySelector('#group-pdf label');
+    if (labelPdf) labelPdf.textContent = lang === 'en' ? 'Select a PDF file to serve as script' : 
+                                         lang === 'es' ? 'Seleccione un archivo PDF para servir de guión' : 
+                                                         'Selecione um arquivo PDF para servir de roteiro';
+                                                         
+    const dropZoneText = document.querySelector('.file-drop-zone p');
+    if (dropZoneText) dropZoneText.innerHTML = lang === 'en' ? 'Drag your PDF here or <span style="color:#a78bfa; text-decoration: underline;">click to choose</span>' : 
+                                               lang === 'es' ? 'Arrastre su PDF aquí o <span style="color:#a78bfa; text-decoration: underline;">haga clic para elegir</span>' : 
+                                                               'Arraste seu PDF aqui ou <span style="color:#a78bfa; text-decoration: underline;">clique para escolher</span>';
+                                                               
+    const labelGenre = document.querySelector('label[for="genre-select"]');
+    if (labelGenre) labelGenre.innerHTML = lang === 'en' ? '<i class="fa-solid fa-masks-theater"></i> Story Style/Genre' : 
+                                           lang === 'es' ? '<i class="fa-solid fa-masks-theater"></i> Estilo/Género de la Historia' : 
+                                                           '<i class="fa-solid fa-masks-theater"></i> Estilo/Gênero da História';
+                                                           
+    const labelDur = document.querySelector('label[for="duration-select"]');
+    if (labelDur) labelDur.innerHTML = lang === 'en' ? '<i class="fa-solid fa-clock"></i> Estimated Duration' : 
+                                       lang === 'es' ? '<i class="fa-solid fa-clock"></i> Duración Estimada' : 
+                                                       '<i class="fa-solid fa-clock"></i> Duração Estimada';
+                                                       
+    const labelVoice = document.querySelector('label[for="voice-select"]');
+    if (labelVoice) labelVoice.innerHTML = lang === 'en' ? '<i class="fa-solid fa-circle-user"></i> Narrator Voice' : 
+                                           lang === 'es' ? '<i class="fa-solid fa-circle-user"></i> Voz del Narrador' : 
+                                                           '<i class="fa-solid fa-circle-user"></i> Voz do Narrador';
+                                                           
+    dom.btnGenerate.innerHTML = t.generateBtn;
+    dom.btnNewStory.innerHTML = t.newStoryBtn;
+    dom.themeInput.placeholder = t.themePlaceholder;
+    dom.textInput.placeholder = t.textPlaceholder;
+    
+    const subClassicOpt = document.querySelector('#subtitle-style-select option[value="classic"]');
+    const subNeonOpt = document.querySelector('#subtitle-style-select option[value="neon"]');
+    const subMinOpt = document.querySelector('#subtitle-style-select option[value="minimalist"]');
+    const subKaraokeOpt = document.querySelector('#subtitle-style-select option[value="karaoke"]');
+
+    if (subClassicOpt) subClassicOpt.textContent = t.subStyleClassic;
+    if (subNeonOpt) subNeonOpt.textContent = t.subStyleNeon;
+    if (subMinOpt) subMinOpt.textContent = t.subStyleMinimalist;
+    if (subKaraokeOpt) subKaraokeOpt.textContent = t.subStyleKaraoke;
+
+    if (dom.historyTitleLabel) {
+        dom.historyTitleLabel.innerHTML = `<i class="fa-solid fa-folder-open"></i> ${t.historyTitle}`;
+    }
+
+    document.getElementById('global-lang-select').value = lang;
+}
+
+// History System
+function getSavedNarratives() {
+    const data = localStorage.getItem('paradise_narratives');
+    if (data) {
+        try {
+            return JSON.parse(data) || [];
+        } catch (e) {
+            return [];
+        }
+    }
+    return [];
+}
+
+function saveNarrativeToHistory(narrative) {
+    let narratives = getSavedNarratives();
+    if (!narrative.id) {
+        narrative.id = 'narrative_' + Date.now();
+    }
+    if (!narrative.timestamp) {
+        narrative.timestamp = new Date().toLocaleString();
+    }
+    if (!narrative.genre) {
+        narrative.genre = dom.genreSelect.value;
+    }
+    if (!narrative.duration) {
+        narrative.duration = dom.durationSelect.value;
+    }
+    if (!narrative.voice) {
+        narrative.voice = dom.voiceSelect.value;
+    }
+    const idx = narratives.findIndex(n => n.id === narrative.id);
+    if (idx !== -1) {
+        narratives[idx] = narrative;
+    } else {
+        narratives.unshift(narrative);
+    }
+    if (narratives.length > 10) {
+        narratives = narratives.slice(0, 10);
+    }
+    localStorage.setItem('paradise_narratives', JSON.stringify(narratives));
+    renderHistoryList();
+}
+
+function deleteNarrativeFromHistory(id, event) {
+    if (event) event.stopPropagation();
+    const t = getT();
+    if (!confirm(t.deleteNarrativeConfirm)) return;
+    
+    let narratives = getSavedNarratives();
+    narratives = narratives.filter(n => n.id !== id);
+    localStorage.setItem('paradise_narratives', JSON.stringify(narratives));
+    renderHistoryList();
+}
+
+function loadNarrativeFromHistory(id) {
+    const narratives = getSavedNarratives();
+    const narrative = narratives.find(n => n.id === id);
+    if (narrative) {
+        state.narrativeData = narrative;
+        state.currentSceneIdx = 0;
+        state.isPlaying = false;
+        
+        dom.setupPanel.style.display = 'none';
+        dom.theaterArena.style.display = 'flex';
+        
+        dom.storyTitle.textContent = narrative.title || "Narrativa";
+        
+        const genre = narrative.genre || 'fantasia';
+        let genreText = "Fantasia";
+        for (let i = 0; i < dom.genreSelect.options.length; i++) {
+            if (dom.genreSelect.options[i].value === genre) {
+                genreText = dom.genreSelect.options[i].text.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').trim();
+                break;
+            }
+        }
+        dom.storyBadge.textContent = genreText;
+        
+        applyAmbientEffects(genre);
+        renderPlaylist();
+        loadScene(0);
+    }
+}
+
+function renderHistoryList() {
+    if (!dom.historyPanel || !dom.historyList) return;
+    const narratives = getSavedNarratives();
+    const t = getT();
+    
+    if (narratives.length === 0) {
+        dom.historyPanel.style.display = 'none';
+        return;
+    }
+    
+    dom.historyPanel.style.display = 'block';
+    dom.historyList.innerHTML = '';
+    
+    narratives.forEach(narrative => {
+        const card = document.createElement('div');
+        card.style.padding = '1.25rem';
+        card.style.background = 'rgba(255, 255, 255, 0.03)';
+        card.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+        card.style.borderRadius = '14px';
+        card.style.boxShadow = '0 10px 20px rgba(0, 0, 0, 0.15)';
+        card.style.cursor = 'pointer';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.gap = '0.5rem';
+        card.style.transition = 'all 0.2s ease-in-out';
+        card.style.backdropFilter = 'blur(10px)';
+        
+        card.onmouseenter = () => {
+            card.style.transform = 'translateY(-3px)';
+            card.style.borderColor = 'rgba(167, 139, 250, 0.5)';
+            card.style.background = 'rgba(167, 139, 250, 0.04)';
+            card.style.boxShadow = '0 15px 30px rgba(167, 139, 250, 0.08)';
+        };
+        card.onmouseleave = () => {
+            card.style.transform = 'none';
+            card.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+            card.style.background = 'rgba(255, 255, 255, 0.03)';
+            card.style.boxShadow = '0 10px 20px rgba(0, 0, 0, 0.15)';
+        };
+        
+        card.onclick = () => loadNarrativeFromHistory(narrative.id);
+        
+        const title = document.createElement('h4');
+        title.style.fontSize = '1.05rem';
+        title.style.fontWeight = '600';
+        title.style.color = '#f8fafc';
+        title.style.margin = '0';
+        title.style.lineHeight = '1.3';
+        title.textContent = narrative.title || "Narrativa sem título";
+        
+        const meta = document.createElement('div');
+        meta.style.fontSize = '0.8rem';
+        meta.style.color = 'var(--text-secondary)';
+        meta.style.display = 'flex';
+        meta.style.gap = '0.5rem';
+        
+        const sceneCount = narrative.segments ? narrative.segments.length : 0;
+        const durationText = narrative.duration ? `${narrative.duration} ${t.minutesText}` : '';
+        meta.innerHTML = `<span style="color: var(--accent-pink);">${sceneCount} ${t.scenesText}</span> · <span>${durationText}</span> · <span>${narrative.timestamp || ''}</span>`;
+        
+        const footer = document.createElement('div');
+        footer.style.display = 'flex';
+        footer.style.justifyContent = 'space-between';
+        footer.style.alignItems = 'center';
+        footer.style.marginTop = '0.5rem';
+        footer.style.gap = '0.5rem';
+        
+        const genre = narrative.genre || 'fantasia';
+        let genreLabel = "Fantasia";
+        for (let i = 0; i < dom.genreSelect.options.length; i++) {
+            if (dom.genreSelect.options[i].value === genre) {
+                genreLabel = dom.genreSelect.options[i].text.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').trim();
+                break;
+            }
+        }
+        
+        const originLabel = document.createElement('span');
+        originLabel.style.fontSize = '0.75rem';
+        originLabel.style.color = 'rgba(255, 255, 255, 0.4)';
+        originLabel.textContent = genreLabel;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.style.background = 'rgba(239, 68, 68, 0.1)';
+        deleteBtn.style.border = '1px solid rgba(239, 68, 68, 0.2)';
+        deleteBtn.style.color = '#ef4444';
+        deleteBtn.style.padding = '0.35rem 0.65rem';
+        deleteBtn.style.fontSize = '0.8rem';
+        deleteBtn.style.borderRadius = '6px';
+        deleteBtn.style.cursor = 'pointer';
+        deleteBtn.style.transition = 'all 0.15s';
+        deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+        
+        deleteBtn.onmouseenter = () => {
+            deleteBtn.style.background = 'rgba(239, 68, 68, 0.2)';
+        };
+        deleteBtn.onmouseleave = () => {
+            deleteBtn.style.background = 'rgba(239, 68, 68, 0.1)';
+        };
+        
+        deleteBtn.onclick = (e) => deleteNarrativeFromHistory(narrative.id, e);
+        
+        footer.appendChild(originLabel);
+        footer.appendChild(deleteBtn);
+        
+        card.appendChild(title);
+        card.appendChild(meta);
+        card.appendChild(footer);
+        
+        dom.historyList.appendChild(card);
+    });
+}
+
+// Initializer
+document.addEventListener('DOMContentLoaded', () => {
+    setupEvents();
+    
+    const activeLang = getActiveLanguage();
+    applyLanguageUpdates(activeLang);
+    renderHistoryList();
+    
+    document.getElementById('global-lang-select').addEventListener('change', (e) => {
+        applyLanguageUpdates(e.target.value);
+        renderHistoryList();
+    });
+});
