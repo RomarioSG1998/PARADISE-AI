@@ -10,6 +10,25 @@ O Hub está estruturado sob os seguintes pilares:
 *   **Acesso do Portal:** `http://localhost:5000/` (Dashboard com os apps disponíveis e configuração unificada).
 *   **Chat Advanced Pro:** `http://localhost:5000/chat` (Primeiro aplicativo operacional de chat conversacional e geração de mídia).
 *   **Sessão Unificada (.env):** Os cookies de sessão da conta Google One Premium são compartilhados de forma transparente por todos os aplicativos do Hub.
+*   **Suporte Multi-AI (G4F):** Além do Gemini, o sistema conta com integração oficial com GPT/Copilot e modelos de acesso gratuito como OperaAria, utilizando redirecionamento transparente.
+
+---
+
+## 🤖 Integração Multi-Provider (GPT, Copilot e Opera)
+
+Para garantir estabilidade e alta disponibilidade, a plataforma não depende apenas de um provedor. O serviço `ai_service.py` possui fallback de contas e suporta múltiplos modelos de IA usando a biblioteca `g4f` (GPT4Free) quando a conta atualizada for definida como tipo `gpt` ou `copilot`.
+
+### 1. G4F Client Wrapper (`G4FClientWrapper`)
+Quando uma conta no banco de dados tem o `provider` definido como `gpt` ou `copilot`, a requisição é interceptada por um *wrapper* que traduz o prompt para a API do G4F:
+- **Copilot:** Utiliza o provedor `g4f.Provider.Bing`. A chave principal de autenticação é repassada via cookies (`_U = secure_1psid`).
+- **Opera / Flux:** Quando o provedor precisa gerar imagens de forma gratuita e rápida, o fallback utiliza o `OperaAria` com o modelo `flux`.
+
+### 2. Pipeline de Imagem Padronizado (16:9)
+Diferente do Gemini (Imagen 3) que já gera imagens cinematográficas na proporção exata 16:9, os provedores externos (DALL-E 3 via Copilot ou Flux via Opera) podem gerar em 1:1 ou 4:3, quebrando a estética do player do Classroom/Narrador. Para consertar isso, implementamos um pipeline híbrido em três etapas no backend:
+1. **Hinting Widescreen:** Injetamos um sufixo imperativo (`"widescreen 16:9 cinematic horizontal landscape format"`) no prompt e forçamos `width=1280` e `height=720` (ou `size="1792x1024"` no DALL-E 3).
+2. **Download em Tempo de Execução:** O Python faz uma requisição local `urllib.request` até a CDN externa da Opera/Microsoft e baixa os bytes originais da imagem para o backend.
+3. **Normalização com Pillow:** Se as dimensões baixadas não corresponderem a uma proporção exata de 16:9, a biblioteca `Pillow` é engatilhada para calcular o *aspect ratio*, redimensionar cobrindo a área máxima (`LANCZOS`) e executar um *Crop Central* perfeito para `1280x720`.
+4. **Cache em Memória:** Os bytes finais em JPEG são armazenados no `image_cache` do servidor e devolvidos ao frontend como `/api/image-cache/{uuid}` — criando um comportamento de resposta local **idêntico ao Gemini original**.
 
 ---
 

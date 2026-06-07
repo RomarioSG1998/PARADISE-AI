@@ -179,7 +179,7 @@ async def generate_text_unified_async(prompt, username=None):
     except Exception as e:
         return None, str(e)
 
-async def generate_image_unified_async(prompt, username=None):
+async def generate_image_unified_async(prompt, username=None, output_format="youtube"):
     load_dotenv(ENV_PATH, override=True)
     gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
     
@@ -188,12 +188,14 @@ async def generate_image_unified_async(prompt, username=None):
             from google import genai
             official_client = genai.Client(api_key=gemini_api_key)
             print(f"[Paradise AI] Generating image via Imagen 3: {prompt}")
+            aspect_ratio = "16:9" if output_format == "youtube" else "9:16"
             result = official_client.models.generate_images(
                 model='imagen-3.0-generate-002',
                 prompt=prompt,
                 config=dict(
                     number_of_images=1,
-                    output_mime_type="image/jpeg"
+                    output_mime_type="image/jpeg",
+                    aspect_ratio=aspect_ratio
                 )
             )
             if result.generated_images:
@@ -218,35 +220,38 @@ async def generate_image_unified_async(prompt, username=None):
             import g4f.Provider
             g4f_client = AsyncClient()
 
-            # Injetar hint de proporção 16:9 no prompt para qualquer provedor G4F
-            widescreen_hint = "widescreen 16:9 cinematic horizontal landscape format, ultra-wide composition"
-            prompt_16x9 = f"{prompt}, {widescreen_hint}"
+            if output_format == "stories":
+                format_hint = "vertical 9:16 smartphone portrait format, tall vertical composition"
+                target_w, target_h = 720, 1280
+            else:
+                format_hint = "widescreen 16:9 cinematic horizontal landscape format, ultra-wide composition"
+                target_w, target_h = 1280, 720
+                
+            prompt_formatted = f"{prompt}, {format_hint}"
 
             if client.provider_type == "copilot" and client.account_data.get("secure_1psid"):
                 import g4f.cookies
                 g4f.cookies.set_cookies(".bing.com", {"_U": client.account_data["secure_1psid"]})
-                # DALL-E 3 suporta size="1792x1024" que é aprox. 16:9
+                
+                size_str = "1024x1792" if output_format == "stories" else "1792x1024"
                 try:
                     img_response = await g4f_client.images.generate(
-                        model='dall-e-3', prompt=prompt_16x9, size="1792x1024"
+                        model='dall-e-3', prompt=prompt_formatted, size=size_str
                     )
                 except Exception:
-                    # Fallback sem parâmetro size se o provedor não suportar
                     img_response = await g4f_client.images.generate(
-                        model='dall-e-3', prompt=prompt_16x9
+                        model='dall-e-3', prompt=prompt_formatted
                     )
             else:
-                # OperaAria/Flux — tenta com width/height 16:9
                 try:
                     img_response = await g4f_client.images.generate(
-                        model='flux', prompt=prompt_16x9,
+                        model='flux', prompt=prompt_formatted,
                         provider=g4f.Provider.OperaAria,
-                        width=1280, height=720
+                        width=target_w, height=target_h
                     )
                 except Exception:
-                    # Fallback sem parâmetros de dimensão
                     img_response = await g4f_client.images.generate(
-                        model='flux', prompt=prompt_16x9, provider=g4f.Provider.OperaAria
+                        model='flux', prompt=prompt_formatted, provider=g4f.Provider.OperaAria
                     )
 
             if img_response and img_response.data:
@@ -265,11 +270,11 @@ async def generate_image_unified_async(prompt, username=None):
                     with urllib.request.urlopen(req, timeout=20) as resp:
                         raw_bytes = resp.read()
 
-                    # Redimensionar/cortar para 16:9 exato (mesmo padrão do Gemini)
+                    # Redimensionar/cortar para a proporção exata alvo
                     try:
                         from PIL import Image as PILImage
                         pil_img = PILImage.open(io.BytesIO(raw_bytes)).convert("RGB")
-                        target_w, target_h = 1280, 720
+
                         src_w, src_h = pil_img.size
                         src_ratio = src_w / src_h
                         target_ratio = target_w / target_h
@@ -295,7 +300,7 @@ async def generate_image_unified_async(prompt, username=None):
                         buf = io.BytesIO()
                         pil_img.save(buf, format="JPEG", quality=90)
                         img_bytes = buf.getvalue()
-                        print(f"[Paradise AI] G4F image normalized to 1280x720 (16:9)")
+                        print(f"[Paradise AI] G4F image normalized to {target_w}x{target_h}")
                     except ImportError:
                         # Pillow não disponível — usa bytes originais
                         img_bytes = raw_bytes

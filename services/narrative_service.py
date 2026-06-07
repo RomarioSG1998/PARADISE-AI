@@ -4,10 +4,9 @@ from services.ai_service import generate_text_unified_async, generate_image_unif
 
 async def generate_narrative_async(content: str, genre: str, duration_min: int, voice_id: str, language: str = "pt", output_format: str = "youtube", username=None):
     # Set segments count based on duration
-    # 1 min -> 3 segments (~45 words per segment, total ~135 words)
-    # 2 min -> 6 segments (~45 words per segment, total ~270 words)
-    # 3 min -> 9 segments (~45 words per segment, total ~400 words)
-    num_segments = max(3, min(12, int(duration_min) * 3))
+    # We estimate ~3 segments per minute (each ~45 words)
+    # Allows scaling up to e.g. 10 minutes = 30 scenes
+    num_segments = max(3, min(60, int(duration_min) * 3))
 
     # Match genre styles for stable diffusion/imagen prompts
     genre_styles = {
@@ -95,7 +94,7 @@ Return only the valid JSON block, without any additional text before or after. W
         # Inject style modifier corresponding to the genre
         full_img_prompt = f"{img_prompt}. ({style_modifier}, no text, no letters, cinematic composition, atmospheric lighting, detailed artwork)"
 
-        img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username)
+        img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username, output_format=output_format)
         if img_url:
             segment["image_url"] = img_url
         else:
