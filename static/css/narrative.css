@@ -555,9 +555,17 @@ header {
     padding: 1rem 1.5rem;
     backdrop-filter: blur(10px);
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+}
+
+.media-controls-bottom {
+    display: flex;
     justify-content: space-between;
-    gap: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .controls-left, .controls-center, .controls-right {
@@ -571,13 +579,13 @@ header {
 }
 
 .controls-right {
-    gap: 1rem;
-    min-width: 250px;
+    gap: 0.75rem;
     justify-content: flex-end;
+    flex-wrap: wrap;
 }
 
 .controls-center {
-    flex: 1;
+    width: 100%;
     gap: 0.75rem;
 }
 
@@ -1060,5 +1068,174 @@ header {
     width: 80% !important;
     left: 10% !important;
     right: 10% !important;
+}
+
+/* Horror Overlay Effects (Spooky Cinema Overlays) */
+.horror-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+    mix-blend-mode: normal;
+    transition: all 0.3s ease;
+    opacity: 0;
+}
+
+.horror-overlay.active {
+    opacity: 1;
+}
+
+/* VHS Glitch Effect */
+.horror-overlay.effect-vhs {
+    opacity: 0;
+    background: 
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05) 1px, transparent 2px, transparent 4px),
+        linear-gradient(to bottom, transparent 95%, rgba(255, 255, 255, 0.4) 95%, rgba(255, 255, 255, 0.4) 97%, transparent 97%);
+    background-size: 100% 100%, 100% 600px;
+}
+.horror-overlay.effect-vhs.active {
+    opacity: 0.85;
+    animation: vhs-tracking 6s linear infinite, vhs-glitch-flicker 0.2s infinite;
+}
+@keyframes vhs-tracking {
+    0% { background-position: 0 0, 0 0; }
+    100% { background-position: 0 0, 0 600px; }
+}
+@keyframes vhs-glitch-flicker {
+    0% { filter: hue-rotate(0deg) contrast(1.1) skewX(0deg); }
+    20% { filter: hue-rotate(90deg) contrast(1.3) skewX(1deg); }
+    40% { filter: hue-rotate(180deg) contrast(1) skewX(-0.5deg); }
+    60% { filter: hue-rotate(270deg) contrast(1.2) skewX(0.5deg); }
+    80% { filter: hue-rotate(0deg) contrast(1.1) skewX(-1deg); }
+    100% { filter: hue-rotate(360deg) contrast(1.15) skewX(0deg); }
+}
+
+/* REC / Night Vision Effect */
+.horror-overlay.effect-rec {
+    opacity: 0;
+}
+.horror-overlay.effect-rec.active {
+    opacity: 1;
+    background: 
+        radial-gradient(circle, transparent 35%, rgba(0, 40, 0, 0.65) 90%),
+        repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.08), rgba(0, 255, 0, 0.08) 1px, transparent 2px, transparent 4px);
+    filter: brightness(1.2) contrast(1.25) sepia(1) hue-rotate(85deg) saturate(2);
+}
+.horror-overlay.effect-rec::after {
+    content: "● REC   1080p\A\A[ IIIII ] 98%";
+    white-space: pre-wrap;
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #ff0000;
+    text-shadow: 0 0 5px #ff0000;
+    pointer-events: none;
+    opacity: 0;
+    line-height: 1.2;
+}
+.horror-overlay.effect-rec.active::after {
+    opacity: 1;
+    animation: rec-blink 1s infinite steps(2);
+}
+@keyframes rec-blink {
+    0% { color: #ff0000; text-shadow: 0 0 5px #ff0000; }
+    50% { color: #00ff00; text-shadow: 0 0 5px #00ff00; }
+}
+
+
+
+/* Satanic Crimson Glow (Suspiria Ritual) */
+.horror-overlay.effect-ritual {
+    opacity: 0;
+}
+.horror-overlay.effect-ritual.active {
+    opacity: 0.75;
+    background: radial-gradient(circle, rgba(139, 0, 0, 0.2) 20%, rgba(20, 0, 0, 0.95) 90%);
+    mix-blend-mode: color-burn;
+    animation: ritual-glow 4s ease-in-out infinite alternate;
+}
+@keyframes ritual-glow {
+    0% { opacity: 0.65; filter: contrast(1.2) saturate(1.5); }
+    100% { opacity: 0.85; filter: contrast(1.5) saturate(2); }
+}
+
+/* Insanity/Psychological Aberration */
+.horror-overlay.effect-insanity {
+    opacity: 0;
+}
+.horror-overlay.effect-insanity.active {
+    opacity: 0.7;
+    background: radial-gradient(circle, transparent 20%, rgba(0, 0, 0, 0.85) 85%);
+    backdrop-filter: blur(2px);
+    animation: insanity-pulsate 3s ease-in-out infinite alternate;
+}
+@keyframes insanity-pulsate {
+    0% { backdrop-filter: blur(0px); filter: contrast(1) saturate(1); }
+    100% { backdrop-filter: blur(5px); filter: contrast(1.4) saturate(0.5) hue-rotate(15deg); }
+}
+
+/* Image Cinematic Animations */
+.screen-canvas img.reveal.anim-zoom {
+    animation: ken-burns-zoom 25s ease-in-out infinite alternate;
+}
+@keyframes ken-burns-zoom {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.12); }
+}
+
+.screen-canvas img.reveal.anim-shake {
+    animation: horror-shake 0.3s infinite;
+}
+@keyframes horror-shake {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    10% { transform: translate(-2px, -1px) rotate(-0.5deg); }
+    20% { transform: translate(-3px, 0px) rotate(0.5deg); }
+    30% { transform: translate(0px, 2px) rotate(0deg); }
+    40% { transform: translate(2px, -1px) rotate(0.5deg); }
+    50% { transform: translate(-1px, 2px) rotate(-0.5deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(2px, 1px) rotate(-0.5deg); }
+    80% { transform: translate(-1px, -1px) rotate(0.5deg); }
+    90% { transform: translate(2px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-0.5deg); }
+}
+
+.screen-canvas img.reveal.anim-heartbeat {
+    animation: horror-heartbeat 1.6s infinite ease-in-out;
+}
+@keyframes horror-heartbeat {
+    0% { transform: scale(1); }
+    14% { transform: scale(1.06); }
+    28% { transform: scale(1.02); }
+    42% { transform: scale(1.08); }
+    70% { transform: scale(1); }
+    100% { transform: scale(1); }
+}
+
+.screen-canvas img.reveal.anim-blur {
+    animation: ghost-blur 6s ease-in-out infinite alternate;
+}
+@keyframes ghost-blur {
+    0% { filter: blur(0px) brightness(1); }
+    50% { filter: blur(6px) brightness(0.75); }
+    100% { filter: blur(0px) brightness(1.1); }
+}
+
+.screen-canvas img.reveal.anim-glitch {
+    animation: horror-glitch 0.25s infinite;
+}
+@keyframes horror-glitch {
+    0% { transform: skewX(0deg) scale(1); filter: hue-rotate(0deg); }
+    10% { transform: skewX(-5deg) scale(1.02); filter: hue-rotate(30deg); }
+    20% { transform: skewX(5deg) scale(0.98); filter: hue-rotate(-30deg); }
+    30% { transform: skewX(-2deg) scale(1.01); filter: hue-rotate(0deg); }
+    40% { transform: skewX(0deg) scale(1); }
+    100% { transform: skewX(0deg) scale(1); }
 }
 

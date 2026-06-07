@@ -69,7 +69,15 @@ const dom = {
     btnFullscreen: document.getElementById('btn-fullscreen'),
     
     loadingStepTitle: document.getElementById('loading-step-title'),
-    loadingStepDesc: document.getElementById('loading-step-desc')
+    loadingStepDesc: document.getElementById('loading-step-desc'),
+    
+    thumbnailImg: document.getElementById('thumbnail-img'),
+    thumbnailPlaceholder: document.getElementById('thumbnail-placeholder'),
+    btnDownloadThumbnail: document.getElementById('btn-download-thumbnail'),
+    btnChangeThumbnail: document.getElementById('btn-change-thumbnail'),
+    horrorEffectSelect: document.getElementById('horror-effect-select'),
+    horrorOverlay: document.getElementById('horror-overlay'),
+    imageAnimationSelect: document.getElementById('image-animation-select')
 };
 
 // Translations
@@ -252,6 +260,11 @@ function applyAmbientEffects(genre) {
 async function loadScene(idx) {
     if (!state.narrativeData || !state.narrativeData.segments || idx < 0 || idx >= state.narrativeData.segments.length) return;
     
+    // Apply current horror effect on scene change (handles auto, random, and specific effects)
+    if (dom.horrorEffectSelect) {
+        applyHorrorEffect(dom.horrorEffectSelect.value);
+    }
+    
     state.currentSceneIdx = idx;
     const segment = state.narrativeData.segments[idx];
     const t = getT();
@@ -278,6 +291,9 @@ async function loadScene(idx) {
         }
         dom.screenImage.onload = () => {
             dom.screenImage.classList.add('reveal');
+            if (dom.imageAnimationSelect) {
+                applyImageAnimation(dom.imageAnimationSelect.value);
+            }
         };
         dom.screenImage.src = proxyUrl;
         dom.screenBackplate.style.backgroundImage = `url('${proxyUrl}')`;
@@ -480,6 +496,7 @@ function setupEvents() {
         formData.append('genre', dom.genreSelect.value);
         formData.append('duration', dom.durationSelect.value);
         formData.append('voice', dom.voiceSelect.value);
+        formData.append('language', getActiveLanguage());
         
         if (state.currentType === 'theme') {
             formData.append('content', dom.themeInput.value.trim());
@@ -518,8 +535,16 @@ function setupEvents() {
             dom.storyBadge.textContent = dom.genreSelect.options[dom.genreSelect.selectedIndex].text.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').trim();
             
             applyAmbientEffects(dom.genreSelect.value);
+            // Apply selected or automatic genre-based effects/animations
+            if (dom.horrorEffectSelect) {
+                applyHorrorEffect(dom.horrorEffectSelect.value);
+            }
+            if (dom.imageAnimationSelect) {
+                applyImageAnimation(dom.imageAnimationSelect.value);
+            }
             renderPlaylist();
             loadScene(0);
+            updateThumbnailUI();
             saveNarrativeToHistory(state.narrativeData);
         } catch (e) {
             clearTimeout(stepInterval);
@@ -600,7 +625,8 @@ function setupEvents() {
     
     // Volume Control
     dom.volumeSlider.addEventListener('input', () => {
-        const vol = dom.volumeSlider.value / 100;
+        const volVal = dom.volumeSlider.value;
+        const vol = volVal / 100;
         dom.audioEl.volume = vol;
         if (vol === 0) {
             dom.volumeIcon.className = "fa-solid fa-volume-xmark";
@@ -609,14 +635,16 @@ function setupEvents() {
         } else {
             dom.volumeIcon.className = "fa-solid fa-volume-high";
         }
+        localStorage.setItem('narrative_volume', volVal);
     });
     
     // Playback Speed Rate
     dom.speedSelect.addEventListener('change', () => {
-        dom.audioEl.playbackRate = parseFloat(dom.speedSelect.value);
+        const speedVal = dom.speedSelect.value;
+        dom.audioEl.playbackRate = parseFloat(speedVal);
+        localStorage.setItem('narrative_speed', speedVal);
     });
     
-    // Reset to New Story
     dom.btnNewStory.addEventListener('click', () => {
         dom.audioEl.pause();
         dom.audioEl.src = '';
@@ -632,12 +660,14 @@ function setupEvents() {
         dom.pdfFileInput.value = '';
         dom.selectedFilename.style.display = 'none';
         dom.btnGenerate.disabled = true;
+        resetThumbnailUI();
     });
     
     // Subtitle Toggle Click
     if (dom.btnToggleSubtitles) {
         dom.btnToggleSubtitles.addEventListener('click', () => {
             state.subtitlesVisible = !state.subtitlesVisible;
+            localStorage.setItem('narrative_subtitles_visible', state.subtitlesVisible);
             if (state.subtitlesVisible) {
                 dom.subtitleOverlay.style.display = 'block';
                 dom.btnToggleSubtitles.style.opacity = '1';
@@ -657,10 +687,8 @@ function setupEvents() {
             dom.subtitleOverlay.classList.remove('sub-style-classic', 'sub-style-neon', 'sub-style-minimalist', 'sub-style-karaoke');
             dom.subtitleOverlay.classList.add(`sub-style-${style}`);
             state.currentSubtitleStyle = style;
+            localStorage.setItem('narrative_subtitle_style', style);
         });
-        
-        // Initial setup
-        dom.subtitleOverlay.classList.add('sub-style-classic');
     }
 
     // Mic dictation binding
@@ -677,23 +705,24 @@ function setupEvents() {
     if (dom.btnFullscreen) {
         let hideControlsTimeout;
         const controls = document.querySelector('.media-controls');
-        
+
+        function hideControls() {
+            if (controls) {
+                controls.style.opacity = '0';
+                controls.style.pointerEvents = 'none';
+            }
+            document.body.style.cursor = 'none';
+        }
+
         function showControls() {
             if (controls) {
                 controls.style.opacity = '1';
                 controls.style.pointerEvents = 'auto';
             }
             document.body.style.cursor = 'default';
-            
             clearTimeout(hideControlsTimeout);
             if (document.fullscreenElement) {
-                hideControlsTimeout = setTimeout(() => {
-                    if (controls) {
-                        controls.style.opacity = '0';
-                        controls.style.pointerEvents = 'none';
-                    }
-                    document.body.style.cursor = 'none';
-                }, 3000); // hide controls after 3 seconds of idle mouse
+                hideControlsTimeout = setTimeout(hideControls, 3000);
             }
         }
 
@@ -710,18 +739,17 @@ function setupEvents() {
                 dom.btnFullscreen.innerHTML = '<i class="fa-solid fa-expand"></i>';
             }
         });
-        
+
         document.addEventListener('fullscreenchange', () => {
             const container = document.querySelector('.theater-screen');
             if (document.fullscreenElement === container) {
                 dom.btnFullscreen.innerHTML = '<i class="fa-solid fa-compress"></i>';
                 container.addEventListener('mousemove', showControls);
-                showControls();
+                // Hide controls immediately on entry — show only on mouse movement
+                hideControls();
             } else {
                 dom.btnFullscreen.innerHTML = '<i class="fa-solid fa-expand"></i>';
-                if (container) {
-                    container.removeEventListener('mousemove', showControls);
-                }
+                if (container) container.removeEventListener('mousemove', showControls);
                 clearTimeout(hideControlsTimeout);
                 if (controls) {
                     controls.style.opacity = '1';
@@ -729,6 +757,54 @@ function setupEvents() {
                 }
                 document.body.style.cursor = 'default';
             }
+        });
+    }
+
+    // ─── Keyboard Controls ───────────────────────────────────────────────────
+    document.addEventListener('keydown', (e) => {
+        // Only active when the theater is visible; ignore if typing in an input
+        if (dom.theaterArena.style.display === 'none') return;
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+        switch (e.code) {
+            case 'Space':
+                e.preventDefault();
+                if (dom.btnPlay) dom.btnPlay.click();
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                if (dom.btnNext && !dom.btnNext.disabled) dom.btnNext.click();
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                if (dom.btnPrev && !dom.btnPrev.disabled) dom.btnPrev.click();
+                break;
+            case 'KeyF':
+                e.preventDefault();
+                if (dom.btnFullscreen) dom.btnFullscreen.click();
+                break;
+            case 'Escape':
+                if (document.fullscreenElement) document.exitFullscreen();
+                break;
+        }
+    });
+
+    // Horror Effect Selector Change
+    if (dom.horrorEffectSelect) {
+        dom.horrorEffectSelect.addEventListener('change', () => {
+            const val = dom.horrorEffectSelect.value;
+            applyHorrorEffect(val);
+            localStorage.setItem('narrative_horror_effect', val);
+        });
+    }
+
+    // Image Animation Selector Change
+    if (dom.imageAnimationSelect) {
+        dom.imageAnimationSelect.addEventListener('change', () => {
+            const val = dom.imageAnimationSelect.value;
+            applyImageAnimation(val);
+            localStorage.setItem('narrative_image_animation', val);
         });
     }
 }// Global Language selectors updates
@@ -821,6 +897,28 @@ function applyLanguageUpdates(lang) {
     }
 
     document.getElementById('global-lang-select').value = lang;
+
+    // Auto-select a compatible narrator voice for the active language
+    // Only switch if the current voice doesn't match the new language
+    if (dom.voiceSelect) {
+        const currentVoice = dom.voiceSelect.value;
+        const isCurrentPt = currentVoice.startsWith('pt-');
+        const isCurrentEn = currentVoice.startsWith('en-');
+        const isCurrentEs = currentVoice.startsWith('es-');
+        const needsSwitch =
+            (lang === 'pt' && !isCurrentPt) ||
+            (lang === 'en' && !isCurrentEn) ||
+            (lang === 'es' && !isCurrentEs);
+        if (needsSwitch) {
+            if (lang === 'en') {
+                dom.voiceSelect.value = 'en-US-AndrewNeural';
+            } else if (lang === 'es') {
+                dom.voiceSelect.value = 'es-ES-AlvaroNeural';
+            } else {
+                dom.voiceSelect.value = 'pt-BR-AntonioNeural';
+            }
+        }
+    }
 }
 
 // History System
@@ -901,8 +999,16 @@ function loadNarrativeFromHistory(id) {
         dom.storyBadge.textContent = genreText;
         
         applyAmbientEffects(genre);
+        // Apply selected or automatic genre-based effects/animations
+        if (dom.horrorEffectSelect) {
+            applyHorrorEffect(dom.horrorEffectSelect.value);
+        }
+        if (dom.imageAnimationSelect) {
+            applyImageAnimation(dom.imageAnimationSelect.value);
+        }
         renderPlaylist();
         loadScene(0);
+        updateThumbnailUI();
     }
 }
 
@@ -1018,6 +1124,340 @@ function renderHistoryList() {
     });
 }
 
+/**
+ * Composes the thumbnail image with the story title overlaid using Canvas API.
+ * Returns a Promise<string> with a data URL (JPEG) of the final composed image.
+ */
+function composeThumbnailWithTitle(imgSrc, title) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const W = 1280, H = 720;  // YouTube standard thumbnail resolution
+            const canvas = document.createElement('canvas');
+            canvas.width = W;
+            canvas.height = H;
+            const ctx = canvas.getContext('2d');
+
+            // Draw background image
+            ctx.drawImage(img, 0, 0, W, H);
+
+            // Gradient overlay for text legibility (bottom half)
+            const grad = ctx.createLinearGradient(0, H * 0.5, 0, H);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(0.4, 'rgba(0,0,0,0.7)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.93)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+
+            // Dynamic font sizing
+            const maxWidth = W - 80;
+            const lineHeight = 84;
+            let fontSize = 74;
+            ctx.font = `900 ${fontSize}px "Impact", "Arial Black", sans-serif`;
+            while (ctx.measureText(title).width > maxWidth && fontSize > 38) {
+                fontSize -= 2;
+                ctx.font = `900 ${fontSize}px "Impact", "Arial Black", sans-serif`;
+            }
+
+            // Word-wrap
+            function wrapText(text, maxW) {
+                const words = text.split(' ');
+                const lines = [];
+                let cur = '';
+                for (const w of words) {
+                    const test = cur ? cur + ' ' + w : w;
+                    if (ctx.measureText(test).width > maxW && cur) {
+                        lines.push(cur);
+                        cur = w;
+                    } else { cur = test; }
+                }
+                if (cur) lines.push(cur);
+                return lines;
+            }
+
+            const lines = wrapText(title.toUpperCase(), maxWidth);
+            const totalH = lines.length * lineHeight;
+            let y = H - 44 - totalH + lineHeight;
+
+            // Shadow
+            ctx.shadowColor = 'rgba(0,0,0,0.98)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 4;
+
+            // Black stroke outline
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = fontSize < 50 ? 6 : 9;
+            ctx.lineJoin = 'round';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+
+            // White → yellow gradient fill (YouTube style)
+            const tGrad = ctx.createLinearGradient(0, y - lineHeight * 0.8, 0, y + totalH);
+            tGrad.addColorStop(0, '#FFFFFF');
+            tGrad.addColorStop(1, '#FFE033');
+
+            for (const line of lines) {
+                ctx.strokeText(line, 40, y);
+                ctx.fillStyle = tGrad;
+                ctx.fillText(line, 40, y);
+                y += lineHeight;
+            }
+
+            ctx.shadowColor = 'transparent';
+            resolve(canvas.toDataURL('image/jpeg', 0.93));
+        };
+        img.onerror = () => reject(new Error('Image load failed'));
+        img.src = imgSrc;
+    });
+}
+
+function updateThumbnailUI() {
+    if (!dom.thumbnailImg || !dom.thumbnailPlaceholder) return;
+    
+    if (state.narrativeData && state.narrativeData.thumbnail_url) {
+        let rawUrl = state.narrativeData.thumbnail_url;
+        let proxyUrl = rawUrl;
+        if (rawUrl && (rawUrl.includes("googleusercontent.com") || rawUrl.includes("google.com"))) {
+            proxyUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
+        }
+
+        const title = (state.narrativeData.title || '').trim();
+        composeThumbnailWithTitle(proxyUrl, title)
+            .then(dataUrl => {
+                state._composedThumbnailDataUrl = dataUrl;
+                dom.thumbnailImg.src = dataUrl;
+                dom.thumbnailImg.style.display = 'block';
+                dom.thumbnailPlaceholder.style.display = 'none';
+                if (dom.btnDownloadThumbnail) dom.btnDownloadThumbnail.disabled = false;
+            })
+            .catch(() => {
+                // Fallback: show raw image without title overlay
+                dom.thumbnailImg.src = proxyUrl;
+                dom.thumbnailImg.style.display = 'block';
+                dom.thumbnailPlaceholder.style.display = 'none';
+                if (dom.btnDownloadThumbnail) dom.btnDownloadThumbnail.disabled = false;
+            });
+    } else {
+        resetThumbnailUI();
+    }
+}
+
+function resetThumbnailUI() {
+    if (dom.thumbnailImg) {
+        dom.thumbnailImg.src = '';
+        dom.thumbnailImg.style.display = 'none';
+    }
+    if (dom.thumbnailPlaceholder) {
+        dom.thumbnailPlaceholder.style.display = 'flex';
+        const lang = localStorage.getItem('paradise_language');
+        dom.thumbnailPlaceholder.textContent = 
+            lang === 'en' ? "No Thumbnail" :
+            lang === 'es' ? "Sin Miniatura" :
+                            "Sem Thumbnail";
+    }
+    if (dom.btnDownloadThumbnail) dom.btnDownloadThumbnail.disabled = true;
+    state._composedThumbnailDataUrl = null;
+}
+
+function applyHorrorEffect(effect) {
+    if (!dom.horrorOverlay) return;
+    
+    // Remove all classes except base 'horror-overlay'
+    dom.horrorOverlay.className = 'horror-overlay';
+    
+    let targetEffect = effect;
+    if (effect === 'auto') {
+        const genre = (state.narrativeData && state.narrativeData.genre) || '';
+        if (genre === 'terror') {
+            targetEffect = 'rec';
+        } else if (genre === 'suspense') {
+            targetEffect = 'vhs';
+        } else {
+            targetEffect = 'none';
+        }
+    }
+    
+    if (targetEffect === 'random') {
+        const effects = ['rec', 'ritual', 'vhs', 'insanity'];
+        // Pick a random effect, avoiding picking the exact same one if possible (optional, simple random is fine)
+        targetEffect = effects[Math.floor(Math.random() * effects.length)];
+    }
+    
+    if (targetEffect && targetEffect !== 'none') {
+        dom.horrorOverlay.classList.add(`effect-${targetEffect}`);
+        dom.horrorOverlay.classList.add('active');
+    }
+}
+
+function applyImageAnimation(anim) {
+    if (!dom.screenImage) return;
+    
+    // Remove all animation classes
+    dom.screenImage.classList.remove('anim-zoom', 'anim-shake', 'anim-heartbeat', 'anim-blur', 'anim-glitch');
+    
+    let targetAnim = anim;
+    if (anim === 'auto') {
+        const genre = (state.narrativeData && state.narrativeData.genre) || '';
+        if (genre === 'terror') {
+            targetAnim = 'shake';
+        } else if (genre === 'suspense') {
+            targetAnim = 'zoom';
+        } else {
+            targetAnim = 'none';
+        }
+    }
+    
+    if (targetAnim && targetAnim !== 'none') {
+        dom.screenImage.classList.add(`anim-${targetAnim}`);
+    }
+}
+
+// Bind Thumbnail Events
+if (dom.btnChangeThumbnail) {
+    dom.btnChangeThumbnail.addEventListener('click', async () => {
+        const customPrompt = prompt(
+            localStorage.getItem('paradise_language') === 'en' 
+                ? "Enter instructions/prompt for the new YouTube thumbnail (or leave blank to regenerate based on story title):" 
+                : localStorage.getItem('paradise_language') === 'es'
+                    ? "Ingrese instrucciones/prompt para la nueva miniatura de YouTube (o deixe en blanco para regenerar según el título):"
+                    : "Digite as instruções/prompt para a nova Thumbnail do YouTube (ou deixe em branco para regenerar baseado no título):"
+        );
+        if (customPrompt === null) return;
+        
+        dom.thumbnailPlaceholder.style.display = 'flex';
+        dom.thumbnailPlaceholder.textContent = 
+            localStorage.getItem('paradise_language') === 'en' ? "Generating..." :
+            localStorage.getItem('paradise_language') === 'es' ? "Generando..." :
+                                                                "Gerando...";
+        dom.thumbnailImg.style.display = 'none';
+        dom.btnChangeThumbnail.disabled = true;
+        dom.btnDownloadThumbnail.disabled = true;
+        
+        try {
+            const res = await fetch('/api/narrative/regenerate-thumbnail', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: state.narrativeData.title,
+                    genre: state.narrativeData.genre || 'fantasia',
+                    custom_prompt: customPrompt,
+                    thumbnail_prompt: state.narrativeData.thumbnail_prompt || ''
+                })
+            });
+            const data = await res.json();
+            if (data.thumbnail_url) {
+                state.narrativeData.thumbnail_url = data.thumbnail_url;
+                updateThumbnailUI();   // re-compose with title overlay
+                saveNarrativeToHistory(state.narrativeData);
+            } else {
+                alert("Erro: " + (data.error || "Nenhuma URL retornada"));
+                resetThumbnailUI();
+            }
+        } catch (err) {
+            console.error("Error regenerating thumbnail:", err);
+            alert("Erro ao regenerar thumbnail.");
+            resetThumbnailUI();
+        } finally {
+            dom.btnChangeThumbnail.disabled = false;
+        }
+    });
+}
+
+if (dom.btnDownloadThumbnail) {
+    dom.btnDownloadThumbnail.addEventListener('click', () => {
+        // Prefer the Canvas-composed version (image + title text)
+        const dataUrl = state._composedThumbnailDataUrl;
+        if (dataUrl) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            const safeTitle = (state.narrativeData?.title || 'thumbnail')
+                .replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 60);
+            a.download = `${safeTitle}_thumbnail.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else if (state.narrativeData && state.narrativeData.thumbnail_url) {
+            let downloadUrl = state.narrativeData.thumbnail_url;
+            if (downloadUrl.includes("googleusercontent.com") || downloadUrl.includes("google.com")) {
+                downloadUrl = `/api/proxy-image?url=${encodeURIComponent(downloadUrl)}`;
+            }
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = 'youtube-thumbnail.jpg';
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    });
+}
+
+function loadSavedSettings() {
+    // 1. Subtitles Visibility
+    const savedSubtitlesVisible = localStorage.getItem('narrative_subtitles_visible');
+    if (savedSubtitlesVisible !== null) {
+        state.subtitlesVisible = savedSubtitlesVisible === 'true';
+    }
+    if (dom.btnToggleSubtitles && dom.subtitleOverlay) {
+        if (state.subtitlesVisible) {
+            dom.subtitleOverlay.style.display = 'block';
+            dom.btnToggleSubtitles.style.opacity = '1';
+            dom.btnToggleSubtitles.style.color = 'var(--accent-pink)';
+        } else {
+            dom.subtitleOverlay.style.display = 'none';
+            dom.btnToggleSubtitles.style.opacity = '0.5';
+            dom.btnToggleSubtitles.style.color = 'var(--text-secondary)';
+        }
+    }
+
+    // 2. Subtitle Style
+    const savedSubtitleStyle = localStorage.getItem('narrative_subtitle_style') || 'classic';
+    state.currentSubtitleStyle = savedSubtitleStyle;
+    if (dom.subtitleStyleSelect && dom.subtitleOverlay) {
+        dom.subtitleStyleSelect.value = savedSubtitleStyle;
+        dom.subtitleOverlay.className = 'subtitle-overlay';
+        dom.subtitleOverlay.classList.add(`sub-style-${savedSubtitleStyle}`);
+    }
+
+    // 3. Horror Effect
+    const savedHorrorEffect = localStorage.getItem('narrative_horror_effect');
+    if (savedHorrorEffect && dom.horrorEffectSelect) {
+        dom.horrorEffectSelect.value = savedHorrorEffect;
+        applyHorrorEffect(savedHorrorEffect);
+    }
+
+    // 4. Image Animation
+    const savedImageAnimation = localStorage.getItem('narrative_image_animation');
+    if (savedImageAnimation && dom.imageAnimationSelect) {
+        dom.imageAnimationSelect.value = savedImageAnimation;
+        applyImageAnimation(savedImageAnimation);
+    }
+
+    // 5. Playback Speed
+    const savedSpeed = localStorage.getItem('narrative_speed') || '1.0';
+    if (dom.speedSelect) {
+        dom.speedSelect.value = savedSpeed;
+        dom.audioEl.playbackRate = parseFloat(savedSpeed);
+    }
+
+    // 6. Volume
+    const savedVolume = localStorage.getItem('narrative_volume') || '80';
+    if (dom.volumeSlider) {
+        dom.volumeSlider.value = savedVolume;
+        const vol = parseFloat(savedVolume) / 100;
+        dom.audioEl.volume = vol;
+        if (vol === 0) {
+            dom.volumeIcon.className = "fa-solid fa-volume-xmark";
+        } else if (vol < 0.5) {
+            dom.volumeIcon.className = "fa-solid fa-volume-low";
+        } else {
+            dom.volumeIcon.className = "fa-solid fa-volume-high";
+        }
+    }
+}
+
 // Initializer
 document.addEventListener('DOMContentLoaded', () => {
     setupEvents();
@@ -1025,6 +1465,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeLang = getActiveLanguage();
     applyLanguageUpdates(activeLang);
     renderHistoryList();
+    loadSavedSettings();
     
     document.getElementById('global-lang-select').addEventListener('change', (e) => {
         applyLanguageUpdates(e.target.value);
