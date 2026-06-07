@@ -30,6 +30,9 @@ Duração Alvo: {duration_min} minutos (a narrativa deve ter exatamente {num_seg
 INSTRUÇÕES DE IDIOMA:
 - A narrativa (título, descrição e os textos de narração dos segmentos) deve ser escrita no MESMO IDIOMA do texto de entrada do usuário. Se a entrada estiver em português, tudo em português. Se estiver em inglês, tudo em inglês. Se estiver em espanhol, tudo em espanhol.
 
+INSTRUÇÕES DE COMPOSIÇÃO DA THUMBNAIL (MINIATURA DO YOUTUBE):
+- Crie um "thumbnail_prompt" detalhado em inglês. Ele deve descrever uma arte de capa/miniatura do YouTube extremamente chamativa, dramática e profissional para a história. Deve focar em um elemento central de grande impacto visual (um personagem com expressão facial forte, um objeto misterioso ou criatura em close-up dramático), com iluminação de alto contraste, cores vibrantes ou sombras marcantes, composição cinematográfica de poster de filme, e sem nenhum texto ou letras.
+
 INSTRUÇÕES DE ESTRUTURAÇÃO E ROTEIRO:
 - A história deve ser dividida em exatamente {num_segments} segmentos/cenas sequenciais que façam sentido cronológico.
 - Cada segmento deve conter um texto de narração de aproximadamente 40 a 55 palavras.
@@ -49,6 +52,7 @@ Retorne a resposta EXCLUSIVAMENTE em formato JSON (envolvido por ```json ... ```
   "title": "Título Geral da Narrativa",
   "description": "Uma breve sinopse ou descrição da história.",
   "genre": "{genre}",
+  "thumbnail_prompt": "A highly dramatic, high-contrast, click-worthy YouTube thumbnail art description in English, focusing on a single, close-up, dramatic focal point or character representing the story's climax, with rich lighting details, vibrant colors, no text.",
   "segments": [
     {{
       "segment_number": 1,
@@ -90,7 +94,12 @@ Retorne apenas o bloco JSON válido, sem texto adicional antes ou depois. Envolv
 
     # Generate YouTube thumbnail for the story
     title = narrative_data.get("title", "Uma História Incrível")
-    thumb_prompt = f"YouTube video thumbnail artwork for a story titled '{title}'. Genre: {genre}. ({style_modifier}, vibrant colors, textless, cinematic composition, award-winning illustration, 8k resolution)"
+    gpt_thumb_prompt = narrative_data.get("thumbnail_prompt", "").strip()
+    if gpt_thumb_prompt:
+        thumb_prompt = f"YouTube video thumbnail artwork: {gpt_thumb_prompt}. ({style_modifier}, high contrast, saturated colors, textless, award-winning illustration, cinematic composition, 8k)"
+    else:
+        thumb_prompt = f"YouTube video thumbnail poster artwork: A highly dramatic, high-contrast, epic close-up scene related to '{title}'. Genre: {genre}. ({style_modifier}, intense lighting, saturated colors, textless, cinematic composition, award-winning illustration, 8k resolution)"
+        
     thumb_url, thumb_err = await generate_image_unified_async(thumb_prompt, username=username)
     if thumb_url:
         narrative_data["thumbnail_url"] = thumb_url

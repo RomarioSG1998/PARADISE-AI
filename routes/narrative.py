@@ -109,6 +109,7 @@ def regenerate_thumbnail():
     title = data.get("title", "História")
     genre = data.get("genre", "fantasia")
     custom_prompt = data.get("custom_prompt", "").strip()
+    thumbnail_prompt = data.get("thumbnail_prompt", "").strip()
     username = session.get("username")
     
     # Match genre styles for stable diffusion/imagen prompts
@@ -124,9 +125,11 @@ def regenerate_thumbnail():
     
     from services.ai_service import generate_image_unified_async
     if custom_prompt:
-        prompt = f"YouTube video thumbnail artwork showing: {custom_prompt}. ({style_modifier}, vibrant colors, textless, cinematic composition, award-winning illustration, 8k)"
+        prompt = f"YouTube video thumbnail artwork: {custom_prompt}. ({style_modifier}, high contrast, saturated colors, textless, cinematic composition, award-winning illustration, 8k)"
+    elif thumbnail_prompt:
+        prompt = f"YouTube video thumbnail artwork: {thumbnail_prompt}. ({style_modifier}, high contrast, saturated colors, textless, cinematic composition, award-winning illustration, 8k)"
     else:
-        prompt = f"YouTube video thumbnail artwork for a story titled '{title}'. Genre: {genre}. ({style_modifier}, vibrant colors, textless, cinematic composition, award-winning illustration, 8k)"
+        prompt = f"YouTube video thumbnail poster artwork: A highly dramatic, high-contrast, epic close-up scene related to '{title}'. Genre: {genre}. ({style_modifier}, intense lighting, saturated colors, textless, cinematic composition, award-winning illustration, 8k resolution)"
         
     try:
         thumb_url, err = run_in_background(generate_image_unified_async(prompt, username=username))

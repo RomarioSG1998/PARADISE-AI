@@ -1192,7 +1192,8 @@ if (dom.btnChangeThumbnail) {
                 body: JSON.stringify({
                     title: state.narrativeData.title,
                     genre: state.narrativeData.genre || 'fantasia',
-                    custom_prompt: customPrompt
+                    custom_prompt: customPrompt,
+                    thumbnail_prompt: state.narrativeData.thumbnail_prompt || ''
                 })
             });
             const data = await res.json();
