@@ -143,6 +143,7 @@ function setupEvents() {
         const level = document.getElementById('book-level').value;
         const lang = document.getElementById('book-lang').value;
         const visual_theme = elements.visualThemeSelect ? elements.visualThemeSelect.value : 'cartoon';
+        const duration = document.getElementById('book-duration') ? document.getElementById('book-duration').value : '3';
 
         if (!theme) {
             alert("Por favor, digite uma ideia ou enredo de aventura!");
@@ -176,7 +177,7 @@ function setupEvents() {
             const resp = await fetch('/api/book/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ theme, level, language: lang, visual_theme })
+                body: JSON.stringify({ theme, level, language: lang, visual_theme, duration })
             });
 
             clearTimeout(timer1);
@@ -508,26 +509,21 @@ function setupEvents() {
                     }, 800);
                 });
                 
+                const onBookFinished = () => {
+                    setTimeout(() => {
+                        if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+                    }, 2000); // 2 second buffer after speech ends
+                    window.removeEventListener('book-finished', onBookFinished);
+                };
+                window.addEventListener('book-finished', onBookFinished);
+                
                 stream.getVideoTracks()[0].onended = () => {
                     if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
                     stopNarration();
                     isExporting = false;
                     elements.btnExportBookVideo.disabled = false;
+                    window.removeEventListener('book-finished', onBookFinished);
                 };
-                
-                // Auto-stop checking loop
-                stopCheckInterval = setInterval(() => {
-                    if (state.currentChapterIndex >= state.currentBook.chapters.length - 1) {
-                        import('./player.js').then(module => {
-                            if (!module.isPlaying()) {
-                                setTimeout(() => {
-                                    if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-                                }, 2000); // 2 second buffer after speech ends
-                                clearInterval(stopCheckInterval);
-                            }
-                        });
-                    }
-                }, 1000);
                 
             } catch (err) {
                 console.error("Error starting screen record: ", err);

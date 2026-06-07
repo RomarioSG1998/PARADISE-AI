@@ -148,6 +148,10 @@ function setupEvents() {
         const formData = new FormData();
         formData.append('type', state.currentType);
         formData.append('language', localStorage.getItem('paradise_language') || 'pt');
+        const durationSelect = document.getElementById('classroom-duration');
+        if (durationSelect) {
+            formData.append('duration', durationSelect.value);
+        }
         
         if (state.currentType === 'theme') {
             formData.append('content', elements.themeInput.value.trim());

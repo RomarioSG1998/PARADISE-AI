@@ -269,6 +269,7 @@ export function speakQueue() {
                 }
             }, 500);
         } else if (state.autoPlayEnabled && state.currentBook && state.currentChapterIndex === state.currentBook.chapters.length - 1) {
+            window.dispatchEvent(new Event('book-finished'));
             setTimeout(() => {
                 alert("Fim da aventura ilustrada! Deseja criar mais histórias?");
             }, 500);
@@ -287,6 +288,22 @@ export function renderChapter() {
     if (!state.currentBook || !state.currentBook.chapters) return;
 
     stopNarration();
+
+    if (state.currentBook.thumbnail_url) {
+        const thumbBtn = document.getElementById('btn-download-book-thumbnail');
+        if (thumbBtn) {
+            thumbBtn.style.display = 'flex';
+            const proxyUrl = getProxyUrl(state.currentBook.thumbnail_url);
+            composeThumbnailWithTitle(proxyUrl, state.currentBook.theme || state.currentBook.title || 'Livro').then(dataUrl => {
+                thumbBtn.href = dataUrl;
+                thumbBtn.download = "book-thumbnail.jpg";
+            }).catch(e => {
+                console.error("Thumbnail compose error:", e);
+                thumbBtn.href = proxyUrl;
+                thumbBtn.download = "book-thumbnail.jpg";
+            });
+        }
+    }
 
     const chapter = state.currentBook.chapters[state.currentChapterIndex];
     
@@ -375,4 +392,82 @@ export function renderChapter() {
     } else {
         elements.btnNextPage.innerHTML = 'Próximo <i class="fa-solid fa-arrow-right"></i>';
     }
+}
+
+function composeThumbnailWithTitle(imgSrc, title) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const W = 1280, H = 720;
+            const canvas = document.createElement('canvas');
+            canvas.width = W;
+            canvas.height = H;
+            const ctx = canvas.getContext('2d');
+
+            ctx.drawImage(img, 0, 0, W, H);
+
+            const grad = ctx.createLinearGradient(0, H * 0.5, 0, H);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(0.4, 'rgba(0,0,0,0.7)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.93)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+
+            const maxWidth = W - 80;
+            const lineHeight = 84;
+            let fontSize = 74;
+            ctx.font = `900 ${fontSize}px "Impact", "Arial Black", sans-serif`;
+            while (ctx.measureText(title).width > maxWidth && fontSize > 38) {
+                fontSize -= 2;
+                ctx.font = `900 ${fontSize}px "Impact", "Arial Black", sans-serif`;
+            }
+
+            function wrapText(text, maxW) {
+                const words = text.split(' ');
+                const lines = [];
+                let cur = '';
+                for (const w of words) {
+                    const test = cur ? cur + ' ' + w : w;
+                    if (ctx.measureText(test).width > maxW && cur) {
+                        lines.push(cur);
+                        cur = w;
+                    } else { cur = test; }
+                }
+                if (cur) lines.push(cur);
+                return lines;
+            }
+
+            const lines = wrapText(title.toUpperCase(), maxWidth);
+            const totalH = lines.length * lineHeight;
+            let y = H - 44 - totalH + lineHeight;
+
+            ctx.shadowColor = 'rgba(0,0,0,0.98)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 4;
+
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = fontSize < 50 ? 6 : 9;
+            ctx.lineJoin = 'round';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+
+            const tGrad = ctx.createLinearGradient(0, y - lineHeight * 0.8, 0, y + totalH);
+            tGrad.addColorStop(0, '#FFFFFF');
+            tGrad.addColorStop(1, '#FFE033');
+
+            for (const line of lines) {
+                ctx.strokeText(line, 40, y);
+                ctx.fillStyle = tGrad;
+                ctx.fillText(line, 40, y);
+                y += lineHeight;
+            }
+
+            ctx.shadowColor = 'transparent';
+            resolve(canvas.toDataURL('image/jpeg', 0.93));
+        };
+        img.onerror = () => reject(new Error('Image load failed'));
+        img.src = imgSrc;
+    });
 }

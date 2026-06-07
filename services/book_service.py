@@ -9,16 +9,23 @@ VISUAL_THEME_STYLES = {
     "western":  "(Wild West oil painting illustration, dusty desert landscape, warm sunset palette, cowboy aesthetic, rustic vintage style, no text, no labels)",
 }
 
-async def generate_book_async(theme, level, language, visual_theme="cartoon", username=None):
+async def generate_book_async(theme, level, language, visual_theme="cartoon", duration_min="3", username=None):
     lang_lower = language.lower()
     style_suffix = VISUAL_THEME_STYLES.get(visual_theme, VISUAL_THEME_STYLES["cartoon"])
-    print(f"[Paradise AI] Generating book. Theme: '{theme}', Level: '{level}', Language: '{language}', Visual: '{visual_theme}', User: '{username}'")
+    
+    try:
+        num_chapters = max(1, min(20, int(duration_min) * 2))
+    except ValueError:
+        num_chapters = 6
+        
+    print(f"[Paradise AI] Generating book. Theme: '{theme}', Level: '{level}', Language: '{language}', Visual: '{visual_theme}', Duration: {duration_min}m ({num_chapters} ch), User: '{username}'")
     
     if "inglês" in lang_lower or "english" in lang_lower or lang_lower == "en":
         prompt = f"""You must write a custom short book in English.
 Translate the theme "{theme}" to English if it is in another language, and write the book about that translated theme.
 All story content, titles, and text must be written EXCLUSIVELY in English.
 The book must be written for reading level "{level}".
+The book must be designed to take approximately {duration_min} minutes to read aloud. Therefore, you must divide the story into EXACTLY {num_chapters} chapters.
 
 The returned JSON must follow exactly this structure:
 {{
@@ -26,6 +33,7 @@ The returned JSON must follow exactly this structure:
   "theme": "Theme in English",
   "level": "{level}",
   "language": "English",
+  "thumbnail_prompt": "Highly detailed English prompt for a cinematic YouTube thumbnail or book cover artwork representing this story. Style should be clean, digital art, no text, no letters.",
   "chapters": [
     {{
       "chapter_number": 1,
@@ -33,18 +41,7 @@ The returned JSON must follow exactly this structure:
       "text": "Full text of Chapter 1 (rich and engaging narrative of 3 to 5 paragraphs written in English).",
       "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 1 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
     }},
-    {{
-      "chapter_number": 2,
-      "title": "Chapter 2 Title in English",
-      "text": "Full text of Chapter 2 (rich and engaging narrative of 3 to 5 paragraphs written in English).",
-      "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 2 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
-    }},
-    {{
-      "chapter_number": 3,
-      "title": "Chapter 3 Title in English",
-      "text": "Full text of Chapter 3 (rich and exciting conclusion of 3 to 5 paragraphs written in English).",
-      "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 3 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
-    }}
+    ... (generate EXACTLY {num_chapters} chapters following this exact format)
   ]
 }}
 Return ONLY the valid JSON block. Do not include any intro or explanation. Wrap the JSON in a markdown code block starting with ```json and ending with ```."""
@@ -53,6 +50,7 @@ Return ONLY the valid JSON block. Do not include any intro or explanation. Wrap 
 Traduce el tema "{theme}" al español si está en otro idioma, y escribe el libro sobre ese tema traducido.
 Todo el contenido de la historia, títulos y texto deben estar escritos EXCLUSIVAMENTE en Español.
 El libro debe estar escrito para el nivel de lectura "{level}".
+El libro debe estar diseñado para leerse en voz alta en aproximadamente {duration_min} minutos, por lo que debes dividir la historia en EXACTAMENTE {num_chapters} capítulos.
 
 El JSON devuelto debe seguir exactamente esta estructura:
 {{
@@ -60,6 +58,7 @@ El JSON devuelto debe seguir exactamente esta estructura:
   "theme": "Tema en Español",
   "level": "{level}",
   "language": "Español",
+  "thumbnail_prompt": "Highly detailed English prompt for a cinematic YouTube thumbnail or book cover artwork representing this story. Style should be clean, digital art, no text, no letters.",
   "chapters": [
     {{
       "chapter_number": 1,
@@ -67,18 +66,7 @@ El JSON devuelto debe seguir exactamente esta estructura:
       "text": "Texto completo del Capítulo 1 (narrativa rica y envolvente de 3 a 5 párrafos escrita en Español).",
       "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 1 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
     }},
-    {{
-      "chapter_number": 2,
-      "title": "Título del Capítulo 2 en Español",
-      "text": "Texto completo del Capítulo 2 (narrativa rica y envolvente de 3 a 5 párrafos escrita en Español).",
-      "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 2 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
-    }},
-    {{
-      "chapter_number": 3,
-      "title": "Título del Capítulo 3 en Español",
-      "text": "Texto completo del Capítulo 3 (conclusión rica y emocionante de 3 a 5 párrafos escrita en Español).",
-      "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 3 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
-    }}
+    ... (genera EXACTAMENTE {num_chapters} capítulos siguiendo este formato)
   ]
 }}
 Devuelve SOLO el bloque JSON válido. No incluyas explicaciones. Envuelve el JSON en un bloque de código markdown que comience con ```json y termine con ```."""
@@ -87,6 +75,7 @@ Devuelve SOLO el bloque JSON válido. No incluyas explicaciones. Envuelve el JSO
 Traduza o tema "{theme}" para o idioma "{language}" se estiver em outro idioma, e escreva o livro sobre esse tema traduzido.
 Todo o conteúdo da história, títulos e texto devem ser escritos EXCLUSIVAMENTE no idioma "{language}".
 O livro deve ser escrito para o nível de leitura "{level}".
+O livro deve ser planejado para demorar cerca de {duration_min} minutos sendo lido em voz alta. Para isso, crie EXATAMENTE {num_chapters} capítulos.
 
 O JSON retornado deve seguir exatamente esta estrutura:
 {{
@@ -94,6 +83,7 @@ O JSON retornado deve seguir exatamente esta estrutura:
   "theme": "Tema no idioma {language}",
   "level": "{level}",
   "language": "{language}",
+  "thumbnail_prompt": "Highly detailed English prompt for a cinematic YouTube thumbnail or book cover artwork representing this story. Style should be clean, digital art, no text, no letters.",
   "chapters": [
     {{
       "chapter_number": 1,
@@ -101,18 +91,7 @@ O JSON retornado deve seguir exatamente esta estrutura:
       "text": "Texto completo do Capítulo 1 (narrativa rica e envolvente de 3 a 5 parágrafos escrita no idioma {language}).",
       "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 1 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
     }},
-    {{
-      "chapter_number": 2,
-      "title": "Título do Capítulo 2 no idioma {language}",
-      "text": "Texto completo do Capítulo 2 (narrativa rica e envolvente de 3 a 5 parágrafos escrita no idioma {language}).",
-      "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 2 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
-    }},
-    {{
-      "chapter_number": 3,
-      "title": "Título do Capítulo 3 no idioma {language}",
-      "text": "Texto completo do Capítulo 3 (conclusão rica e emocionante de 3 a 5 parágrafos escrita no idioma {language}).",
-      "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 3 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
-    }}
+    ... (gere EXATAMENTE {num_chapters} capítulos seguindo este formato exato)
   ]
 }}
 Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcação adicional ou texto fora do bloco de código json. Envolva o JSON em um bloco de código markdown (iniciando com ```json e finalizando com ```)."""
@@ -141,6 +120,15 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
                 chapter["image_url"] = img_url
             else:
                 chapter["image_error"] = img_err or "Nenhuma imagem retornada"
+                
+        # Generate the YouTube/Book Thumbnail
+        thumb_base_prompt = book_data.get("thumbnail_prompt", f"A beautiful cinematic cover artwork for {theme}")
+        full_thumb_prompt = f"Professional high-CTR YouTube video thumbnail poster artwork: {thumb_base_prompt}. ({style_suffix}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
+        thumb_url, thumb_err = await generate_image_unified_async(full_thumb_prompt, username=username)
+        if thumb_url:
+            book_data["thumbnail_url"] = thumb_url
+        else:
+            book_data["thumbnail_error"] = thumb_err or "Nenhuma imagem retornada"
                 
         return book_data, None
     except Exception as e:
