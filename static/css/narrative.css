@@ -1083,92 +1083,105 @@ header {
 /* VHS Glitch Effect */
 .horror-overlay.effect-vhs {
     opacity: 0;
-    background: repeating-linear-gradient(
-        0deg,
-        rgba(0, 0, 0, 0.18),
-        rgba(0, 0, 0, 0.18) 1px,
-        transparent 2px,
-        transparent 3px
-    );
+    background: 
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05) 1px, transparent 2px, transparent 4px),
+        linear-gradient(to bottom, transparent 95%, rgba(255, 255, 255, 0.4) 95%, rgba(255, 255, 255, 0.4) 97%, transparent 97%);
+    background-size: 100% 100%, 100% 600px;
 }
 .horror-overlay.effect-vhs.active {
     opacity: 0.85;
-    animation: vhs-flicker 0.15s infinite;
+    animation: vhs-tracking 6s linear infinite, vhs-glitch-flicker 0.2s infinite;
 }
-@keyframes vhs-flicker {
-    0% { opacity: 0.8; filter: hue-rotate(0deg) contrast(1.1); }
-    50% { opacity: 0.9; filter: hue-rotate(5deg) contrast(1.2); }
-    100% { opacity: 0.75; filter: hue-rotate(-3deg) contrast(1); }
+@keyframes vhs-tracking {
+    0% { background-position: 0 0, 0 0; }
+    100% { background-position: 0 0, 0 600px; }
+}
+@keyframes vhs-glitch-flicker {
+    0% { filter: hue-rotate(0deg) contrast(1.1) skewX(0deg); }
+    20% { filter: hue-rotate(90deg) contrast(1.3) skewX(1deg); }
+    40% { filter: hue-rotate(180deg) contrast(1) skewX(-0.5deg); }
+    60% { filter: hue-rotate(270deg) contrast(1.2) skewX(0.5deg); }
+    80% { filter: hue-rotate(0deg) contrast(1.1) skewX(-1deg); }
+    100% { filter: hue-rotate(360deg) contrast(1.15) skewX(0deg); }
 }
 
-/* Dark Mist Effect */
-.horror-overlay.effect-fog {
+/* REC / Night Vision Effect */
+.horror-overlay.effect-rec {
     opacity: 0;
 }
-.horror-overlay.effect-fog.active {
-    opacity: 0.45;
-    mix-blend-mode: screen;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><filter id="f"><feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" result="noise"/><feColorMatrix type="matrix" values="0.2 0 0 0 0  0.2 0 0 0 0  0.2 0 0 0 0  0 0 0 0.45 0"/></filter><rect width="800" height="400" filter="url(#f)" fill="white"/></svg>');
-    filter: blur(4px);
-    animation: fog-drift 30s linear infinite;
+.horror-overlay.effect-rec.active {
+    opacity: 1;
+    background: 
+        radial-gradient(circle, transparent 35%, rgba(0, 40, 0, 0.65) 90%),
+        repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.08), rgba(0, 255, 0, 0.08) 1px, transparent 2px, transparent 4px);
+    filter: brightness(1.2) contrast(1.25) sepia(1) hue-rotate(85deg) saturate(2);
 }
-@keyframes fog-drift {
-    from { background-position: 0 0; }
-    to { background-position: 800px 400px; }
+.horror-overlay.effect-rec::after {
+    content: "● REC   1080p\A\A[ IIIII ] 98%";
+    white-space: pre-wrap;
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #ff0000;
+    text-shadow: 0 0 5px #ff0000;
+    pointer-events: none;
+    opacity: 0;
+    line-height: 1.2;
+}
+.horror-overlay.effect-rec.active::after {
+    opacity: 1;
+    animation: rec-blink 1s infinite steps(2);
+}
+@keyframes rec-blink {
+    0% { color: #ff0000; text-shadow: 0 0 5px #ff0000; }
+    50% { color: #00ff00; text-shadow: 0 0 5px #00ff00; }
 }
 
-/* Blood Splatter Effect */
+/* Slasher Blood Drips Effect */
 .horror-overlay.effect-blood {
     opacity: 0;
 }
 .horror-overlay.effect-blood.active {
-    opacity: 0.9;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,10 L92,13 C87,15 82,6 77,18 C72,28 67,32 62,10 C57,7 52,20 47,35 C42,50 37,52 32,12 C27,4 22,24 17,28 C12,32 7,6 0,8 Z" fill="%237a0010"/><circle cx="17" cy="40" r="1.5" fill="%237a0010"/><circle cx="47" cy="55" r="2" fill="%237a0010"/><circle cx="77" cy="30" r="1" fill="%237a0010"/></svg>');
+    opacity: 0.95;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,12 Q90,35 85,15 Q80,55 77,20 Q70,75 67,25 Q55,45 52,18 Q40,90 36,30 Q25,60 22,25 Q10,40 5,15 Z" fill="%2366000a"/><path d="M12,0 L18,0 L15,45 C15,50 13,50 13,40 Z M33,0 L39,0 L36,75 Q36,80 34,77 Z M64,0 L70,0 L67,65 Q67,70 65,60 Z" fill="%23550005"/><circle cx="14" cy="52" r="1.2" fill="%23550005"/><circle cx="35" cy="85" r="1.5" fill="%23550005"/><circle cx="66" cy="72" r="1.3" fill="%23550005"/></svg>');
     background-size: 100% 100%;
-    animation: blood-drip 15s ease-in-out infinite alternate;
+    animation: blood-drip-shake 8s ease-in-out infinite alternate;
 }
-@keyframes blood-drip {
-    0% { transform: translateY(-3%); }
-    100% { transform: translateY(3%); }
-}
-
-/* Flickering Flashlight */
-.horror-overlay.effect-flashlight {
-    opacity: 0;
-}
-.horror-overlay.effect-flashlight.active {
-    opacity: 1;
-    background: radial-gradient(circle, transparent 25%, rgba(0, 0, 0, 0.96) 80%);
-    animation: flashlight-pulse 3s infinite;
-}
-@keyframes flashlight-pulse {
-    0%, 100% { opacity: 0.96; }
-    45% { opacity: 0.98; }
-    47% { opacity: 0.4; }
-    49% { opacity: 0.96; }
-    51% { opacity: 0.8; }
-    53% { opacity: 0.96; }
-    75% { opacity: 0.96; }
-    77% { opacity: 0.3; }
-    79% { opacity: 0.96; }
+@keyframes blood-drip-shake {
+    0% { transform: scaleY(1) translateY(0); }
+    100% { transform: scaleY(1.05) translateY(2px); }
 }
 
-/* Scratched Vintage Film */
-.horror-overlay.effect-vintage {
+/* Satanic Crimson Glow (Suspiria Ritual) */
+.horror-overlay.effect-ritual {
     opacity: 0;
 }
-.horror-overlay.effect-vintage.active {
+.horror-overlay.effect-ritual.active {
+    opacity: 0.75;
+    background: radial-gradient(circle, rgba(139, 0, 0, 0.2) 20%, rgba(20, 0, 0, 0.95) 90%);
+    mix-blend-mode: color-burn;
+    animation: ritual-glow 4s ease-in-out infinite alternate;
+}
+@keyframes ritual-glow {
+    0% { opacity: 0.65; filter: contrast(1.2) saturate(1.5); }
+    100% { opacity: 0.85; filter: contrast(1.5) saturate(2); }
+}
+
+/* Insanity/Psychological Aberration */
+.horror-overlay.effect-insanity {
+    opacity: 0;
+}
+.horror-overlay.effect-insanity.active {
     opacity: 0.7;
-    background-image: 
-        radial-gradient(circle, transparent 55%, rgba(0, 0, 0, 0.4)),
-        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect x="15" y="0" width="1" height="120" fill="rgba(255,255,255,0.12)"/><rect x="85" y="0" width="1" height="120" fill="rgba(0,0,0,0.2)"/><circle cx="60" cy="40" r="1" fill="rgba(255,255,255,0.25)"/><circle cx="30" cy="90" r="1.5" fill="rgba(255,255,255,0.18)"/></svg>');
-    animation: vintage-scratch 0.25s steps(4) infinite;
+    background: radial-gradient(circle, transparent 20%, rgba(0, 0, 0, 0.85) 85%);
+    backdrop-filter: blur(2px);
+    animation: insanity-pulsate 3s ease-in-out infinite alternate;
 }
-@keyframes vintage-scratch {
-    0% { background-position: 0px 0px; filter: sepia(0.35) contrast(1.15) brightness(0.9); }
-    25% { background-position: 15px -15px; }
-    50% { background-position: -8px 20px; }
-    75% { background-position: 12px 8px; }
-    100% { background-position: -15px -12px; }
+@keyframes insanity-pulsate {
+    0% { backdrop-filter: blur(0px); filter: contrast(1) saturate(1); }
+    100% { backdrop-filter: blur(5px); filter: contrast(1.4) saturate(0.5) hue-rotate(15deg); }
 }
 

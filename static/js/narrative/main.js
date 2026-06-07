@@ -529,9 +529,9 @@ function setupEvents() {
             if (dom.horrorEffectSelect) {
                 const genre = dom.genreSelect.value;
                 if (genre === 'terror') {
-                    dom.horrorEffectSelect.value = 'flashlight';
+                    dom.horrorEffectSelect.value = 'rec';
                 } else if (genre === 'suspense') {
-                    dom.horrorEffectSelect.value = 'fog';
+                    dom.horrorEffectSelect.value = 'vhs';
                 } else {
                     dom.horrorEffectSelect.value = 'none';
                 }
@@ -933,9 +933,9 @@ function loadNarrativeFromHistory(id) {
         // Auto-select horror effect based on genre
         if (dom.horrorEffectSelect) {
             if (genre === 'terror') {
-                dom.horrorEffectSelect.value = 'flashlight';
+                dom.horrorEffectSelect.value = 'rec';
             } else if (genre === 'suspense') {
-                dom.horrorEffectSelect.value = 'fog';
+                dom.horrorEffectSelect.value = 'vhs';
             } else {
                 dom.horrorEffectSelect.value = 'none';
             }
