@@ -1094,6 +1094,95 @@ function renderHistoryList() {
     });
 }
 
+/**
+ * Composes the thumbnail image with the story title overlaid using Canvas API.
+ * Returns a Promise<string> with a data URL (JPEG) of the final composed image.
+ */
+function composeThumbnailWithTitle(imgSrc, title) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const W = 1280, H = 720;  // YouTube standard thumbnail resolution
+            const canvas = document.createElement('canvas');
+            canvas.width = W;
+            canvas.height = H;
+            const ctx = canvas.getContext('2d');
+
+            // Draw background image
+            ctx.drawImage(img, 0, 0, W, H);
+
+            // Gradient overlay for text legibility (bottom half)
+            const grad = ctx.createLinearGradient(0, H * 0.5, 0, H);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(0.4, 'rgba(0,0,0,0.7)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.93)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+
+            // Dynamic font sizing
+            const maxWidth = W - 80;
+            const lineHeight = 84;
+            let fontSize = 74;
+            ctx.font = `900 ${fontSize}px "Impact", "Arial Black", sans-serif`;
+            while (ctx.measureText(title).width > maxWidth && fontSize > 38) {
+                fontSize -= 2;
+                ctx.font = `900 ${fontSize}px "Impact", "Arial Black", sans-serif`;
+            }
+
+            // Word-wrap
+            function wrapText(text, maxW) {
+                const words = text.split(' ');
+                const lines = [];
+                let cur = '';
+                for (const w of words) {
+                    const test = cur ? cur + ' ' + w : w;
+                    if (ctx.measureText(test).width > maxW && cur) {
+                        lines.push(cur);
+                        cur = w;
+                    } else { cur = test; }
+                }
+                if (cur) lines.push(cur);
+                return lines;
+            }
+
+            const lines = wrapText(title.toUpperCase(), maxWidth);
+            const totalH = lines.length * lineHeight;
+            let y = H - 44 - totalH + lineHeight;
+
+            // Shadow
+            ctx.shadowColor = 'rgba(0,0,0,0.98)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 4;
+
+            // Black stroke outline
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = fontSize < 50 ? 6 : 9;
+            ctx.lineJoin = 'round';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+
+            // White → yellow gradient fill (YouTube style)
+            const tGrad = ctx.createLinearGradient(0, y - lineHeight * 0.8, 0, y + totalH);
+            tGrad.addColorStop(0, '#FFFFFF');
+            tGrad.addColorStop(1, '#FFE033');
+
+            for (const line of lines) {
+                ctx.strokeText(line, 40, y);
+                ctx.fillStyle = tGrad;
+                ctx.fillText(line, 40, y);
+                y += lineHeight;
+            }
+
+            ctx.shadowColor = 'transparent';
+            resolve(canvas.toDataURL('image/jpeg', 0.93));
+        };
+        img.onerror = () => reject(new Error('Image load failed'));
+        img.src = imgSrc;
+    });
+}
+
 function updateThumbnailUI() {
     if (!dom.thumbnailImg || !dom.thumbnailPlaceholder) return;
     
@@ -1103,10 +1192,23 @@ function updateThumbnailUI() {
         if (rawUrl && (rawUrl.includes("googleusercontent.com") || rawUrl.includes("google.com"))) {
             proxyUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
         }
-        dom.thumbnailImg.src = proxyUrl;
-        dom.thumbnailImg.style.display = 'block';
-        dom.thumbnailPlaceholder.style.display = 'none';
-        if (dom.btnDownloadThumbnail) dom.btnDownloadThumbnail.disabled = false;
+
+        const title = (state.narrativeData.title || '').trim();
+        composeThumbnailWithTitle(proxyUrl, title)
+            .then(dataUrl => {
+                state._composedThumbnailDataUrl = dataUrl;
+                dom.thumbnailImg.src = dataUrl;
+                dom.thumbnailImg.style.display = 'block';
+                dom.thumbnailPlaceholder.style.display = 'none';
+                if (dom.btnDownloadThumbnail) dom.btnDownloadThumbnail.disabled = false;
+            })
+            .catch(() => {
+                // Fallback: show raw image without title overlay
+                dom.thumbnailImg.src = proxyUrl;
+                dom.thumbnailImg.style.display = 'block';
+                dom.thumbnailPlaceholder.style.display = 'none';
+                if (dom.btnDownloadThumbnail) dom.btnDownloadThumbnail.disabled = false;
+            });
     } else {
         resetThumbnailUI();
     }
@@ -1126,6 +1228,7 @@ function resetThumbnailUI() {
                             "Sem Thumbnail";
     }
     if (dom.btnDownloadThumbnail) dom.btnDownloadThumbnail.disabled = true;
+    state._composedThumbnailDataUrl = null;
 }
 
 function applyHorrorEffect(effect) {
@@ -1216,16 +1319,7 @@ if (dom.btnChangeThumbnail) {
             const data = await res.json();
             if (data.thumbnail_url) {
                 state.narrativeData.thumbnail_url = data.thumbnail_url;
-                
-                let finalUrl = data.thumbnail_url;
-                if (finalUrl.includes("googleusercontent.com") || finalUrl.includes("google.com")) {
-                    finalUrl = `/api/proxy-image?url=${encodeURIComponent(finalUrl)}`;
-                }
-                dom.thumbnailImg.src = finalUrl;
-                dom.thumbnailImg.style.display = 'block';
-                dom.thumbnailPlaceholder.style.display = 'none';
-                dom.btnDownloadThumbnail.disabled = false;
-                
+                updateThumbnailUI();   // re-compose with title overlay
                 saveNarrativeToHistory(state.narrativeData);
             } else {
                 alert("Erro: " + (data.error || "Nenhuma URL retornada"));
@@ -1243,14 +1337,25 @@ if (dom.btnChangeThumbnail) {
 
 if (dom.btnDownloadThumbnail) {
     dom.btnDownloadThumbnail.addEventListener('click', () => {
-        if (state.narrativeData && state.narrativeData.thumbnail_url) {
+        // Prefer the Canvas-composed version (image + title text)
+        const dataUrl = state._composedThumbnailDataUrl;
+        if (dataUrl) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            const safeTitle = (state.narrativeData?.title || 'thumbnail')
+                .replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 60);
+            a.download = `${safeTitle}_thumbnail.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else if (state.narrativeData && state.narrativeData.thumbnail_url) {
             let downloadUrl = state.narrativeData.thumbnail_url;
             if (downloadUrl.includes("googleusercontent.com") || downloadUrl.includes("google.com")) {
                 downloadUrl = `/api/proxy-image?url=${encodeURIComponent(downloadUrl)}`;
             }
             const a = document.createElement('a');
             a.href = downloadUrl;
-            a.download = 'youtube-thumbnail.png';
+            a.download = 'youtube-thumbnail.jpg';
             a.target = '_blank';
             document.body.appendChild(a);
             a.click();
