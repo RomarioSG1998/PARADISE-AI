@@ -705,23 +705,24 @@ function setupEvents() {
     if (dom.btnFullscreen) {
         let hideControlsTimeout;
         const controls = document.querySelector('.media-controls');
-        
+
+        function hideControls() {
+            if (controls) {
+                controls.style.opacity = '0';
+                controls.style.pointerEvents = 'none';
+            }
+            document.body.style.cursor = 'none';
+        }
+
         function showControls() {
             if (controls) {
                 controls.style.opacity = '1';
                 controls.style.pointerEvents = 'auto';
             }
             document.body.style.cursor = 'default';
-            
             clearTimeout(hideControlsTimeout);
             if (document.fullscreenElement) {
-                hideControlsTimeout = setTimeout(() => {
-                    if (controls) {
-                        controls.style.opacity = '0';
-                        controls.style.pointerEvents = 'none';
-                    }
-                    document.body.style.cursor = 'none';
-                }, 3000); // hide controls after 3 seconds of idle mouse
+                hideControlsTimeout = setTimeout(hideControls, 3000);
             }
         }
 
@@ -738,18 +739,17 @@ function setupEvents() {
                 dom.btnFullscreen.innerHTML = '<i class="fa-solid fa-expand"></i>';
             }
         });
-        
+
         document.addEventListener('fullscreenchange', () => {
             const container = document.querySelector('.theater-screen');
             if (document.fullscreenElement === container) {
                 dom.btnFullscreen.innerHTML = '<i class="fa-solid fa-compress"></i>';
                 container.addEventListener('mousemove', showControls);
-                showControls();
+                // Hide controls immediately on entry — show only on mouse movement
+                hideControls();
             } else {
                 dom.btnFullscreen.innerHTML = '<i class="fa-solid fa-expand"></i>';
-                if (container) {
-                    container.removeEventListener('mousemove', showControls);
-                }
+                if (container) container.removeEventListener('mousemove', showControls);
                 clearTimeout(hideControlsTimeout);
                 if (controls) {
                     controls.style.opacity = '1';
@@ -759,6 +759,36 @@ function setupEvents() {
             }
         });
     }
+
+    // ─── Keyboard Controls ───────────────────────────────────────────────────
+    document.addEventListener('keydown', (e) => {
+        // Only active when the theater is visible; ignore if typing in an input
+        if (dom.theaterArena.style.display === 'none') return;
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+        switch (e.code) {
+            case 'Space':
+                e.preventDefault();
+                if (dom.btnPlay) dom.btnPlay.click();
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                if (dom.btnNext && !dom.btnNext.disabled) dom.btnNext.click();
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                if (dom.btnPrev && !dom.btnPrev.disabled) dom.btnPrev.click();
+                break;
+            case 'KeyF':
+                e.preventDefault();
+                if (dom.btnFullscreen) dom.btnFullscreen.click();
+                break;
+            case 'Escape':
+                if (document.fullscreenElement) document.exitFullscreen();
+                break;
+        }
+    });
 
     // Horror Effect Selector Change
     if (dom.horrorEffectSelect) {
