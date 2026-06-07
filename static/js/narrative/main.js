@@ -15,6 +15,8 @@ const state = {
     currentSubtitleStyle: 'classic',
     // Audio preload cache: Map<segmentIndex, HTMLAudioElement>
     audioCache: new Map(),
+    // Image preload cache: Map<segmentIndex, HTMLImageElement (fully loaded)>
+    imageCache: new Map(),
     _composedThumbnailDataUrl: null
 };
 
@@ -303,6 +305,59 @@ function clearAudioCache() {
     state.audioCache.clear();
 }
 
+// ─── Image Preload Cache ─────────────────────────────────────────────────────
+
+/**
+ * Resolves the proxy URL for a scene image (Google/Gemini images need proxying).
+ */
+function resolveImageUrl(rawUrl) {
+    if (!rawUrl) return null;
+    if (rawUrl.includes('googleusercontent.com') || rawUrl.includes('google.com')) {
+        return `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
+    }
+    return rawUrl;
+}
+
+/**
+ * Silently preloads the image for a given segment index into the cache.
+ * Returns immediately if already cached or out of range.
+ */
+function preloadImageForScene(idx) {
+    if (!state.narrativeData?.segments) return;
+    const segments = state.narrativeData.segments;
+    if (idx < 0 || idx >= segments.length) return;
+    if (state.imageCache.has(idx)) return;   // already cached
+
+    const rawUrl = segments[idx].image_url;
+    const proxyUrl = resolveImageUrl(rawUrl);
+    if (!proxyUrl) return;
+
+    const img = new Image();
+    img.src = proxyUrl;
+    // Store even before onload so we don't double-fetch
+    state.imageCache.set(idx, { img, proxyUrl, ready: false });
+    img.onload = () => {
+        const entry = state.imageCache.get(idx);
+        if (entry) entry.ready = true;
+    };
+}
+
+/**
+ * Preloads the next N scenes' images in the background.
+ */
+function preloadAdjacentImages(currentIdx, ahead = 2) {
+    for (let i = 1; i <= ahead; i++) {
+        preloadImageForScene(currentIdx + i);
+    }
+}
+
+/**
+ * Clears the image cache (e.g. when starting a new story).
+ */
+function clearImageCache() {
+    state.imageCache.clear();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Load individual scene
@@ -330,26 +385,42 @@ async function loadScene(idx) {
     dom.btnNext.disabled = idx === state.narrativeData.segments.length - 1;
     dom.sceneCounter.textContent = `Cena ${idx + 1} / ${state.narrativeData.segments.length}`;
     
-    // Update scene image
+    // Update scene image — use preloaded cache for instant display
     dom.screenImage.classList.remove('reveal');
     if (segment.image_url) {
-        let rawUrl = segment.image_url;
-        let proxyUrl = rawUrl;
-        if (rawUrl && (rawUrl.includes("googleusercontent.com") || rawUrl.includes("google.com"))) {
-            proxyUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
-        }
-        dom.screenImage.onload = () => {
-            dom.screenImage.classList.add('reveal');
-            if (dom.imageAnimationSelect) {
-                applyImageAnimation(dom.imageAnimationSelect.value);
-            }
+        const proxyUrl = resolveImageUrl(segment.image_url);
+        const cached = state.imageCache.get(idx);
+
+        const applyImage = (url) => {
+            dom.screenImage.onload = () => {
+                dom.screenImage.classList.add('reveal');
+                if (dom.imageAnimationSelect) {
+                    applyImageAnimation(dom.imageAnimationSelect.value);
+                }
+            };
+            dom.screenImage.src = url;
+            dom.screenBackplate.style.backgroundImage = `url('${url}')`;
         };
-        dom.screenImage.src = proxyUrl;
-        dom.screenBackplate.style.backgroundImage = `url('${proxyUrl}')`;
+
+        if (cached?.ready) {
+            // ✅ Cache hit — image already decoded, set src instantly
+            applyImage(cached.proxyUrl);
+        } else {
+            // Cache miss or not yet ready — set src normally (browser may still benefit
+            // from the in-flight request initiated by preloadImageForScene)
+            applyImage(proxyUrl);
+            // Store in cache if not already there
+            if (!state.imageCache.has(idx)) {
+                preloadImageForScene(idx);
+            }
+        }
     } else {
         dom.screenImage.src = '';
         dom.screenBackplate.style.backgroundImage = 'none';
     }
+
+    // Preload next scenes' images in background
+    preloadAdjacentImages(idx);
     
     // Prepare Subtitle timing ranges
     const words = segment.text.split(' ');
@@ -616,6 +687,7 @@ function setupEvents() {
             }
             renderPlaylist();
             clearAudioCache();   // discard any cached audio from previous story
+            clearImageCache();   // discard any cached images from previous story
             loadScene(0);
             updateThumbnailUI();
             saveNarrativeToHistory(state.narrativeData);
@@ -1088,6 +1160,7 @@ function loadNarrativeFromHistory(id) {
         }
         renderPlaylist();
         clearAudioCache();   // discard any cached audio from previous story
+        clearImageCache();   // discard any cached images from previous story
         loadScene(0);
         updateThumbnailUI();
     }
