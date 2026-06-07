@@ -54,5 +54,7 @@ export const elements = {
     lblBtnAsk: document.getElementById('lbl-btn-ask'),
     btnMicTheme: document.getElementById('btn-mic-theme'),
     btnMicAsk: document.getElementById('btn-mic-ask'),
-    btnMicText: document.getElementById('btn-mic-text')
+    btnMicText: document.getElementById('btn-mic-text'),
+    btnExportVideo: document.getElementById('btn-export-video'),
+    exportStatus: document.getElementById('export-status')
 };

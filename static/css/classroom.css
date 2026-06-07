@@ -1009,3 +1009,45 @@
                 padding-bottom: 0 !important;
             }
         }
+
+/* --- RECORDING MODE --- */
+.classroom-board-area.recording-mode .teacher-avatar {
+    display: none !important;
+}
+
+.classroom-board-area.recording-mode .teacher-role-container {
+    display: none !important;
+}
+
+.classroom-board-area.recording-mode .avatar-container {
+    display: none !important;
+}
+
+.classroom-board-area.recording-mode .board-title {
+    font-size: 3.5rem !important;
+    margin-bottom: 2rem !important;
+}
+
+.classroom-board-area.recording-mode .bullets-list li {
+    font-size: 2.2rem !important;
+    margin-bottom: 2rem !important;
+    line-height: 1.4 !important;
+}
+
+.classroom-board-area.recording-mode .board-illustration {
+    border: none !important;
+    background: transparent !important;
+}
+
+.classroom-board-area.recording-mode .board-illustration img {
+    max-height: 800px !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important; /* Ensure image fits completely without cropping */
+    transform: none !important; /* Remove any zoom that causes cropping */
+}
+
+.classroom-board-area.recording-mode .board-content {
+    padding-bottom: 0 !important;
+    align-items: flex-start !important;
+}
