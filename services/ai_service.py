@@ -12,6 +12,45 @@ gemini_clients = {}
 current_account_ids = {}
 image_cache = {}
 
+class G4FClientWrapper:
+    def __init__(self, provider_type, account_data):
+        self.provider_type = provider_type
+        self.account_data = account_data
+        
+    async def generate_content(self, prompt):
+        import g4f
+        from g4f.client import AsyncClient
+        
+        client = AsyncClient()
+        provider = None
+        model = g4f.models.default
+        
+        if self.provider_type == "copilot":
+            provider = g4f.Provider.Bing
+            u_cookie = self.account_data.get("secure_1psid", "")
+            if u_cookie:
+                try:
+                    import g4f.cookies
+                    g4f.cookies.set_cookies(".bing.com", {"_U": u_cookie})
+                except:
+                    pass
+                    
+        try:
+            response = await client.chat.completions.create(
+                model=model,
+                provider=provider,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            content = response.choices[0].message.content if response.choices else "Empty response"
+        except Exception as e:
+            content = f"Erro no provedor {self.provider_type.upper()}: {str(e)}"
+            
+        class MockResponse:
+            def __init__(self, text):
+                self.text = text
+                self.images = []
+        return MockResponse(content)
+
 async def get_or_create_client_async(username=None, force_reinit=False, tried_ids=None):
     global gemini_clients, current_account_ids
     
@@ -62,6 +101,16 @@ async def get_or_create_client_async(username=None, force_reinit=False, tried_id
         return None, f"Todas as contas disponíveis para '{user_key}' falharam na autenticação."
 
     tried_ids.add(account["id"])
+
+    # If provider is GPT or Copilot, use G4F Wrapper
+    provider_type = account.get("provider", "gemini")
+    if provider_type in ["gpt", "copilot"]:
+        gemini_clients[user_key] = G4FClientWrapper(provider_type, account)
+        current_account_ids[user_key] = account["id"]
+        if account["id"] != 0:
+            mark_account_used(account["id"])
+        print(f"[Paradise AI] Client for user '{user_key}' initialized via G4F (provider: {provider_type})!")
+        return gemini_clients[user_key], None
 
     try:
         from gemini_webapi import GeminiClient
@@ -159,6 +208,111 @@ async def generate_image_unified_async(prompt, username=None):
     client, err = await get_or_create_client_async(username=username)
     if err:
         return None, err
+
+    if isinstance(client, G4FClientWrapper):
+        try:
+            import urllib.parse
+            import urllib.request
+            import io
+            from g4f.client import AsyncClient
+            import g4f.Provider
+            g4f_client = AsyncClient()
+
+            # Injetar hint de proporção 16:9 no prompt para qualquer provedor G4F
+            widescreen_hint = "widescreen 16:9 cinematic horizontal landscape format, ultra-wide composition"
+            prompt_16x9 = f"{prompt}, {widescreen_hint}"
+
+            if client.provider_type == "copilot" and client.account_data.get("secure_1psid"):
+                import g4f.cookies
+                g4f.cookies.set_cookies(".bing.com", {"_U": client.account_data["secure_1psid"]})
+                # DALL-E 3 suporta size="1792x1024" que é aprox. 16:9
+                try:
+                    img_response = await g4f_client.images.generate(
+                        model='dall-e-3', prompt=prompt_16x9, size="1792x1024"
+                    )
+                except Exception:
+                    # Fallback sem parâmetro size se o provedor não suportar
+                    img_response = await g4f_client.images.generate(
+                        model='dall-e-3', prompt=prompt_16x9
+                    )
+            else:
+                # OperaAria/Flux — tenta com width/height 16:9
+                try:
+                    img_response = await g4f_client.images.generate(
+                        model='flux', prompt=prompt_16x9,
+                        provider=g4f.Provider.OperaAria,
+                        width=1280, height=720
+                    )
+                except Exception:
+                    # Fallback sem parâmetros de dimensão
+                    img_response = await g4f_client.images.generate(
+                        model='flux', prompt=prompt_16x9, provider=g4f.Provider.OperaAria
+                    )
+
+            if img_response and img_response.data:
+                raw_url = img_response.data[0].url
+                # Extrair URL real se vier encapsulada em parâmetro de query
+                if 'url=' in raw_url:
+                    parsed = urllib.parse.urlparse(raw_url)
+                    query = urllib.parse.parse_qs(parsed.query)
+                    actual_url = query.get('url', [raw_url])[0]
+                else:
+                    actual_url = raw_url
+
+                # Fazer download e normalizar para 1280x720 (16:9) com Pillow
+                try:
+                    req = urllib.request.Request(actual_url, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=20) as resp:
+                        raw_bytes = resp.read()
+
+                    # Redimensionar/cortar para 16:9 exato (mesmo padrão do Gemini)
+                    try:
+                        from PIL import Image as PILImage
+                        pil_img = PILImage.open(io.BytesIO(raw_bytes)).convert("RGB")
+                        target_w, target_h = 1280, 720
+                        src_w, src_h = pil_img.size
+                        src_ratio = src_w / src_h
+                        target_ratio = target_w / target_h
+
+                        if abs(src_ratio - target_ratio) > 0.05:
+                            # Escalar para cobrir o target mantendo proporção original
+                            if src_ratio > target_ratio:
+                                # Mais largo: ajustar pela altura e cortar largura
+                                new_h = target_h
+                                new_w = int(src_w * (target_h / src_h))
+                            else:
+                                # Mais alto: ajustar pela largura e cortar altura
+                                new_w = target_w
+                                new_h = int(src_h * (target_w / src_w))
+                            pil_img = pil_img.resize((new_w, new_h), PILImage.LANCZOS)
+                            # Crop central para 1280x720
+                            left = (new_w - target_w) // 2
+                            top = (new_h - target_h) // 2
+                            pil_img = pil_img.crop((left, top, left + target_w, top + target_h))
+                        else:
+                            pil_img = pil_img.resize((target_w, target_h), PILImage.LANCZOS)
+
+                        buf = io.BytesIO()
+                        pil_img.save(buf, format="JPEG", quality=90)
+                        img_bytes = buf.getvalue()
+                        print(f"[Paradise AI] G4F image normalized to 1280x720 (16:9)")
+                    except ImportError:
+                        # Pillow não disponível — usa bytes originais
+                        img_bytes = raw_bytes
+                        print(f"[Paradise AI] Pillow not available, storing raw G4F image bytes")
+
+                    img_id = str(uuid.uuid4())
+                    image_cache[img_id] = img_bytes
+                    print(f"[Paradise AI] G4F image cached locally as /api/image-cache/{img_id}")
+                    return f"/api/image-cache/{img_id}", None
+                except Exception as dl_err:
+                    print(f"[Paradise AI] Warning: could not download G4F image, returning raw URL. Error: {dl_err}")
+                    return actual_url, None
+
+            return None, "O provedor gratuito de imagem não retornou um link válido."
+        except Exception as e:
+            return None, f"Erro ao gerar imagem via G4F (OperaAria/DALL-E): {str(e)}"
+
     try:
         response = await client.generate_content(prompt)
         if hasattr(response, "images") and response.images:

@@ -501,7 +501,8 @@ header {
     position: relative;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
+    object-position: center center;
     z-index: 2;
     transition: opacity 0.6s ease;
     opacity: 0;
@@ -1034,12 +1035,13 @@ header {
     box-shadow: none !important;
 }
 
-/* Image fills maximum area while keeping aspect ratio */
+/* Image always fills entire canvas — same as normal player mode */
 .theater-screen:fullscreen .screen-canvas img,
 .theater-screen:-webkit-full-screen .screen-canvas img {
     width: 100% !important;
     height: 100% !important;
-    object-fit: contain !important;
+    object-fit: cover !important;
+    object-position: center center !important;
 }
 
 /* Floating controls on top of the video with fade capability */
@@ -1239,3 +1241,101 @@ header {
     100% { transform: skewX(0deg) scale(1); }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   FORMAT SELECTOR (YouTube vs Stories)
+═══════════════════════════════════════════════════════════════ */
+.format-selector {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+.format-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.85rem 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.22s ease;
+    font-family: inherit;
+}
+.format-btn i { font-size: 1.4rem; }
+.format-btn .format-label { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+.format-btn .format-sub { font-size: 0.7rem; color: var(--text-secondary); letter-spacing: 0.02em; }
+.format-btn:hover { border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.07); }
+.format-btn.active {
+    border-color: var(--accent-purple);
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--accent-purple);
+    box-shadow: 0 0 18px rgba(139,92,246,0.2);
+}
+.format-btn.active .format-label { color: var(--accent-purple); }
+.format-btn[data-format="stories"].active {
+    border-color: #f43f5e;
+    background: rgba(244,63,94,0.12);
+    color: #f43f5e;
+    box-shadow: 0 0 18px rgba(244,63,94,0.2);
+}
+.format-btn[data-format="stories"].active .format-label { color: #f43f5e; }
+
+/* ═══════════════════════════════════════════════════════════════
+   STORIES MODE — Vertical 9:16 Player
+═══════════════════════════════════════════════════════════════ */
+.theater-arena.stories-mode .scenes-sidebar,
+.theater-arena.stories-mode .right-sidebar { display: none !important; }
+
+.theater-arena.stories-mode .theater-main {
+    display: flex;
+    justify-content: center;
+}
+.theater-arena.stories-mode .theater-screen {
+    max-width: 390px;
+    width: 100%;
+    margin: 0 auto;
+}
+.theater-arena.stories-mode .screen-canvas {
+    aspect-ratio: 9 / 16;
+    border-radius: 28px;
+    box-shadow:
+        0 0 0 7px rgba(255,255,255,0.06),
+        0 0 0 9px rgba(0,0,0,0.35),
+        0 28px 70px rgba(0,0,0,0.75);
+}
+.theater-arena.stories-mode .screen-canvas::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 90px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+    z-index: 2;
+    pointer-events: none;
+    border-radius: 28px 28px 0 0;
+}
+.theater-arena.stories-mode .media-controls {
+    background: transparent;
+    border-top: none;
+    padding: 0.4rem 0.6rem;
+    position: relative;
+}
+.theater-arena.stories-mode .subtitle-overlay {
+    bottom: 90px;
+    left: 14px;
+    right: 14px;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 600;
+    border-radius: 14px;
+    padding: 0.55rem 0.8rem;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+}
+.theater-arena.stories-mode .theater-header {
+    justify-content: center;
+    text-align: center;
+}

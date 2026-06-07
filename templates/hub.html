@@ -149,12 +149,21 @@
             <h2 class="modal-title">Configurar Cookies da Sessão Pro</h2>
             
             <div class="form-group">
-                <label for="cookie-psid">Cookie __Secure-1PSID</label>
+                <label for="cookie-provider">Provedor de IA</label>
+                <select id="cookie-provider" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); color: white; padding: 0.85rem; border-radius: 10px; font-family: inherit; font-size: 0.9rem; cursor: pointer; outline: none; box-sizing: border-box; margin-bottom: 1rem;">
+                    <option value="gemini" style="background: #120f26; color: white;">Google Gemini Advanced (Cookies)</option>
+                    <option value="copilot" style="background: #120f26; color: white;">Microsoft Copilot (Bing)</option>
+                    <option value="gpt" style="background: #120f26; color: white;">ChatGPT (GPT-4 via G4F)</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="psid-group">
+                <label for="cookie-psid" id="lbl-cookie-psid">Cookie __Secure-1PSID</label>
                 <input type="password" id="cookie-psid" placeholder="Cole o valor do cookie __Secure-1PSID">
             </div>
 
-            <div class="form-group">
-                <label for="cookie-psidts">Cookie __Secure-1PSIDTS</label>
+            <div class="form-group" id="psidts-group">
+                <label for="cookie-psidts" id="lbl-cookie-psidts">Cookie __Secure-1PSIDTS</label>
                 <input type="password" id="cookie-psidts" placeholder="Cole o valor do cookie __Secure-1PSIDTS">
             </div>
 

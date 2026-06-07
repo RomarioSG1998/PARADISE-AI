@@ -12,7 +12,13 @@ const state = {
     animationFrameId: null,
     autoPlayEnabled: true,
     subtitlesVisible: true,
-    currentSubtitleStyle: 'classic'
+    currentSubtitleStyle: 'classic',
+    outputFormat: 'youtube',   // 'youtube' | 'stories'
+    // Audio preload cache: Map<segmentIndex, HTMLAudioElement>
+    audioCache: new Map(),
+    // Image preload cache: Map<segmentIndex, HTMLImageElement (fully loaded)>
+    imageCache: new Map(),
+    _composedThumbnailDataUrl: null
 };
 
 // DOM Cache
@@ -77,7 +83,10 @@ const dom = {
     btnChangeThumbnail: document.getElementById('btn-change-thumbnail'),
     horrorEffectSelect: document.getElementById('horror-effect-select'),
     horrorOverlay: document.getElementById('horror-overlay'),
-    imageAnimationSelect: document.getElementById('image-animation-select')
+    imageAnimationSelect: document.getElementById('image-animation-select'),
+    formatBtnYoutube: document.getElementById('format-btn-youtube'),
+    formatBtnStories: document.getElementById('format-btn-stories'),
+    generateBtnLabel: document.getElementById('generate-btn-label')
 };
 
 // Translations
@@ -256,6 +265,105 @@ function applyAmbientEffects(genre) {
     }
 }
 
+// ─── Audio Preload Cache ─────────────────────────────────────────────────────
+
+/**
+ * Silently fetches and caches the TTS audio for a given segment index.
+ * Returns immediately if the segment is already cached or out of range.
+ */
+function preloadAudioForScene(idx) {
+    if (!state.narrativeData?.segments) return;
+    const segments = state.narrativeData.segments;
+    if (idx < 0 || idx >= segments.length) return;
+    if (state.audioCache.has(idx)) return;  // already cached
+
+    const segment = segments[idx];
+    const voice = dom.voiceSelect.value;
+    const url = `/api/narrative/tts?text=${encodeURIComponent(segment.text)}&voice=${encodeURIComponent(voice)}`;
+
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.src = url;
+    audio.load();
+    state.audioCache.set(idx, audio);
+}
+
+/**
+ * Preloads the next N scenes' audio in the background.
+ * Called after each scene loads so the next transition is instantaneous.
+ */
+function preloadAdjacentScenes(currentIdx, ahead = 2) {
+    for (let i = 1; i <= ahead; i++) {
+        preloadAudioForScene(currentIdx + i);
+    }
+}
+
+/**
+ * Clears the audio cache (e.g. when starting a new story or changing voice).
+ */
+function clearAudioCache() {
+    state.audioCache.forEach(audio => {
+        audio.pause();
+        audio.src = '';
+    });
+    state.audioCache.clear();
+}
+
+// ─── Image Preload Cache ─────────────────────────────────────────────────────
+
+/**
+ * Resolves the proxy URL for a scene image (Google/Gemini images need proxying).
+ */
+function resolveImageUrl(rawUrl) {
+    if (!rawUrl) return null;
+    if (rawUrl.includes('googleusercontent.com') || rawUrl.includes('google.com')) {
+        return `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
+    }
+    return rawUrl;
+}
+
+/**
+ * Silently preloads the image for a given segment index into the cache.
+ * Returns immediately if already cached or out of range.
+ */
+function preloadImageForScene(idx) {
+    if (!state.narrativeData?.segments) return;
+    const segments = state.narrativeData.segments;
+    if (idx < 0 || idx >= segments.length) return;
+    if (state.imageCache.has(idx)) return;   // already cached
+
+    const rawUrl = segments[idx].image_url;
+    const proxyUrl = resolveImageUrl(rawUrl);
+    if (!proxyUrl) return;
+
+    const img = new Image();
+    img.src = proxyUrl;
+    // Store even before onload so we don't double-fetch
+    state.imageCache.set(idx, { img, proxyUrl, ready: false });
+    img.onload = () => {
+        const entry = state.imageCache.get(idx);
+        if (entry) entry.ready = true;
+    };
+}
+
+/**
+ * Preloads the next N scenes' images in the background.
+ */
+function preloadAdjacentImages(currentIdx, ahead = 2) {
+    for (let i = 1; i <= ahead; i++) {
+        preloadImageForScene(currentIdx + i);
+    }
+}
+
+/**
+ * Clears the image cache (e.g. when starting a new story).
+ */
+function clearImageCache() {
+    state.imageCache.clear();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Load individual scene
 async function loadScene(idx) {
     if (!state.narrativeData || !state.narrativeData.segments || idx < 0 || idx >= state.narrativeData.segments.length) return;
@@ -281,26 +389,46 @@ async function loadScene(idx) {
     dom.btnNext.disabled = idx === state.narrativeData.segments.length - 1;
     dom.sceneCounter.textContent = `Cena ${idx + 1} / ${state.narrativeData.segments.length}`;
     
-    // Update scene image
+    // Update scene image — use preloaded cache for instant display
     dom.screenImage.classList.remove('reveal');
     if (segment.image_url) {
-        let rawUrl = segment.image_url;
-        let proxyUrl = rawUrl;
-        if (rawUrl && (rawUrl.includes("googleusercontent.com") || rawUrl.includes("google.com"))) {
-            proxyUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
+        const proxyUrl = resolveImageUrl(segment.image_url);
+        const cached = state.imageCache.get(idx);
+
+        if (cached?.ready) {
+            // ✅ Cache hit — image already decoded by browser, reveal instantly
+            dom.screenImage.onload = null;
+            dom.screenImage.src = cached.proxyUrl;
+            dom.screenBackplate.style.backgroundImage = `url('${cached.proxyUrl}')`;
+            // Use requestAnimationFrame to ensure paint before adding class
+            requestAnimationFrame(() => {
+                dom.screenImage.classList.add('reveal');
+                if (dom.imageAnimationSelect) applyImageAnimation(dom.imageAnimationSelect.value);
+            });
+        } else {
+            // Cache miss — set src and wait for load (browser may benefit from
+            // the in-flight proxy cache hit on the server side)
+            dom.screenImage.onload = () => {
+                dom.screenImage.classList.add('reveal');
+                if (dom.imageAnimationSelect) applyImageAnimation(dom.imageAnimationSelect.value);
+
+                // Mark as ready in cache once loaded
+                const entry = state.imageCache.get(idx);
+                if (entry) entry.ready = true;
+            };
+            dom.screenImage.src = proxyUrl;
+            dom.screenBackplate.style.backgroundImage = `url('${proxyUrl}')`;
+            if (!state.imageCache.has(idx)) preloadImageForScene(idx);
         }
-        dom.screenImage.onload = () => {
-            dom.screenImage.classList.add('reveal');
-            if (dom.imageAnimationSelect) {
-                applyImageAnimation(dom.imageAnimationSelect.value);
-            }
-        };
-        dom.screenImage.src = proxyUrl;
-        dom.screenBackplate.style.backgroundImage = `url('${proxyUrl}')`;
     } else {
+        dom.screenImage.onload = null;
         dom.screenImage.src = '';
         dom.screenBackplate.style.backgroundImage = 'none';
     }
+
+    // Preload next scenes' images in background
+    preloadAdjacentImages(idx);
+
     
     // Prepare Subtitle timing ranges
     const words = segment.text.split(' ');
@@ -327,58 +455,81 @@ async function loadScene(idx) {
     dom.currentTime.textContent = '00:00';
     dom.totalTime.textContent = '00:00';
     
-    // Prepare new Audio TTS
+    // ── Audio: use preloaded cache if available, otherwise fetch now ──────────
     state.audioLoading = true;
     dom.btnPlay.disabled = true;
     dom.subtitleText.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">${t.audioPreparando}</span>`;
-    
+
+    // Preload next scenes silently in background
+    preloadAdjacentScenes(idx);
+
     try {
         const voice = dom.voiceSelect.value;
-        const handleCanPlayThrough = () => {
+
+        const activateAudio = (audioEl) => {
+            // Swap the preloaded Audio element into the main player
             dom.audioEl.oncanplaythrough = null;
             dom.audioEl.onerror = null;
-            state.audioLoading = false;
-            dom.btnPlay.disabled = false;
-            
-            // Restore words display
-            dom.subtitleText.innerHTML = words.map((w, wIdx) => `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ');
-            
-            // Apply speed rate
-            dom.audioEl.playbackRate = parseFloat(dom.speedSelect.value);
-            
-            // Trigger play
-            dom.audioEl.play().then(() => {
-                dom.btnPlay.innerHTML = '<i class="fa-solid fa-pause"></i>';
-                dom.voiceWave.classList.add('active');
-                state.isPlaying = true;
-                startSubtitleLoop();
-            }).catch((err) => {
-                console.warn("Playback autoplay blocked:", err);
-                dom.btnPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
-                dom.voiceWave.classList.remove('active');
-                state.isPlaying = false;
-            });
-        };
-        
-        const handleAudioError = (err) => {
-            console.error("Audio playback error:", err);
-            dom.audioEl.oncanplaythrough = null;
-            dom.audioEl.onerror = null;
-            state.audioLoading = false;
-            dom.btnPlay.disabled = false;
-            dom.subtitleText.innerHTML = words.map((w, wIdx) => `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ') + ` <span style="color:#ef4444; font-size:0.85em; display:block; margin-top:0.25rem;">${t.audioErro}</span>`;
+            dom.audioEl.pause();
+            dom.audioEl.src = audioEl.src;
+            dom.audioEl.load();
+
+            const handleCanPlay = () => {
+                dom.audioEl.oncanplaythrough = null;
+                dom.audioEl.onerror = null;
+                state.audioLoading = false;
+                dom.btnPlay.disabled = false;
+
+                dom.subtitleText.innerHTML = words.map((w, wIdx) =>
+                    `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ');
+
+                dom.audioEl.playbackRate = parseFloat(dom.speedSelect.value);
+
+                dom.audioEl.play().then(() => {
+                    dom.btnPlay.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                    dom.voiceWave.classList.add('active');
+                    state.isPlaying = true;
+                    startSubtitleLoop();
+                }).catch(err => {
+                    console.warn('Autoplay blocked:', err);
+                    dom.btnPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
+                    dom.voiceWave.classList.remove('active');
+                    state.isPlaying = false;
+                });
+            };
+
+            const handleAudioError = (err) => {
+                console.error('Audio playback error:', err);
+                dom.audioEl.oncanplaythrough = null;
+                dom.audioEl.onerror = null;
+                state.audioLoading = false;
+                dom.btnPlay.disabled = false;
+                dom.subtitleText.innerHTML = words.map((w, wIdx) =>
+                    `<span class="sub-word" id="word-${wIdx}">${w}</span>`).join(' ') +
+                    ` <span style="color:#ef4444;font-size:0.85em;display:block;margin-top:0.25rem;">${t.audioErro}</span>`;
+            };
+
+            dom.audioEl.oncanplaythrough = handleCanPlay;
+            dom.audioEl.onerror = handleAudioError;
+            if (dom.audioEl.readyState >= 4) handleCanPlay();
         };
 
-        dom.audioEl.oncanplaythrough = handleCanPlayThrough;
-        dom.audioEl.onerror = handleAudioError;
-        dom.audioEl.src = `/api/narrative/tts?text=${encodeURIComponent(segment.text)}&voice=${encodeURIComponent(voice)}`;
-        dom.audioEl.load();
-        
-        if (dom.audioEl.readyState >= 4) {
-            handleCanPlayThrough();
+        if (state.audioCache.has(idx)) {
+            // ✅ Cache hit — instant playback
+            const cached = state.audioCache.get(idx);
+            activateAudio(cached);
+        } else {
+            // Cache miss — fetch now and cache
+            const url = `/api/narrative/tts?text=${encodeURIComponent(segment.text)}&voice=${encodeURIComponent(voice)}`;
+            const fresh = new Audio();
+            fresh.preload = 'auto';
+            fresh.src = url;
+            fresh.load();
+            state.audioCache.set(idx, fresh);
+            activateAudio(fresh);
         }
     } catch (e) {
-        console.error("Audio generation loading error:", e);
+        console.error('Audio generation loading error:', e);
         dom.subtitleText.textContent = segment.text + ` ${t.audioErro}`;
         state.audioLoading = false;
     }
@@ -497,6 +648,7 @@ function setupEvents() {
         formData.append('duration', dom.durationSelect.value);
         formData.append('voice', dom.voiceSelect.value);
         formData.append('language', getActiveLanguage());
+        formData.append('format', state.outputFormat);
         
         if (state.currentType === 'theme') {
             formData.append('content', dom.themeInput.value.trim());
@@ -529,6 +681,13 @@ function setupEvents() {
             clearTimeout(stepInterval);
             dom.loadingPanel.style.display = 'none';
             dom.theaterArena.style.display = 'flex';
+
+            // Apply output format mode
+            if (state.outputFormat === 'stories') {
+                dom.theaterArena.classList.add('stories-mode');
+            } else {
+                dom.theaterArena.classList.remove('stories-mode');
+            }
             
             // Populate titles
             dom.storyTitle.textContent = state.narrativeData.title || "Narrativa";
@@ -543,6 +702,8 @@ function setupEvents() {
                 applyImageAnimation(dom.imageAnimationSelect.value);
             }
             renderPlaylist();
+            clearAudioCache();   // discard any cached audio from previous story
+            clearImageCache();   // discard any cached images from previous story
             loadScene(0);
             updateThumbnailUI();
             saveNarrativeToHistory(state.narrativeData);
@@ -652,6 +813,7 @@ function setupEvents() {
         stopSubtitleLoop();
         
         dom.theaterArena.style.display = 'none';
+        dom.theaterArena.classList.remove('stories-mode');   // reset format on new story
         dom.setupPanel.style.display = 'flex';
         
         dom.themeInput.value = '';
@@ -788,6 +950,40 @@ function setupEvents() {
                 if (document.fullscreenElement) document.exitFullscreen();
                 break;
         }
+    });
+
+    // Voice select change → clear audio cache so re-generated TTS uses new voice
+    if (dom.voiceSelect) {
+        dom.voiceSelect.addEventListener('change', () => {
+            clearAudioCache();
+        });
+    }
+
+    // ─── Format Selector (YouTube / Stories) ────────────────────────────────
+    [dom.formatBtnYoutube, dom.formatBtnStories].forEach(btn => {
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+            dom.formatBtnYoutube?.classList.remove('active');
+            dom.formatBtnStories?.classList.remove('active');
+            btn.classList.add('active');
+            state.outputFormat = btn.dataset.format;
+
+            // Update generate button label
+            if (dom.generateBtnLabel) {
+                const lang = localStorage.getItem('paradise_language') || 'pt';
+                if (state.outputFormat === 'stories') {
+                    dom.generateBtnLabel.textContent =
+                        lang === 'en' ? 'Generate Stories' :
+                        lang === 'es' ? 'Generar Stories' :
+                                        'Gerar Stories';
+                } else {
+                    dom.generateBtnLabel.textContent =
+                        lang === 'en' ? 'Generate Narrative Video' :
+                        lang === 'es' ? 'Generar Video Narrativa' :
+                                        'Gerar Vídeo Narrativa';
+                }
+            }
+        });
     });
 
     // Horror Effect Selector Change
@@ -985,6 +1181,14 @@ function loadNarrativeFromHistory(id) {
         
         dom.setupPanel.style.display = 'none';
         dom.theaterArena.style.display = 'flex';
+        // Apply format from saved narrative (default youtube if not stored)
+        const savedFormat = narrative.format || 'youtube';
+        state.outputFormat = savedFormat;
+        if (savedFormat === 'stories') {
+            dom.theaterArena.classList.add('stories-mode');
+        } else {
+            dom.theaterArena.classList.remove('stories-mode');
+        }
         
         dom.storyTitle.textContent = narrative.title || "Narrativa";
         
@@ -1007,6 +1211,8 @@ function loadNarrativeFromHistory(id) {
             applyImageAnimation(dom.imageAnimationSelect.value);
         }
         renderPlaylist();
+        clearAudioCache();   // discard any cached audio from previous story
+        clearImageCache();   // discard any cached images from previous story
         loadScene(0);
         updateThumbnailUI();
     }

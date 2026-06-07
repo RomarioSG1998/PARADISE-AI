@@ -21,6 +21,7 @@ def generate_narrative():
     duration = 1
     voice = "pt-BR-AntonioNeural"
     language = "pt"
+    output_format = "youtube"
 
     if request.is_json:
         data = request.get_json() or {}
@@ -30,12 +31,14 @@ def generate_narrative():
         duration = int(data.get("duration", 1))
         voice = data.get("voice", "pt-BR-AntonioNeural")
         language = data.get("language", "pt")
+        output_format = data.get("format", "youtube")
     else:
         input_type = request.form.get("type", "theme")
         genre = request.form.get("genre", "fantasia")
         duration = int(request.form.get("duration", 1))
         voice = request.form.get("voice", "pt-BR-AntonioNeural")
         language = request.form.get("language") or request.cookies.get("paradise_language", "pt")
+        output_format = request.form.get("format", "youtube")
 
         if input_type == "pdf":
             if "file" not in request.files:
@@ -70,8 +73,10 @@ def generate_narrative():
             duration_min=duration,
             voice_id=voice,
             language=language,
+            output_format=output_format,
             username=username
         ))
+        narrative_data["format"] = output_format   # echo back so frontend can restore
         return jsonify(narrative_data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

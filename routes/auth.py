@@ -104,9 +104,14 @@ def save_cookies():
     secure_1psid = data.get("secure_1psid", "").strip()
     secure_1psidts = data.get("secure_1psidts", "").strip()
     gemini_api_key = data.get("gemini_api_key", "").strip()
+    provider = data.get("provider", "gemini").strip()
 
-    if not gemini_api_key and (not secure_1psid or not secure_1psidts):
-        return jsonify({"success": False, "error": "Forneça a API Key ou ambos os cookies"}), 400
+    if provider == "gemini":
+        if not gemini_api_key and (not secure_1psid or not secure_1psidts):
+            return jsonify({"success": False, "error": "Forneça a API Key ou ambos os cookies"}), 400
+    elif provider == "copilot":
+        if not secure_1psid:
+            return jsonify({"success": False, "error": "O cookie _U é obrigatório para o Copilot"}), 400
 
     try:
         from database import add_account
@@ -125,8 +130,8 @@ def save_cookies():
         else:
             # Save account to DB pool associated with user
             from datetime import datetime
-            account_name = f"Conta de {username} ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
-            add_account(username, account_name, secure_1psid, secure_1psidts)
+            account_name = f"{provider.capitalize()} de {username} ({datetime.now().strftime('%d/%m/%Y %H:%M')})"
+            add_account(username, account_name, secure_1psid, secure_1psidts, provider)
             
             updates["GEMINI_SECURE_1PSID"] = secure_1psid
             updates["GEMINI_SECURE_1PSIDTS"] = secure_1psidts
@@ -157,7 +162,7 @@ def save_cookies():
                 f.write(f"{k}={v}\n")
         
         # Test connection for this user
-        if not gemini_api_key:
+        if not gemini_api_key and provider == "gemini":
             client, err = run_in_background(get_or_create_client_async(username=username, force_reinit=True))
             if err:
                 return jsonify({"success": False, "error": err}), 400
