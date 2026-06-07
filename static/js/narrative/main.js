@@ -259,6 +259,11 @@ function applyAmbientEffects(genre) {
 async function loadScene(idx) {
     if (!state.narrativeData || !state.narrativeData.segments || idx < 0 || idx >= state.narrativeData.segments.length) return;
     
+    // Auto-select or shuffle horror effect if random is selected
+    if (dom.horrorEffectSelect && dom.horrorEffectSelect.value === 'random') {
+        applyHorrorEffect('random');
+    }
+    
     state.currentSceneIdx = idx;
     const segment = state.narrativeData.segments[idx];
     const t = getT();
@@ -1099,8 +1104,15 @@ function applyHorrorEffect(effect) {
     // Remove all classes except base 'horror-overlay'
     dom.horrorOverlay.className = 'horror-overlay';
     
-    if (effect && effect !== 'none') {
-        dom.horrorOverlay.classList.add(`effect-${effect}`);
+    let targetEffect = effect;
+    if (effect === 'random') {
+        const effects = ['rec', 'ritual', 'vhs', 'insanity'];
+        // Pick a random effect, avoiding picking the exact same one if possible (optional, simple random is fine)
+        targetEffect = effects[Math.floor(Math.random() * effects.length)];
+    }
+    
+    if (targetEffect && targetEffect !== 'none') {
+        dom.horrorOverlay.classList.add(`effect-${targetEffect}`);
         dom.horrorOverlay.classList.add('active');
     }
 }
