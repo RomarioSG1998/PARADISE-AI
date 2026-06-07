@@ -391,36 +391,40 @@ async function loadScene(idx) {
         const proxyUrl = resolveImageUrl(segment.image_url);
         const cached = state.imageCache.get(idx);
 
-        const applyImage = (url) => {
+        if (cached?.ready) {
+            // ✅ Cache hit — image already decoded by browser, reveal instantly
+            dom.screenImage.onload = null;
+            dom.screenImage.src = cached.proxyUrl;
+            dom.screenBackplate.style.backgroundImage = `url('${cached.proxyUrl}')`;
+            // Use requestAnimationFrame to ensure paint before adding class
+            requestAnimationFrame(() => {
+                dom.screenImage.classList.add('reveal');
+                if (dom.imageAnimationSelect) applyImageAnimation(dom.imageAnimationSelect.value);
+            });
+        } else {
+            // Cache miss — set src and wait for load (browser may benefit from
+            // the in-flight proxy cache hit on the server side)
             dom.screenImage.onload = () => {
                 dom.screenImage.classList.add('reveal');
-                if (dom.imageAnimationSelect) {
-                    applyImageAnimation(dom.imageAnimationSelect.value);
-                }
-            };
-            dom.screenImage.src = url;
-            dom.screenBackplate.style.backgroundImage = `url('${url}')`;
-        };
+                if (dom.imageAnimationSelect) applyImageAnimation(dom.imageAnimationSelect.value);
 
-        if (cached?.ready) {
-            // ✅ Cache hit — image already decoded, set src instantly
-            applyImage(cached.proxyUrl);
-        } else {
-            // Cache miss or not yet ready — set src normally (browser may still benefit
-            // from the in-flight request initiated by preloadImageForScene)
-            applyImage(proxyUrl);
-            // Store in cache if not already there
-            if (!state.imageCache.has(idx)) {
-                preloadImageForScene(idx);
-            }
+                // Mark as ready in cache once loaded
+                const entry = state.imageCache.get(idx);
+                if (entry) entry.ready = true;
+            };
+            dom.screenImage.src = proxyUrl;
+            dom.screenBackplate.style.backgroundImage = `url('${proxyUrl}')`;
+            if (!state.imageCache.has(idx)) preloadImageForScene(idx);
         }
     } else {
+        dom.screenImage.onload = null;
         dom.screenImage.src = '';
         dom.screenBackplate.style.backgroundImage = 'none';
     }
 
     // Preload next scenes' images in background
     preloadAdjacentImages(idx);
+
     
     // Prepare Subtitle timing ranges
     const words = segment.text.split(' ');

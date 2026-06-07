@@ -77,6 +77,17 @@ def proxy_image():
         load_dotenv(ENV_PATH, override=True)
         cf_proxy = os.getenv("CLOUDFLARE_PROXY_URL", "").strip()
 
+        # ── Server-side in-memory cache ──────────────────────────────────────
+        # Key is the final resolved URL (after =s1600 normalization)
+        cache_key = f"proxy:{url}"
+        if cache_key in image_cache:
+            cached_img, cached_mime = image_cache[cache_key]
+            response = Response(cached_img, mimetype=cached_mime)
+            response.headers["Cache-Control"] = "public, max-age=86400"
+            response.headers["X-Cache"] = "HIT"
+            return response
+        # ─────────────────────────────────────────────────────────────────────
+
         if cf_proxy:
             import urllib.parse
             proxy_url = f"{cf_proxy}?url={urllib.parse.quote(url)}"
@@ -95,7 +106,15 @@ def proxy_image():
             return f"Failed to fetch image: status {resp.status_code}", 502
             
         content_type = resp.headers.get("Content-Type", "image/png")
-        return Response(resp.content, mimetype=content_type)
+        img_bytes = resp.content
+
+        # Store in server-side cache for future requests (same session)
+        image_cache[cache_key] = (img_bytes, content_type)
+
+        response = Response(img_bytes, mimetype=content_type)
+        response.headers["Cache-Control"] = "public, max-age=86400"
+        response.headers["X-Cache"] = "MISS"
+        return response
     except Exception as e:
         return f"Error proxying image: {str(e)}", 500
 
