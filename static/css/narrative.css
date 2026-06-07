@@ -1172,3 +1172,62 @@ header {
     100% { backdrop-filter: blur(5px); filter: contrast(1.4) saturate(0.5) hue-rotate(15deg); }
 }
 
+/* Image Cinematic Animations */
+.screen-canvas img.reveal.anim-zoom {
+    animation: ken-burns-zoom 25s ease-in-out infinite alternate;
+}
+@keyframes ken-burns-zoom {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.12); }
+}
+
+.screen-canvas img.reveal.anim-shake {
+    animation: horror-shake 0.3s infinite;
+}
+@keyframes horror-shake {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    10% { transform: translate(-2px, -1px) rotate(-0.5deg); }
+    20% { transform: translate(-3px, 0px) rotate(0.5deg); }
+    30% { transform: translate(0px, 2px) rotate(0deg); }
+    40% { transform: translate(2px, -1px) rotate(0.5deg); }
+    50% { transform: translate(-1px, 2px) rotate(-0.5deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(2px, 1px) rotate(-0.5deg); }
+    80% { transform: translate(-1px, -1px) rotate(0.5deg); }
+    90% { transform: translate(2px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-0.5deg); }
+}
+
+.screen-canvas img.reveal.anim-heartbeat {
+    animation: horror-heartbeat 1.6s infinite ease-in-out;
+}
+@keyframes horror-heartbeat {
+    0% { transform: scale(1); }
+    14% { transform: scale(1.06); }
+    28% { transform: scale(1.02); }
+    42% { transform: scale(1.08); }
+    70% { transform: scale(1); }
+    100% { transform: scale(1); }
+}
+
+.screen-canvas img.reveal.anim-blur {
+    animation: ghost-blur 6s ease-in-out infinite alternate;
+}
+@keyframes ghost-blur {
+    0% { filter: blur(0px) brightness(1); }
+    50% { filter: blur(6px) brightness(0.75); }
+    100% { filter: blur(0px) brightness(1.1); }
+}
+
+.screen-canvas img.reveal.anim-glitch {
+    animation: horror-glitch 0.25s infinite;
+}
+@keyframes horror-glitch {
+    0% { transform: skewX(0deg) scale(1); filter: hue-rotate(0deg); }
+    10% { transform: skewX(-5deg) scale(1.02); filter: hue-rotate(30deg); }
+    20% { transform: skewX(5deg) scale(0.98); filter: hue-rotate(-30deg); }
+    30% { transform: skewX(-2deg) scale(1.01); filter: hue-rotate(0deg); }
+    40% { transform: skewX(0deg) scale(1); }
+    100% { transform: skewX(0deg) scale(1); }
+}
+

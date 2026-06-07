@@ -76,7 +76,8 @@ const dom = {
     btnDownloadThumbnail: document.getElementById('btn-download-thumbnail'),
     btnChangeThumbnail: document.getElementById('btn-change-thumbnail'),
     horrorEffectSelect: document.getElementById('horror-effect-select'),
-    horrorOverlay: document.getElementById('horror-overlay')
+    horrorOverlay: document.getElementById('horror-overlay'),
+    imageAnimationSelect: document.getElementById('image-animation-select')
 };
 
 // Translations
@@ -290,6 +291,9 @@ async function loadScene(idx) {
         }
         dom.screenImage.onload = () => {
             dom.screenImage.classList.add('reveal');
+            if (dom.imageAnimationSelect) {
+                applyImageAnimation(dom.imageAnimationSelect.value);
+            }
         };
         dom.screenImage.src = proxyUrl;
         dom.screenBackplate.style.backgroundImage = `url('${proxyUrl}')`;
@@ -542,6 +546,18 @@ function setupEvents() {
                 }
                 applyHorrorEffect(dom.horrorEffectSelect.value);
             }
+            // Auto-select image animation based on genre
+            if (dom.imageAnimationSelect) {
+                const genre = dom.genreSelect.value;
+                if (genre === 'terror') {
+                    dom.imageAnimationSelect.value = 'shake';
+                } else if (genre === 'suspense') {
+                    dom.imageAnimationSelect.value = 'zoom';
+                } else {
+                    dom.imageAnimationSelect.value = 'none';
+                }
+                applyImageAnimation(dom.imageAnimationSelect.value);
+            }
             renderPlaylist();
             loadScene(0);
             updateThumbnailUI();
@@ -659,6 +675,8 @@ function setupEvents() {
         resetThumbnailUI();
         if (dom.horrorEffectSelect) dom.horrorEffectSelect.value = 'none';
         applyHorrorEffect('none');
+        if (dom.imageAnimationSelect) dom.imageAnimationSelect.value = 'none';
+        applyImageAnimation('none');
     });
     
     // Subtitle Toggle Click
@@ -763,6 +781,13 @@ function setupEvents() {
     if (dom.horrorEffectSelect) {
         dom.horrorEffectSelect.addEventListener('change', () => {
             applyHorrorEffect(dom.horrorEffectSelect.value);
+        });
+    }
+
+    // Image Animation Selector Change
+    if (dom.imageAnimationSelect) {
+        dom.imageAnimationSelect.addEventListener('change', () => {
+            applyImageAnimation(dom.imageAnimationSelect.value);
         });
     }
 }// Global Language selectors updates
@@ -946,6 +971,17 @@ function loadNarrativeFromHistory(id) {
             }
             applyHorrorEffect(dom.horrorEffectSelect.value);
         }
+        // Auto-select image animation based on genre
+        if (dom.imageAnimationSelect) {
+            if (genre === 'terror') {
+                dom.imageAnimationSelect.value = 'shake';
+            } else if (genre === 'suspense') {
+                dom.imageAnimationSelect.value = 'zoom';
+            } else {
+                dom.imageAnimationSelect.value = 'none';
+            }
+            applyImageAnimation(dom.imageAnimationSelect.value);
+        }
         renderPlaylist();
         loadScene(0);
         updateThumbnailUI();
@@ -1114,6 +1150,17 @@ function applyHorrorEffect(effect) {
     if (targetEffect && targetEffect !== 'none') {
         dom.horrorOverlay.classList.add(`effect-${targetEffect}`);
         dom.horrorOverlay.classList.add('active');
+    }
+}
+
+function applyImageAnimation(anim) {
+    if (!dom.screenImage) return;
+    
+    // Remove all animation classes
+    dom.screenImage.classList.remove('anim-zoom', 'anim-shake', 'anim-heartbeat', 'anim-blur', 'anim-glitch');
+    
+    if (anim && anim !== 'none') {
+        dom.screenImage.classList.add(`anim-${anim}`);
     }
 }
 
