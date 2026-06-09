@@ -88,6 +88,21 @@ export function applyLanguage(lang) {
     if (elements.lblBtnAsk) elements.lblBtnAsk.textContent = t.lblBtnAsk;
     if (elements.lblBtnReturn) elements.lblBtnReturn.textContent = t.lblBtnReturn;
 
+    const lblStyleLabel = document.getElementById('lbl-style-label');
+    if (lblStyleLabel) lblStyleLabel.textContent = t.lblStyleLabel;
+    const optStyleClassic = document.getElementById('opt-style-classic');
+    if (optStyleClassic) optStyleClassic.textContent = t.styleClassic;
+    const optStyleRealistic = document.getElementById('opt-style-realistic');
+    if (optStyleRealistic) optStyleRealistic.textContent = t.styleRealistic;
+    const optStyleMedieval = document.getElementById('opt-style-medieval');
+    if (optStyleMedieval) optStyleMedieval.textContent = t.styleMedieval;
+    const optStyleCaveman = document.getElementById('opt-style-caveman');
+    if (optStyleCaveman) optStyleCaveman.textContent = t.styleCaveman;
+    const optStyleAnime = document.getElementById('opt-style-anime');
+    if (optStyleAnime) optStyleAnime.textContent = t.styleAnime;
+    const optStyleDisney = document.getElementById('opt-style-disney');
+    if (optStyleDisney) optStyleDisney.textContent = t.styleDisney;
+
     updateAutoPlayUI();
     renderHistoryList();
 }
@@ -151,6 +166,10 @@ function setupEvents() {
         const durationSelect = document.getElementById('classroom-duration');
         if (durationSelect) {
             formData.append('duration', durationSelect.value);
+        }
+        const styleSelect = document.getElementById('classroom-style');
+        if (styleSelect) {
+            formData.append('style', styleSelect.value);
         }
         
         if (state.currentType === 'theme') {
@@ -378,7 +397,8 @@ function setupEvents() {
                     slide_title: currentSlide.title,
                     slide_narration: currentSlide.narration,
                     question: question,
-                    language: currentLang
+                    language: currentLang,
+                    style: state.lessonData.style || 'classic'
                 })
             });
 

@@ -45,16 +45,18 @@ def generate_classroom():
     if not content:
         return jsonify({"error": "Conteúdo ou tema não especificado"}), 400
         
-    # Retrieve lang_code
+    # Retrieve lang_code and style
     if request.is_json:
         data = request.get_json() or {}
         lang_code = data.get("language") or request.cookies.get("paradise_language", "pt")
+        style = data.get("style", "classic")
     else:
         lang_code = request.form.get("language") or request.cookies.get("paradise_language", "pt")
+        style = request.form.get("style", "classic")
 
     try:
         username = session.get("username")
-        lesson_data = run_in_background(generate_classroom_async(content, lang_code, username=username))
+        lesson_data = run_in_background(generate_classroom_async(content, lang_code, style=style, username=username))
         return jsonify(lesson_data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -71,6 +73,7 @@ def ask_teacher():
     slide_narration = data.get("slide_narration", "").strip()
     question = data.get("question", "").strip()
     lang_code = data.get("language") or request.cookies.get("paradise_language", "pt")
+    style = data.get("style", "classic").strip()
     
     if not question:
         return jsonify({"error": "A pergunta não pode ser vazia"}), 400
@@ -78,7 +81,7 @@ def ask_teacher():
     try:
         from services.classroom_service import generate_classroom_explanation_async
         username = session.get("username")
-        explanation = run_in_background(generate_classroom_explanation_async(subject, slide_title, slide_narration, question, lang_code, username=username))
+        explanation = run_in_background(generate_classroom_explanation_async(subject, slide_title, slide_narration, question, lang_code, style=style, username=username))
         return jsonify(explanation)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

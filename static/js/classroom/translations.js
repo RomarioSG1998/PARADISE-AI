@@ -28,7 +28,14 @@ export const classTranslations = {
         lblBtnAsk: "Perguntar",
         lblBtnReturn: "Voltar para a Aula",
         askingTeacher: "O professor está elaborando a resposta...",
-        askEmptyError: "Por favor, digite uma pergunta."
+        askEmptyError: "Por favor, digite uma pergunta.",
+        lblStyleLabel: "Estilo Visual dos Slides",
+        styleClassic: "Quadro Negro Clássico (Giz)",
+        styleRealistic: "Slides Realista (Fotográfico)",
+        styleMedieval: "Arte Medieval (Idade Média)",
+        styleCaveman: "Arte do Homem das Cavernas (Caveman)",
+        styleAnime: "Anime / Desenho Japonês",
+        styleDisney: "Disney 3D / Pixar"
     },
     en: {
         backBtn: "<i class='fa-solid fa-arrow-left'></i> General Dashboard",
@@ -59,7 +66,14 @@ export const classTranslations = {
         lblBtnAsk: "Ask",
         lblBtnReturn: "Back to Lesson",
         askingTeacher: "The teacher is drafting the response...",
-        askEmptyError: "Please type a question."
+        askEmptyError: "Please type a question.",
+        lblStyleLabel: "Visual Style of Slides",
+        styleClassic: "Classic Blackboard (Chalk)",
+        styleRealistic: "Realistic Slides (Photographic)",
+        styleMedieval: "Medieval Art (Middle Ages)",
+        styleCaveman: "Caveman Art (Stone Age)",
+        styleAnime: "Anime / Japanese Art",
+        styleDisney: "Disney 3D / Pixar"
     },
     es: {
         backBtn: "<i class='fa-solid fa-arrow-left'></i> Panel General",
@@ -90,6 +104,13 @@ export const classTranslations = {
         lblBtnAsk: "Preguntar",
         lblBtnReturn: "Volver a la Clase",
         askingTeacher: "El profesor está elaborando la respuesta...",
-        askEmptyError: "Por favor, escribe una pregunta."
+        askEmptyError: "Por favor, escribe una pregunta.",
+        lblStyleLabel: "Estilo Visual de Diapositivas",
+        styleClassic: "Pizarra Clásica (Tiza)",
+        styleRealistic: "Diapositivas Realistas (Fotográfico)",
+        styleMedieval: "Arte Medieval (Edad Media)",
+        styleCaveman: "Arte de los Cavernícolas (Caveman)",
+        styleAnime: "Anime / Dibujo Japonés",
+        styleDisney: "Disney 3D / Pixar"
     }
 };

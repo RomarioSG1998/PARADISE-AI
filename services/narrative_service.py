@@ -1,8 +1,14 @@
 import json
 import os
 from services.ai_service import generate_text_unified_async, generate_image_unified_async
+from services.classroom_service import (
+    STYLE_PROMPT_MAP,
+    STYLE_THUMB_MAP,
+    STYLE_LLM_PROMPT_MAP,
+    sanitize_image_prompt
+)
 
-async def generate_narrative_async(content: str, genre: str, duration_min: int, voice_id: str, language: str = "pt", output_format: str = "youtube", username=None):
+async def generate_narrative_async(content: str, genre: str, duration_min: int, voice_id: str, language: str = "pt", output_format: str = "youtube", username=None, visual_theme="classic"):
     # Set segments count based on duration
     # We estimate ~3 segments per minute (each ~45 words)
     # Allows scaling up to e.g. 10 minutes = 30 scenes
@@ -19,6 +25,10 @@ async def generate_narrative_async(content: str, genre: str, duration_min: int, 
     }
 
     style_modifier = genre_styles.get(genre.lower(), "cinematic digital painting, highly detailed, expressive lighting")
+    style_suffix = STYLE_PROMPT_MAP.get(visual_theme, STYLE_PROMPT_MAP["classic"])
+    llm_style = STYLE_LLM_PROMPT_MAP.get(visual_theme, STYLE_LLM_PROMPT_MAP["classic"])
+    style_desc = llm_style["en_desc"]
+    example_desc = llm_style["example"]
 
     # Build an explicit language instruction based on the active global language
     lang_names = {"pt": "Portuguese (Brazilian)", "en": "English", "es": "Spanish"}
@@ -55,6 +65,7 @@ YOUTUBE SCRIPT & RETENTION STRATEGIES (CRITICAL):
 IMAGE INSTRUCTIONS:
 - For each segment, you must create a detailed "image_prompt" in English.
 - The "image_prompt" must visually describe what happens in that specific scene, incorporating setting, characters, mood, and color elements.
+- Style must be: {style_desc}. Example: {example_desc}
 - Do NOT include any text or letters in the images.
 
 Return the response EXCLUSIVELY in JSON format (wrapped in ```json ... ```) following exactly this model:
@@ -93,8 +104,9 @@ Return only the valid JSON block, without any additional text before or after. W
     segments = narrative_data.get("segments", [])
     for idx, segment in enumerate(segments):
         img_prompt = segment.get("image_prompt", f"A beautiful cinematic scene illustrating the story: {narrative_data.get('title', 'story')}")
-        # Inject style modifier corresponding to the genre
-        full_img_prompt = f"{img_prompt}. ({style_modifier}, no text, no letters, cinematic composition, atmospheric lighting, detailed artwork)"
+        # Sanitize and apply style modifiers
+        sanitized = sanitize_image_prompt(img_prompt, visual_theme)
+        full_img_prompt = f"{sanitized}. ({style_modifier}, no text, no letters, cinematic composition, atmospheric lighting, detailed artwork). {style_suffix}"
 
         img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username, output_format=output_format)
         if img_url:
@@ -106,14 +118,18 @@ Return only the valid JSON block, without any additional text before or after. W
     title = narrative_data.get("title", "Uma História Incrível")
     gpt_thumb_prompt = narrative_data.get("thumbnail_prompt", "").strip()
     if gpt_thumb_prompt:
-        thumb_prompt = f"Professional high-CTR YouTube video thumbnail artwork: {gpt_thumb_prompt}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
+        sanitized_thumb = sanitize_image_prompt(gpt_thumb_prompt, visual_theme)
+        thumb_prompt = f"Professional high-CTR YouTube video thumbnail artwork: {sanitized_thumb}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k). {style_suffix}"
     else:
-        thumb_prompt = f"Professional high-CTR YouTube video thumbnail poster artwork: A highly dramatic close-up of a central element or character showing intense emotion related to '{title}'. Genre: {genre}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
+        thumb_prompt = f"Professional high-CTR YouTube video thumbnail poster artwork: A highly dramatic close-up of a central element or character showing intense emotion related to '{title}'. Genre: {genre}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k). {style_suffix}"
         
     thumb_url, thumb_err = await generate_image_unified_async(thumb_prompt, username=username)
     if thumb_url:
         narrative_data["thumbnail_url"] = thumb_url
     else:
         narrative_data["thumbnail_url"] = ""
+
+    # Add visual_theme to narrative data
+    narrative_data["visual_theme"] = visual_theme
 
     return narrative_data

@@ -18,6 +18,7 @@ def generate_narrative():
     input_type = "theme"
     content = ""
     genre = "fantasia"
+    visual_theme = "classic"
     duration = 1
     voice = "pt-BR-AntonioNeural"
     language = "pt"
@@ -28,6 +29,7 @@ def generate_narrative():
         input_type = data.get("type", "theme")
         content = data.get("content", "").strip()
         genre = data.get("genre", "fantasia")
+        visual_theme = data.get("visual_theme", "classic")
         duration = int(data.get("duration", 1))
         voice = data.get("voice", "pt-BR-AntonioNeural")
         language = data.get("language", "pt")
@@ -35,6 +37,7 @@ def generate_narrative():
     else:
         input_type = request.form.get("type", "theme")
         genre = request.form.get("genre", "fantasia")
+        visual_theme = request.form.get("visual_theme", "classic")
         duration = int(request.form.get("duration", 1))
         voice = request.form.get("voice", "pt-BR-AntonioNeural")
         language = request.form.get("language") or request.cookies.get("paradise_language", "pt")
@@ -74,7 +77,8 @@ def generate_narrative():
             voice_id=voice,
             language=language,
             output_format=output_format,
-            username=username
+            username=username,
+            visual_theme=visual_theme
         ))
         narrative_data["format"] = output_format   # echo back so frontend can restore
         return jsonify(narrative_data)
@@ -117,6 +121,7 @@ def regenerate_thumbnail():
     data = request.get_json() or {}
     title = data.get("title", "História")
     genre = data.get("genre", "fantasia")
+    visual_theme = data.get("visual_theme", "classic")
     custom_prompt = data.get("custom_prompt", "").strip()
     thumbnail_prompt = data.get("thumbnail_prompt", "").strip()
     username = session.get("username")
@@ -132,13 +137,18 @@ def regenerate_thumbnail():
     }
     style_modifier = genre_styles.get(genre.lower(), "cinematic digital painting, highly detailed, expressive lighting")
     
+    from services.classroom_service import STYLE_PROMPT_MAP, sanitize_image_prompt
+    style_suffix = STYLE_PROMPT_MAP.get(visual_theme, STYLE_PROMPT_MAP["classic"])
+    
     from services.ai_service import generate_image_unified_async
     if custom_prompt:
-        prompt = f"Professional high-CTR YouTube video thumbnail artwork: {custom_prompt}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
+        sanitized = sanitize_image_prompt(custom_prompt, visual_theme)
+        prompt = f"Professional high-CTR YouTube video thumbnail artwork: {sanitized}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k). {style_suffix}"
     elif thumbnail_prompt:
-        prompt = f"Professional high-CTR YouTube video thumbnail artwork: {thumbnail_prompt}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
+        sanitized = sanitize_image_prompt(thumbnail_prompt, visual_theme)
+        prompt = f"Professional high-CTR YouTube video thumbnail artwork: {sanitized}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k). {style_suffix}"
     else:
-        prompt = f"Professional high-CTR YouTube video thumbnail poster artwork: A highly dramatic close-up of a central element or character showing intense emotion related to '{title}'. Genre: {genre}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
+        prompt = f"Professional high-CTR YouTube video thumbnail poster artwork: A highly dramatic close-up of a central element or character showing intense emotion related to '{title}'. Genre: {genre}. ({style_modifier}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k). {style_suffix}"
         
     try:
         thumb_url, err = run_in_background(generate_image_unified_async(prompt, username=username))

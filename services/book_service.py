@@ -1,17 +1,18 @@
 import json
 from services.ai_service import generate_text_unified_async, generate_image_unified_async
+from services.classroom_service import (
+    STYLE_PROMPT_MAP,
+    STYLE_THUMB_MAP,
+    STYLE_LLM_PROMPT_MAP,
+    sanitize_image_prompt
+)
 
-VISUAL_THEME_STYLES = {
-    "cartoon":  "(2D cartoon style illustration, thick black outlines, vibrant flat colors, comic drawing style, playful animation art, no text, no letters, no labels)",
-    "anime":    "(anime film illustration, Studio Ghibli or Makoto Shinkai style, soft watercolor backgrounds, detailed characters, cinematic lighting, lush scenery, no text, no labels)",
-    "cinema":   "(ultra-realistic cinematic photograph, Hollywood blockbuster style, dramatic lighting, 8K resolution, photorealistic details, no text, no labels)",
-    "classic":  "(silent film era, Charlie Chaplin style, black and white photograph, dramatic shadows, vintage grain texture, expressionist composition, no text, no labels)",
-    "western":  "(Wild West oil painting illustration, dusty desert landscape, warm sunset palette, cowboy aesthetic, rustic vintage style, no text, no labels)",
-}
-
-async def generate_book_async(theme, level, language, visual_theme="cartoon", duration_min="3", username=None):
+async def generate_book_async(theme, level, language, visual_theme="classic", duration_min="3", username=None):
     lang_lower = language.lower()
-    style_suffix = VISUAL_THEME_STYLES.get(visual_theme, VISUAL_THEME_STYLES["cartoon"])
+    style_suffix = STYLE_PROMPT_MAP.get(visual_theme, STYLE_PROMPT_MAP["classic"])
+    llm_style = STYLE_LLM_PROMPT_MAP.get(visual_theme, STYLE_LLM_PROMPT_MAP["classic"])
+    style_desc = llm_style["en_desc"]
+    example_desc = llm_style["example"]
     
     try:
         num_chapters = max(1, min(20, int(duration_min) * 2))
@@ -39,7 +40,7 @@ The returned JSON must follow exactly this structure:
       "chapter_number": 1,
       "title": "Chapter 1 Title in English",
       "text": "Full text of Chapter 1 (rich and engaging narrative of 3 to 5 paragraphs written in English).",
-      "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 1 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
+      "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 1 for a high-quality image generator. Style must be: {style_desc}. Example: {example_desc}"
     }},
     ... (generate EXACTLY {num_chapters} chapters following this exact format)
   ]
@@ -64,7 +65,7 @@ El JSON devuelto debe seguir exactamente esta estructura:
       "chapter_number": 1,
       "title": "Título del Capítulo 1 en Español",
       "text": "Texto completo del Capítulo 1 (narrativa rica y envolvente de 3 a 5 párrafos escrita en Español).",
-      "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 1 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
+      "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 1 for a high-quality image generator. Style must be: {style_desc}. Example: {example_desc}"
     }},
     ... (genera EXACTAMENTE {num_chapters} capítulos siguiendo este formato)
   ]
@@ -89,7 +90,7 @@ O JSON retornado deve seguir exatamente esta estrutura:
       "chapter_number": 1,
       "title": "Título do Capítulo 1 no idioma {language}",
       "text": "Texto completo do Capítulo 1 (narrativa rica e envolvente de 3 a 5 parágrafos escrita no idioma {language}).",
-      "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 1 for a high-quality image generator. Style should be clean, digital art, storybook illustration, no text in the image."
+      "illustration_prompt": "Highly detailed English prompt describing the visual scene of Chapter 1 for a high-quality image generator. Style must be: {style_desc}. Example: {example_desc}"
     }},
     ... (gere EXATAMENTE {num_chapters} capítulos seguindo este formato exato)
   ]
@@ -113,7 +114,8 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
         # For each chapter, generate the corresponding image using selected visual theme
         for idx, chapter in enumerate(book_data.get("chapters", [])):
             img_prompt = chapter.get("illustration_prompt", f"A beautiful scene depicting {theme}")
-            full_img_prompt = f"{img_prompt}. {style_suffix}"
+            sanitized = sanitize_image_prompt(img_prompt, visual_theme)
+            full_img_prompt = f"{sanitized}. {style_suffix}"
             
             img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username)
             if img_url:
@@ -123,7 +125,9 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
                 
         # Generate the YouTube/Book Thumbnail
         thumb_base_prompt = book_data.get("thumbnail_prompt", f"A beautiful cinematic cover artwork for {theme}")
-        full_thumb_prompt = f"Professional high-CTR YouTube video thumbnail poster artwork: {thumb_base_prompt}. ({style_suffix}, vivid color pop, dramatic rim lighting, intense emotional expression, shallow depth of field, blurred bokeh background, hyper-detailed digital art, high dynamic range (HDR), textless, epic cinematic composition, 8k)"
+        sanitized_thumb = sanitize_image_prompt(thumb_base_prompt, visual_theme)
+        thumb_suffix = STYLE_THUMB_MAP.get(visual_theme, STYLE_THUMB_MAP["classic"])
+        full_thumb_prompt = f"Professional high-CTR YouTube video thumbnail poster artwork: {sanitized_thumb}. {thumb_suffix}"
         thumb_url, thumb_err = await generate_image_unified_async(full_thumb_prompt, username=username)
         if thumb_url:
             book_data["thumbnail_url"] = thumb_url
@@ -134,9 +138,10 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
     except Exception as e:
         return None, f"Failed to generate book: {str(e)}"
 
-async def illustrate_scene_async(prompt, visual_theme="cartoon", username=None):
-    style_suffix = VISUAL_THEME_STYLES.get(visual_theme, VISUAL_THEME_STYLES["cartoon"])
-    full_prompt = f"{prompt}. {style_suffix}"
+async def illustrate_scene_async(prompt, visual_theme="classic", username=None):
+    style_suffix = STYLE_PROMPT_MAP.get(visual_theme, STYLE_PROMPT_MAP["classic"])
+    sanitized = sanitize_image_prompt(prompt, visual_theme)
+    full_prompt = f"{sanitized}. {style_suffix}"
     img_url, img_err = await generate_image_unified_async(full_prompt, username=username)
     if img_url:
         return {"image_url": img_url}, None
