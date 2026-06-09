@@ -19,11 +19,12 @@ export const bookTranslations = {
         autoPlayActive: "Página Automática: Ativada",
         autoPlayInactive: "Página Automática: Desativada",
         lblVisualTheme: "Tema/Estilo Visual",
-        themeOptionCartoon: "Desenho Animado (Cartoon)",
-        themeOptionAnime: "Anime (Estúdio Ghibli/Shinkai)",
-        themeOptionCinema: "Cinema (Hollywood/Cinemático)",
-        themeOptionClassic: "Clássico (Cinema Charlie Chaplin)",
-        themeOptionWestern: "Velho Oeste (Western/Rústico)"
+        themeOptionClassic: "Quadro Negro Clássico (Giz)",
+        themeOptionRealistic: "Slides Realista (Fotográfico)",
+        themeOptionMedieval: "Arte Medieval (Idade Média)",
+        themeOptionCaveman: "Arte do Homem das Cavernas (Caveman)",
+        themeOptionAnime: "Anime / Desenho Japonês",
+        themeOptionDisney: "Disney 3D / Pixar"
     },
     en: {
         brandTitle: "Book Generator Pro",
@@ -45,11 +46,12 @@ export const bookTranslations = {
         autoPlayActive: "Autoplay Page: Enabled",
         autoPlayInactive: "Autoplay Page: Disabled",
         lblVisualTheme: "Visual Theme/Style",
-        themeOptionCartoon: "Cartoon",
-        themeOptionAnime: "Anime (Studio Ghibli/Shinkai)",
-        themeOptionCinema: "Cinema (Hollywood/Cinematic)",
-        themeOptionClassic: "Classic (Charlie Chaplin Film)",
-        themeOptionWestern: "Wild West (Western/Rustic)"
+        themeOptionClassic: "Classic Chalkboard (Chalk)",
+        themeOptionRealistic: "Realistic Slides (Photographic)",
+        themeOptionMedieval: "Medieval Art (Middle Ages)",
+        themeOptionCaveman: "Caveman Art (Prehistoric)",
+        themeOptionAnime: "Anime / Japanese Drawing",
+        themeOptionDisney: "Disney 3D / Pixar"
     },
     es: {
         brandTitle: "Generador de Libros Pro",
@@ -69,12 +71,13 @@ export const bookTranslations = {
         langOptionEn: "Inglés",
         langOptionEs: "Español",
         autoPlayActive: "Página Automática: Activada",
-        autoPlayInactive: "Página Automática: Desactivada",
+        autoPlayInactive: "Página Automática: Desativada",
         lblVisualTheme: "Tema/Estilo Visual",
-        themeOptionCartoon: "Dibujos Animados (Cartoon)",
-        themeOptionAnime: "Anime (Estudio Ghibli/Shinkai)",
-        themeOptionCinema: "Cine (Hollywood/Cinemático)",
-        themeOptionClassic: "Clásico (Cine Charlie Chaplin)",
-        themeOptionWestern: "Viejo Oeste (Western/Rústico)"
+        themeOptionClassic: "Pizarra Clásica (Tiza)",
+        themeOptionRealistic: "Diapositiva Realista (Fotográfico)",
+        themeOptionMedieval: "Arte Medieval (Edad Media)",
+        themeOptionCaveman: "Arte de las Cavernas (Caveman)",
+        themeOptionAnime: "Anime / Dibujo Japonés",
+        themeOptionDisney: "Disney 3D / Pixar"
     }
 };

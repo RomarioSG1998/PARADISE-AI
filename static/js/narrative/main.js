@@ -40,6 +40,7 @@ const dom = {
     pdfDropZone: document.getElementById('pdf-drop-zone'),
     
     genreSelect: document.getElementById('genre-select'),
+    visualThemeSelect: document.getElementById('narrative-visual-theme'),
     durationSelect: document.getElementById('duration-select'),
     voiceSelect: document.getElementById('voice-select'),
     
@@ -115,7 +116,14 @@ const translations = {
         deleteNarrativeConfirm: "Tem certeza que deseja excluir esta história do seu histórico?",
         emptyHistory: "Nenhuma narrativa produzida ainda. Crie uma nova história para começar!",
         scenesText: "cenas",
-        minutesText: "minutos"
+        minutesText: "minutos",
+        lblVisualTheme: "Estilo Visual",
+        themeOptionClassic: "Quadro Negro Clássico (Giz)",
+        themeOptionRealistic: "Slides Realista (Fotográfico)",
+        themeOptionMedieval: "Arte Medieval (Idade Média)",
+        themeOptionCaveman: "Arte do Homem das Cavernas (Caveman)",
+        themeOptionAnime: "Anime / Desenho Japonês",
+        themeOptionDisney: "Disney 3D / Pixar"
     },
     en: {
         stepRoteiro: "Writing story script...",
@@ -138,7 +146,14 @@ const translations = {
         deleteNarrativeConfirm: "Are you sure you want to delete this story from your history?",
         emptyHistory: "No narratives produced yet. Create a new story to start!",
         scenesText: "scenes",
-        minutesText: "minutes"
+        minutesText: "minutes",
+        lblVisualTheme: "Visual Theme/Style",
+        themeOptionClassic: "Classic Chalkboard (Chalk)",
+        themeOptionRealistic: "Realistic Slides (Photographic)",
+        themeOptionMedieval: "Medieval Art (Middle Ages)",
+        themeOptionCaveman: "Caveman Art (Prehistoric)",
+        themeOptionAnime: "Anime / Japanese Drawing",
+        themeOptionDisney: "Disney 3D / Pixar"
     },
     es: {
         stepRoteiro: "Escribiendo guión de la historia...",
@@ -161,7 +176,14 @@ const translations = {
         deleteNarrativeConfirm: "¿Está seguro de que desea eliminar esta historia de su historial?",
         emptyHistory: "¡Ninguna narrativa producida todavía. Cree una historia para comenzar!",
         scenesText: "escenas",
-        minutesText: "minutos"
+        minutesText: "minutos",
+        lblVisualTheme: "Tema/Estilo Visual",
+        themeOptionClassic: "Pizarra Clásica (Tiza)",
+        themeOptionRealistic: "Diapositiva Realista (Fotográfico)",
+        themeOptionMedieval: "Arte Medieval (Edad Media)",
+        themeOptionCaveman: "Arte de las Cavernas (Caveman)",
+        themeOptionAnime: "Anime / Dibujo Japonés",
+        themeOptionDisney: "Disney 3D / Pixar"
     }
 };
 
@@ -371,6 +393,20 @@ function clearImageCache() {
 async function loadScene(idx) {
     if (!state.narrativeData || !state.narrativeData.segments || idx < 0 || idx >= state.narrativeData.segments.length) return;
     
+    // Apply visual style skin class on the screen-canvas
+    const screenCanvas = document.querySelector('.screen-canvas');
+    if (screenCanvas) {
+        const visualTheme = state.narrativeData.visual_theme || 'classic';
+        const classesToRemove = [];
+        screenCanvas.classList.forEach(cls => {
+            if (cls.startsWith('style-')) {
+                classesToRemove.push(cls);
+            }
+        });
+        classesToRemove.forEach(cls => screenCanvas.classList.remove(cls));
+        screenCanvas.classList.add(`style-${visualTheme}`);
+    }
+
     // Apply current horror effect on scene change (handles auto, random, and specific effects)
     if (dom.horrorEffectSelect) {
         applyHorrorEffect(dom.horrorEffectSelect.value);
@@ -648,6 +684,7 @@ function setupEvents() {
         const formData = new FormData();
         formData.append('type', state.currentType);
         formData.append('genre', dom.genreSelect.value);
+        formData.append('visual_theme', dom.visualThemeSelect ? dom.visualThemeSelect.value : 'classic');
         formData.append('duration', dom.durationSelect.value);
         formData.append('voice', dom.voiceSelect.value);
         formData.append('language', getActiveLanguage());
@@ -1076,6 +1113,20 @@ function applyLanguageUpdates(lang) {
                                            lang === 'es' ? '<i class="fa-solid fa-circle-user"></i> Voz del Narrador' : 
                                                            '<i class="fa-solid fa-circle-user"></i> Voz do Narrador';
                                                            
+    const labelVisualTheme = document.getElementById('lbl-narrative-visual-theme');
+    if (labelVisualTheme) labelVisualTheme.innerHTML = lang === 'en' ? '<i class="fa-solid fa-palette"></i> Visual Style' : 
+                                                       lang === 'es' ? '<i class="fa-solid fa-palette"></i> Estilo Visual' : 
+                                                                       '<i class="fa-solid fa-palette"></i> Estilo Visual';
+                                                                       
+    if (dom.visualThemeSelect) {
+        dom.visualThemeSelect.options[0].text = t.themeOptionClassic;
+        dom.visualThemeSelect.options[1].text = t.themeOptionRealistic;
+        dom.visualThemeSelect.options[2].text = t.themeOptionMedieval;
+        dom.visualThemeSelect.options[3].text = t.themeOptionCaveman;
+        dom.visualThemeSelect.options[4].text = t.themeOptionAnime;
+        dom.visualThemeSelect.options[5].text = t.themeOptionDisney;
+    }
+                                                           
     dom.btnGenerate.innerHTML = t.generateBtn;
     dom.btnNewStory.innerHTML = t.newStoryBtn;
     dom.themeInput.placeholder = t.themePlaceholder;
@@ -1143,6 +1194,9 @@ function saveNarrativeToHistory(narrative) {
     }
     if (!narrative.genre) {
         narrative.genre = dom.genreSelect.value;
+    }
+    if (!narrative.visual_theme) {
+        narrative.visual_theme = dom.visualThemeSelect ? dom.visualThemeSelect.value : 'classic';
     }
     if (!narrative.duration) {
         narrative.duration = dom.durationSelect.value;
@@ -1551,6 +1605,7 @@ if (dom.btnChangeThumbnail) {
                 body: JSON.stringify({
                     title: state.narrativeData.title,
                     genre: state.narrativeData.genre || 'fantasia',
+                    visual_theme: state.narrativeData.visual_theme || (dom.visualThemeSelect ? dom.visualThemeSelect.value : 'classic'),
                     custom_prompt: customPrompt,
                     thumbnail_prompt: state.narrativeData.thumbnail_prompt || ''
                 })

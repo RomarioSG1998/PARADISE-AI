@@ -58,6 +58,13 @@ export async function loadSlide(idx) {
     state.currentSlideIdx = idx;
     const slide = state.lessonData.slides[idx];
     
+    const boardEl = document.querySelector('.blackboard');
+    if (boardEl) {
+        boardEl.classList.remove('style-classic', 'style-realistic', 'style-medieval', 'style-caveman', 'style-anime', 'style-disney');
+        const lessonStyle = state.lessonData.style || 'classic';
+        boardEl.classList.add(`style-${lessonStyle}`);
+    }
+    
     // UI Navigation availability
     elements.btnPrev.disabled = idx === 0;
     elements.btnNext.disabled = idx === state.lessonData.slides.length - 1;
@@ -260,6 +267,13 @@ export async function loadExplanation(explanation) {
     elements.durationTimeEl.textContent = '0:00';
 
     state.explanationActive = true;
+    
+    const boardEl = document.querySelector('.blackboard');
+    if (boardEl) {
+        boardEl.classList.remove('style-classic', 'style-realistic', 'style-medieval', 'style-caveman', 'style-anime', 'style-disney');
+        const lessonStyle = (state.lessonData && state.lessonData.style) || 'classic';
+        boardEl.classList.add(`style-${lessonStyle}`);
+    }
     
     // Update headers and return buttons
     if (elements.btnReturnLesson) elements.btnReturnLesson.style.display = 'block';

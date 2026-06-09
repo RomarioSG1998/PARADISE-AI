@@ -45,11 +45,12 @@ export function applyLanguage(lang) {
     
     if (elements.lblVisualTheme) elements.lblVisualTheme.textContent = t.lblVisualTheme;
     if (elements.visualThemeSelect) {
-        elements.visualThemeSelect.options[0].text = t.themeOptionCartoon;
-        elements.visualThemeSelect.options[1].text = t.themeOptionAnime;
-        elements.visualThemeSelect.options[2].text = t.themeOptionCinema;
-        elements.visualThemeSelect.options[3].text = t.themeOptionClassic;
-        elements.visualThemeSelect.options[4].text = t.themeOptionWestern;
+        elements.visualThemeSelect.options[0].text = t.themeOptionClassic;
+        elements.visualThemeSelect.options[1].text = t.themeOptionRealistic;
+        elements.visualThemeSelect.options[2].text = t.themeOptionMedieval;
+        elements.visualThemeSelect.options[3].text = t.themeOptionCaveman;
+        elements.visualThemeSelect.options[4].text = t.themeOptionAnime;
+        elements.visualThemeSelect.options[5].text = t.themeOptionDisney;
     }
     
     if (elements.btnGenerate) elements.btnGenerate.innerHTML = t.btnGenerate;
@@ -106,28 +107,44 @@ function updateBgOpacity(val) {
 
 // Apply visual theme font and style to reader panel
 const VISUAL_THEME_FONTS = {
-    cartoon:  "'Comic Neue', 'Fredoka', cursive",
-    anime:    "'Outfit', sans-serif",
-    cinema:   "'Playfair Display', Georgia, serif",
     classic:  "'Cinzel', serif",
-    western:  "'Rye', serif",
+    realistic: "'Outfit', sans-serif",
+    medieval: "'Outfit', sans-serif",
+    caveman:  "'Caveat', cursive",
+    anime:    "'Outfit', sans-serif",
+    disney:   "'Outfit', sans-serif"
 };
 
 const VISUAL_THEME_COLORS = {
-    cartoon:  { accent: '#f43f5e', title: '#1e293b' },
-    anime:    { accent: '#7c3aed', title: '#e0e7ff' },
-    cinema:   { accent: '#d97706', title: '#fef3c7' },
-    classic:  { accent: '#71717a', title: '#f4f4f5' },
-    western:  { accent: '#b45309', title: '#fef3c7' },
+    classic:   { accent: '#102a1e', title: '#8b5a2b' },
+    realistic: { accent: '#3b82f6', title: '#f8fafc' },
+    medieval:  { accent: '#8b5a2b', title: '#3b2314' },
+    caveman:   { accent: '#ebdcb9', title: '#ebdcb9' },
+    anime:     { accent: '#ec4899', title: '#fdf4ff' },
+    disney:    { accent: '#6366f1', title: '#e0e7ff' }
 };
 
 export function applyVisualTheme(theme) {
-    const font = VISUAL_THEME_FONTS[theme] || VISUAL_THEME_FONTS.cartoon;
-    const colors = VISUAL_THEME_COLORS[theme] || VISUAL_THEME_COLORS.cartoon;
+    const font = VISUAL_THEME_FONTS[theme] || VISUAL_THEME_FONTS.classic;
+    const colors = VISUAL_THEME_COLORS[theme] || VISUAL_THEME_COLORS.classic;
     const panelReader = document.getElementById('panel-reader');
     if (panelReader) {
         panelReader.style.fontFamily = font;
     }
+    
+    const bookContainer = document.getElementById('physical-book');
+    if (bookContainer) {
+        // Remove existing style-* classes
+        const classesToRemove = [];
+        bookContainer.classList.forEach(cls => {
+            if (cls.startsWith('style-')) {
+                classesToRemove.push(cls);
+            }
+        });
+        classesToRemove.forEach(cls => bookContainer.classList.remove(cls));
+        bookContainer.classList.add(`style-${theme}`);
+    }
+
     document.documentElement.style.setProperty('--reader-accent', colors.accent);
     document.documentElement.style.setProperty('--reader-title-color', colors.title);
     // Apply chapter title inline so it's immediate
