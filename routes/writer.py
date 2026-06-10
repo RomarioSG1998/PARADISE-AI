@@ -19,9 +19,16 @@ from database import (
     add_writer_context,
     get_writer_contexts,
     delete_writer_context,
-    get_writer_material_details
+    get_writer_material_details,
+    create_writer_agent,
+    get_writer_agents,
+    delete_writer_agent,
+    get_writer_agent,
+    get_writer_agent_messages,
+    add_writer_agent_message,
+    reset_writer_agent_messages
 )
-from services.writer_service import generate_writer_chat_response_async
+from services.writer_service import generate_writer_chat_response_async, generate_agent_task_response_async
 from utils.async_loop import run_in_background
 from pypdf import PdfReader
 import io
@@ -430,3 +437,108 @@ def get_material_text_route(env_id, material_id):
         "has_pdf": has_pdf,
         "pdf_url": f"/static/uploads/materials/{actual_id}.pdf" if has_pdf else None
     })
+
+# ─── AGENTS ROUTES ───────────────────────────────────────────────────────────
+
+@writer_bp.route("/api/writer/environments/<env_id>/agents", methods=["GET", "POST"])
+def manage_agents(env_id):
+    username = session.get("username")
+    if not username:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if request.method == "POST":
+        data = request.get_json() or {}
+        name = data.get("name", "").strip()
+        role = data.get("role", "sub-agente").strip()
+        system_prompt = data.get("system_prompt", "").strip()
+        is_leader = bool(data.get("is_leader", False))
+
+        if not name:
+            return jsonify({"error": "Nome do agente é obrigatório"}), 400
+
+        agent_id = create_writer_agent(env_id, name, role, system_prompt, is_leader)
+        return jsonify({"success": True, "id": agent_id})
+    else:
+        agents = get_writer_agents(env_id)
+        # Serialize datetime for JSON
+        for a in agents:
+            if a.get("created_at"):
+                a["created_at"] = str(a["created_at"])
+        return jsonify(agents)
+
+
+@writer_bp.route("/api/writer/environments/<env_id>/agents/<agent_id>", methods=["DELETE"])
+def delete_agent_route(env_id, agent_id):
+    if not session.get("username"):
+        return jsonify({"error": "Unauthorized"}), 401
+    agent = get_writer_agent(agent_id)
+    if not agent:
+        return jsonify({"error": "Agent not found"}), 404
+    if agent.get("is_leader"):
+        return jsonify({"error": "O Agente Líder não pode ser excluído."}), 403
+    delete_writer_agent(agent_id)
+    return jsonify({"success": True})
+
+
+@writer_bp.route("/api/writer/environments/<env_id>/agents/<agent_id>/reset", methods=["POST"])
+def reset_agent_route(env_id, agent_id):
+    if not session.get("username"):
+        return jsonify({"error": "Unauthorized"}), 401
+    reset_writer_agent_messages(agent_id)
+    return jsonify({"success": True})
+
+
+@writer_bp.route("/api/writer/environments/<env_id>/agents/<agent_id>/messages", methods=["GET", "POST"])
+def manage_agent_messages(env_id, agent_id):
+    username = session.get("username")
+    if not username:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if request.method == "POST":
+        import threading
+        data = request.get_json() or {}
+        task = data.get("message", "").strip()
+        if not task:
+            return jsonify({"error": "Tarefa é obrigatória"}), 400
+
+        # Log task immediately so UI shows it without waiting
+        add_writer_agent_message(agent_id, "user", task)
+
+        # Run agent in a background thread — non-blocking
+        def run_task():
+            ai_response, err = run_in_background(
+                generate_agent_task_response_async(agent_id, env_id, task, username)
+            )
+            if err:
+                report = f"⚠️ Erro na execução: {err}"
+            else:
+                report = (ai_response or "Tarefa concluída.").strip()
+            add_writer_agent_message(agent_id, "ai", report)
+
+        thread = threading.Thread(target=run_task, daemon=True)
+        thread.start()
+
+        return jsonify({"success": True, "status": "running"})
+
+    else:
+        msgs = get_writer_agent_messages(agent_id)
+        for m in msgs:
+            if m.get("created_at"):
+                m["created_at"] = str(m["created_at"])
+        return jsonify(msgs)
+
+
+@writer_bp.route("/api/writer/environments/<env_id>/agents/<agent_id>/last", methods=["GET"])
+def get_agent_last_message(env_id, agent_id):
+    """Returns the last AI message — used for polling after task submission."""
+    if not session.get("username"):
+        return jsonify({"error": "Unauthorized"}), 401
+    since = request.args.get("since")  # ISO timestamp or message count
+    msgs = get_writer_agent_messages(agent_id)
+    ai_msgs = [m for m in msgs if m.get("sender") == "ai"]
+    if not ai_msgs:
+        return jsonify({"done": False})
+    last = ai_msgs[-1]
+    if last.get("created_at"):
+        last["created_at"] = str(last["created_at"])
+    return jsonify({"done": True, "message": last})

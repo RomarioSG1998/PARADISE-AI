@@ -565,16 +565,118 @@ body {
 }
 
 /* Subpanels Common */
-.materials-subpanel, .chat-subpanel {
+.materials-subpanel, .agents-subpanel, .chat-subpanel {
     display: flex;
     flex-direction: column;
     border-bottom: 1px solid var(--border-light);
 }
 
 .materials-subpanel {
-    height: 40%;
-    min-height: 250px;
+    height: 35%;
+    min-height: 200px;
 }
+
+.agents-subpanel {
+    height: 28%;
+    min-height: 160px;
+    overflow: hidden;
+}
+
+.agents-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.agent-item {
+    background: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.agent-item:hover {
+    background: rgba(139, 92, 246, 0.18);
+    border-color: rgba(139, 92, 246, 0.45);
+}
+
+.agent-item.leader {
+    background: rgba(236, 72, 153, 0.1);
+    border-color: rgba(236, 72, 153, 0.3);
+}
+
+.agent-item.leader:hover {
+    background: rgba(236, 72, 153, 0.2);
+}
+
+.agent-item-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.agent-item-name {
+    font-weight: 600;
+    color: var(--text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.agent-item-role {
+    font-size: 0.73rem;
+    color: var(--text-muted);
+    margin-top: 1px;
+}
+
+.agent-badge {
+    font-size: 0.62rem;
+    padding: 1px 6px;
+    border-radius: 99px;
+    background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+    color: white;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.agent-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.agent-item:hover .agent-actions {
+    opacity: 1;
+}
+
+.agent-action-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 3px 5px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+}
+
+.agent-action-btn:hover { color: var(--accent-purple); }
+.agent-action-btn.danger:hover { color: #ef4444; }
 
 .chat-subpanel {
     flex: 1;
