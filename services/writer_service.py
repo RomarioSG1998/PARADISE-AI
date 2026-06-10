@@ -95,8 +95,8 @@ async def generate_writer_chat_response_async(env_id, user_message, username, ac
             '  "selection_update": null\n'
             "}\n\n"
             "### DIRETRIZES CRÍTICAS:\n"
-            "1. EDITE O DOCUMENTO: Se a solicitação do usuário envolver qualquer tipo de escrita, reescrita, correção ortográfica, alteração de estilo, adição de parágrafos, formatação ou qualquer modificação no texto do documento atual, você DEVE processar a mudança e retornar o HTML atualizado do documento COMPLETO no campo 'document_update'. Nunca retorne apenas texto no chat se a intenção for escrever ou editar o documento.\n"
-            "2. APENAS NO CHAT: Retorne 'document_update' como null somente se o usuário estiver apenas conversando de forma genérica, tirando dúvidas teóricas, fazendo perguntas conceituais ou solicitando críticas/feedbacks sobre o texto atual (sem intenção de aplicar modificações no documento).\n"
+            "1. EDITE O DOCUMENTO APENAS SE SOLICITADO: Retorne o campo 'document_update' como null a menos que o usuário EXPLICITAMENTE peça para você escrever, reescrever, alterar, formatar ou inserir algo no texto do editor (a 'folha'). Se ele pedir para modificar o documento, retorne o HTML atualizado do documento COMPLETO no campo 'document_update'.\n"
+            "2. CONVERSA PADRÃO: Se o usuário estiver apenas fazendo uma pergunta, conversando normalmente, pedindo ideias, ou pedindo feedback/crítica sobre o texto (sem pedir para você alterar o texto), você DEVE retornar 'document_update' como null. Sua resposta deve ir apenas no campo 'message'.\n"
             "3. Mantenha as tags HTML básicas (<p>, <h1>, <h2>, <strong>, <em>, <ul>, <li>) no seu 'document_update' para não perder a formatação.\n"
             "4. REQUISITO DE CITAÇÃO ACADÊMICA (ABNT): O texto citado (direta ou indiretamente) DEVE ser escrito por extenso no corpo do documento (ou da resposta no chat). Imediatamente após esse texto, você deve adicionar a indicação bibliográfica de citação formatada de acordo com as normas ABNT (ex: (SOBRENOME, Ano, p. X) ou (SOBRENOME, Ano)) envolta na seguinte tag HTML de verificação:\n"
             "   `<span class=\"writer-citation\" data-material-id=\"ID_DO_MATERIAL\" data-snippet=\"trecho exato de 10-50 palavras consecutivas do texto original da referência\" data-page=\"X\">(SOBRENOME, Ano, p. X)</span>`\n"
@@ -164,4 +164,94 @@ async def generate_writer_chat_response_async(env_id, user_message, username, ac
     if err:
         return None, err
         
+    return response_text, None
+
+
+async def generate_agent_task_response_async(agent_id, env_id, task, username):
+    """
+    Agents are background task executors, not conversationalists.
+    They receive a task, execute it using their specialized context,
+    and respond ONLY with a brief completion report (max 3 sentences).
+    """
+    from database import (
+        get_writer_agent,
+        get_writer_materials_with_text,
+        get_writer_contexts,
+        get_writer_documents,
+    )
+
+    agent = get_writer_agent(agent_id)
+    if not agent:
+        return None, "Agent not found"
+
+    agent_name    = agent.get("name", "Agente")
+    agent_role    = agent.get("role", "sub-agente")
+    agent_prompt  = (agent.get("system_prompt") or "").strip()
+    is_leader     = agent.get("is_leader", False)
+
+    # Build environment context (abbreviated — agents work fast)
+    materials = get_writer_materials_with_text(env_id)
+    references_ctx = ""
+    for mat in materials:
+        if mat["material_type"] == "reference" and mat.get("content_text"):
+            references_ctx += f"[{mat['name']}]\n{mat['content_text'][:6000]}\n\n"
+
+    contexts = get_writer_contexts(env_id)
+    production_ctx = "".join(
+        f"[{c['name']}]\n{c['content_text'].strip()}\n\n"
+        for c in contexts if c.get("content_text")
+    )
+
+    all_docs = get_writer_documents(env_id)
+    docs_ctx = "".join(
+        f"[{d['title']}]\n{(d.get('content') or '')[:3000]}\n\n"
+        for d in all_docs
+    )
+
+    if is_leader:
+        identity = (
+            f"Você é o AGENTE LÍDER '{agent_name}' deste ambiente de escrita acadêmica. "
+            "Você coordena e delega tarefas com visão geral do projeto."
+        )
+    else:
+        identity = (
+            f"Você é o sub-agente '{agent_name}' ({agent_role}) deste ambiente de escrita. "
+            "Você é um executor especializado subordinado ao Agente Líder."
+        )
+
+    system_prompt = (
+        f"{identity}\n\n"
+    )
+    if agent_prompt:
+        system_prompt += f"### SUA ESPECIALIZAÇÃO:\n{agent_prompt}\n\n"
+    if references_ctx:
+        system_prompt += f"### BASE TEÓRICA:\n{references_ctx}\n"
+    if production_ctx:
+        system_prompt += f"### CONTEXTO DO PROJETO:\n{production_ctx}\n"
+    if docs_ctx:
+        system_prompt += f"### DOCUMENTOS ATUAIS:\n{docs_ctx}\n"
+
+    system_prompt += (
+        "### REGRA CRÍTICA DE RESPOSTA:\n"
+        "Você é um agente executor de tarefas em segundo plano.\n"
+        "1. Execute internamente a tarefa recebida usando todo o contexto disponível.\n"
+        "2. Responda APENAS com um relatório de conclusão CURTO: máximo 2-3 frases.\n"
+        "3. Informe O QUE foi feito e o resultado principal, de forma direta e objetiva.\n"
+        "4. NÃO escreva respostas longas, explicações detalhadas, nem reformule a tarefa.\n"
+        "5. Tom: profissional, conciso. Exemplo: 'Tarefa concluída. [resultado em 1-2 frases].'\n\n"
+        f"### TAREFA RECEBIDA:\n{task}"
+    )
+
+    response_text, err = await generate_text_unified_async(system_prompt, username=username)
+    if err:
+        return None, err
+
+    # Hard-trim: if the AI still returned something long, keep only first 3 sentences
+    if response_text:
+        import re
+        sentences = re.split(r'(?<=[.!?])\s+', response_text.strip())
+        if len(sentences) > 4:
+            response_text = " ".join(sentences[:4])
+
+    return response_text, None
     return response_text, None

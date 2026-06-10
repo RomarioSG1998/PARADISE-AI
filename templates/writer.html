@@ -114,6 +114,21 @@
                         <p>Crie um ambiente de escrita ou selecione um existente na barra lateral esquerda para começar a redigir com a inteligência artificial.</p>
                         <button class="btn-primary" id="start-env-btn"><i class="fa-solid fa-circle-plus"></i> Criar Meu Primeiro Ambiente</button>
                     </div>
+
+                    <!-- AI Review Overlay -->
+                    <div class="ai-review-overlay" id="ai-review-overlay" style="display: none;">
+                        <div class="ai-review-box">
+                            <div class="ai-review-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                            <div class="ai-review-text">
+                                <strong>O Assistente modificou o documento!</strong>
+                                <span>Deseja manter essas alterações?</span>
+                            </div>
+                            <div class="ai-review-actions">
+                                <button class="btn-cancel" onclick="rejectAiChanges()">Desfazer</button>
+                                <button class="btn-save" onclick="acceptAiChanges()">Manter</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </main>
 
@@ -148,6 +163,17 @@
                     </div>
                 </div>
 
+                <!-- Agents Sub-Panel -->
+                <div class="agents-subpanel" id="agents-subpanel">
+                    <div class="subpanel-header">
+                        <h3><i class="fa-solid fa-robot"></i> Agentes de IA</h3>
+                        <button class="btn-sm" id="create-agent-btn" disabled><i class="fa-solid fa-plus"></i> Novo Agente</button>
+                    </div>
+                    <div class="agents-list" id="agents-list-container">
+                        <div class="empty-list-info">Selecione um ambiente para ver os agentes.</div>
+                    </div>
+                </div>
+
                 <!-- Chat Sub-Panel -->
                 <div class="chat-subpanel">
                     <div class="subpanel-header">
@@ -169,6 +195,53 @@
     </div>
 
     <!-- Modals -->
+    <!-- Create Agent Modal -->
+    <div class="modal-overlay" id="create-agent-modal">
+        <div class="modal-card">
+            <button class="close-modal" onclick="closeWriterModal('create-agent-modal')">&times;</button>
+            <h2 class="modal-title"><i class="fa-solid fa-robot" style="color:var(--accent-purple)"></i> Criar Sub-Agente</h2>
+            <form id="create-agent-form">
+                <div class="form-group">
+                    <label for="agent-name-input">Nome do Agente <span style="color:var(--accent-pink)">*</span></label>
+                    <input type="text" id="agent-name-input" placeholder="Ex: Revisor de Coerência, Especialista em Citações" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none; margin-bottom: 10px;">
+                </div>
+                <div class="form-group">
+                    <label for="agent-role-input">Função / Especialização</label>
+                    <input type="text" id="agent-role-input" placeholder="Ex: revisor, pesquisador, redator" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none; margin-bottom: 10px;">
+                </div>
+                <div class="form-group">
+                    <label for="agent-prompt-input">Instruções específicas (system prompt)</label>
+                    <textarea id="agent-prompt-input" rows="5" placeholder="Ex: Você é um revisor especialista em normas ABNT. Analise o texto e aponte inconsistências nas citações e referências..." style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none; resize:vertical;"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeWriterModal('create-agent-modal')">Cancelar</button>
+                    <button type="submit" class="btn-save" id="submit-agent-btn"><i class="fa-solid fa-robot"></i> Criar Agente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Agent Chat Modal -->
+    <div class="modal-overlay" id="agent-chat-modal">
+        <div class="modal-card" style="max-width: 680px; height: 80vh; display: flex; flex-direction: column;">
+            <button class="close-modal" onclick="closeWriterModal('agent-chat-modal')">&times;</button>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-shrink: 0;">
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink)); display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                    <i class="fa-solid fa-robot" style="color: white;"></i>
+                </div>
+                <div>
+                    <h2 class="modal-title" id="agent-chat-modal-title" style="margin: 0; font-size: 1.05rem;">Agente</h2>
+                    <span id="agent-chat-modal-role" style="font-size: 0.78rem; color: var(--text-muted);"></span>
+                </div>
+            </div>
+            <div id="agent-chat-messages" style="flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.15); border-radius: 8px; margin-bottom: 10px;"></div>
+            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                <textarea id="agent-chat-input" rows="2" placeholder="Fale com este agente..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none; resize:none; font-size:0.9rem;"></textarea>
+                <button id="agent-chat-send-btn" onclick="sendAgentMessage()" style="background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink)); border: none; border-radius: 8px; color: white; padding: 0 18px; cursor: pointer; font-size: 1.1rem;"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Edit Context Modal -->
     <div class="modal-overlay" id="edit-context-modal">
         <div class="modal-card">

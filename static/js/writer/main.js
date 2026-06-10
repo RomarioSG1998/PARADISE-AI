@@ -125,6 +125,27 @@ function setupEventListeners() {
     if (editContextForm) {
         editContextForm.addEventListener('submit', saveProductionContext);
     }
+
+    // Agent Actions
+    const createAgentBtn = document.getElementById('create-agent-btn');
+    if (createAgentBtn) {
+        createAgentBtn.addEventListener('click', () => openWriterModal('create-agent-modal'));
+    }
+    const createAgentForm = document.getElementById('create-agent-form');
+    if (createAgentForm) {
+        createAgentForm.addEventListener('submit', createAgent);
+    }
+
+    // Agent chat Enter key
+    const agentChatInput = document.getElementById('agent-chat-input');
+    if (agentChatInput) {
+        agentChatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendAgentMessage();
+            }
+        });
+    }
 }
 
 // Check connection and update indicator
@@ -268,6 +289,8 @@ async function selectEnvironment(id, name) {
     chatSendBtn.disabled = false;
     const editContextBtn = document.getElementById('edit-context-btn');
     if (editContextBtn) editContextBtn.disabled = false;
+    const createAgentBtn = document.getElementById('create-agent-btn');
+    if (createAgentBtn) createAgentBtn.disabled = false;
 
     // Visual toggle
     document.querySelectorAll('.env-item').forEach(el => el.classList.remove('active'));
@@ -281,6 +304,7 @@ async function selectEnvironment(id, name) {
     await loadMaterials();
     await loadChatMessages();
     await loadProductionContext();
+    await loadAgents();
 
     // Select first doc by default if exists, otherwise create first doc
     if (documents.length > 0) {
@@ -525,17 +549,22 @@ async function uploadMaterial(e) {
     e.preventDefault();
     if (!currentEnvId) return;
 
+    console.log("Starting upload for env:", currentEnvId);
     submitUploadBtn.disabled = true;
     submitUploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
 
     const formData = new FormData(uploadMaterialForm);
+    console.log("FormData created", formData.get('name'), formData.get('file'));
 
     try {
+        console.log("Sending fetch to:", `/api/writer/environments/${currentEnvId}/materials`);
         const res = await fetch(`/api/writer/environments/${currentEnvId}/materials`, {
             method: 'POST',
             body: formData
         });
+        console.log("Fetch response status:", res.status);
         const data = await res.json();
+        console.log("Fetch response data:", data);
 
         if (data.success) {
             closeWriterModal('upload-material-modal');
@@ -706,9 +735,11 @@ async function sendChatMessage() {
 
             // Apply document update if available
             if (data.document_update !== null && data.document_update !== undefined) {
+                // Store previous state and show review overlay
+                window.previousEditorContent = richEditor.innerHTML;
                 richEditor.innerHTML = data.document_update;
                 updateStats();
-                setSaveStatus("saved");
+                setSaveStatus("unsaved");
 
                 // Visual feedback of change: quick yellow highlight flash
                 richEditor.style.transition = 'none';
@@ -717,6 +748,10 @@ async function sendChatMessage() {
                     richEditor.style.transition = 'background-color 0.8s ease';
                     richEditor.style.backgroundColor = 'transparent';
                 }, 100);
+                
+                // Show review overlay
+                const overlay = document.getElementById('ai-review-overlay');
+                if (overlay) overlay.style.display = 'block';
             }
         } else {
             alert('Falha na resposta: ' + data.error);
@@ -731,6 +766,27 @@ async function sendChatMessage() {
         scrollToBottom();
     }
 }
+
+// Review AI Changes Functions
+window.acceptAiChanges = function() {
+    const overlay = document.getElementById('ai-review-overlay');
+    if (overlay) overlay.style.display = 'none';
+    
+    // Save to server
+    saveDocument();
+};
+
+window.rejectAiChanges = function() {
+    const overlay = document.getElementById('ai-review-overlay');
+    if (overlay) overlay.style.display = 'none';
+    
+    // Revert content
+    if (window.previousEditorContent !== undefined) {
+        richEditor.innerHTML = window.previousEditorContent;
+        updateStats();
+        setSaveStatus("saved");
+    }
+};
 
 // Auto-scroll chat window
 function scrollToBottom() {
@@ -1069,6 +1125,292 @@ async function deleteProductionContext(event, id) {
 
 window.deleteProductionContext = deleteProductionContext;
 
+// ─── AGENTS MANAGEMENT ────────────────────────────────────────────────────────
+
+let currentAgentId = null;
+let currentAgentName = 'Agente';
+
+async function loadAgents() {
+    if (!currentEnvId) return;
+    const container = document.getElementById('agents-list-container');
+    if (!container) return;
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/agents`);
+        const agents = await res.json();
+        renderAgents(agents);
+    } catch (err) {
+        console.error('Error loading agents:', err);
+    }
+}
+
+function renderAgents(agents) {
+    const container = document.getElementById('agents-list-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!agents || agents.length === 0) {
+        container.innerHTML = '<div class="empty-list-info">Nenhum agente criado. Clique em <strong>+ Novo Agente</strong> para criar.</div>';
+        return;
+    }
+
+    agents.forEach(agent => {
+        const item = document.createElement('div');
+        item.className = `agent-item${agent.is_leader ? ' leader' : ''}`;
+        item.innerHTML = `
+            <div class="agent-item-info" onclick="openAgentChat('${agent.id}', '${agent.name.replace(/'/g,"\\'")}', '${(agent.role||'').replace(/'/g,"\\'")}')">
+                <div class="agent-item-name">
+                    <i class="fa-solid fa-robot" style="font-size:0.8rem; color:${agent.is_leader ? 'var(--accent-pink)' : 'var(--accent-purple)'}"></i>
+                    ${agent.name}
+                    ${agent.is_leader ? '<span class="agent-badge">Líder</span>' : ''}
+                </div>
+                <div class="agent-item-role">${agent.role || 'sub-agente'}</div>
+            </div>
+            <div class="agent-actions">
+                <button class="agent-action-btn" title="Resetar conversa" onclick="resetAgent(event, '${agent.id}')">
+                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                </button>
+                ${!agent.is_leader ? `<button class="agent-action-btn danger" title="Excluir agente" onclick="deleteAgent(event, '${agent.id}')">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>` : ''}
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+async function createAgent(event) {
+    event.preventDefault();
+    const nameInput = document.getElementById('agent-name-input');
+    const roleInput = document.getElementById('agent-role-input');
+    const promptInput = document.getElementById('agent-prompt-input');
+    const submitBtn = document.getElementById('submit-agent-btn');
+
+    const name = nameInput.value.trim();
+    const role = roleInput.value.trim() || 'sub-agente';
+    const system_prompt = promptInput.value.trim();
+
+    if (!name) { alert('Informe o nome do agente.'); return; }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Criando...';
+
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/agents`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, role, system_prompt, is_leader: false })
+        });
+        const data = await res.json();
+        if (data.success) {
+            closeWriterModal('create-agent-modal');
+            nameInput.value = '';
+            roleInput.value = '';
+            promptInput.value = '';
+            await loadAgents();
+        } else {
+            alert('Erro ao criar agente: ' + (data.error || 'Erro desconhecido'));
+        }
+    } catch (err) {
+        console.error('Error creating agent:', err);
+        alert('Erro de rede ao criar agente.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-robot"></i> Criar Agente';
+    }
+}
+
+async function deleteAgent(event, agentId) {
+    event.stopPropagation();
+    if (!confirm('Excluir este agente e toda a sua conversa? Esta ação é irreversível.')) return;
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/agents/${agentId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            if (currentAgentId === agentId) closeWriterModal('agent-chat-modal');
+            await loadAgents();
+        } else {
+            alert(data.error || 'Erro ao excluir agente.');
+        }
+    } catch (err) { console.error('Error deleting agent:', err); }
+}
+
+async function resetAgent(event, agentId) {
+    event.stopPropagation();
+    if (!confirm('Resetar a conversa com este agente? Todo o histórico será apagado.')) return;
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/agents/${agentId}/reset`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            if (currentAgentId === agentId) {
+                document.getElementById('agent-chat-messages').innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:0.82rem;">Conversa resetada. Diga algo para começar!</div>';
+            }
+        }
+    } catch (err) { console.error('Error resetting agent:', err); }
+}
+
+async function openAgentChat(agentId, agentName, agentRole) {
+    currentAgentId = agentId;
+    currentAgentName = agentName;
+    document.getElementById('agent-chat-modal-title').textContent = agentName;
+    document.getElementById('agent-chat-modal-role').textContent = agentRole || 'sub-agente';
+
+    const messagesEl = document.getElementById('agent-chat-messages');
+    messagesEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+    openWriterModal('agent-chat-modal');
+
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/agents/${agentId}/messages`);
+        const msgs = await res.json();
+        renderAgentMessages(msgs);
+    } catch (err) {
+        console.error('Error loading agent messages:', err);
+        messagesEl.innerHTML = '<div style="color:var(--accent-pink);text-align:center;padding:20px;">Erro ao carregar histórico.</div>';
+    }
+
+    const input = document.getElementById('agent-chat-input');
+    if (input) {
+        input.placeholder = `Atribua uma tarefa a ${agentName}...`;
+        input.focus();
+    }
+}
+
+function renderAgentMessages(msgs) {
+    const el = document.getElementById('agent-chat-messages');
+    if (!el) return;
+    if (!msgs || msgs.length === 0) {
+        el.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-muted); font-size:0.82rem;"><i class="fa-solid fa-inbox" style="font-size:1.5rem; margin-bottom:8px; display:block; opacity:0.4;"></i>Nenhuma tarefa atribuída ainda.<br><span style="opacity:0.6;">Digite uma tarefa abaixo e o agente irá executá-la em segundo plano.</span></div>`;
+        return;
+    }
+
+    const pairs = [];
+    let i = 0;
+    while (i < msgs.length) {
+        const task = msgs[i];
+        const report = msgs[i + 1] && msgs[i + 1].sender === 'ai' ? msgs[i + 1] : null;
+        pairs.push({ task, report });
+        i += report ? 2 : 1;
+    }
+
+    el.innerHTML = pairs.map(({ task, report }) => `
+        <div style="background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.18); border-radius:10px; padding:12px 14px; margin-bottom:4px;">
+            <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                <i class="fa-solid fa-list-check"></i> Tarefa
+            </div>
+            <div style="font-size:0.84rem; color:var(--text-light); word-break:break-word;">${task.message.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+            ${report
+                ? `<div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06);">
+                    <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--accent-purple); margin-bottom:5px; display:flex; align-items:center; gap:5px;">
+                        <i class="fa-solid fa-circle-check"></i> Relatório
+                    </div>
+                    <div style="font-size:0.84rem; color:var(--text-light); line-height:1.5; word-break:break-word;">${report.message.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                   </div>`
+                : `<div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:8px; color:var(--text-muted); font-size:0.8rem;" id="agent-working-indicator">
+                    <i class="fa-solid fa-gear fa-spin" style="color:var(--accent-purple);"></i> Agente trabalhando em segundo plano...
+                   </div>`
+            }
+        </div>
+    `).join('');
+    el.scrollTop = el.scrollHeight;
+}
+
+let agentPollInterval = null;
+
+async function sendAgentMessage() {
+    if (!currentAgentId) return;
+    const input = document.getElementById('agent-chat-input');
+    const sendBtn = document.getElementById('agent-chat-send-btn');
+    const task = input.value.trim();
+    if (!task) return;
+
+    input.value = '';
+    input.disabled = true;
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<i class="fa-solid fa-hourglass-half fa-spin"></i>';
+
+    // Show task card immediately
+    const messagesEl = document.getElementById('agent-chat-messages');
+    // Clear empty state if needed
+    if (messagesEl.querySelector('.fa-inbox')) messagesEl.innerHTML = '';
+
+    const taskCard = document.createElement('div');
+    taskCard.style.cssText = 'background:rgba(139,92,246,0.07);border:1px solid rgba(139,92,246,0.18);border-radius:10px;padding:12px 14px;margin-bottom:4px;';
+    taskCard.innerHTML = `
+        <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:6px;display:flex;align-items:center;gap:5px;">
+            <i class="fa-solid fa-list-check"></i> Tarefa
+        </div>
+        <div style="font-size:0.84rem;color:var(--text-light);word-break:break-word;">${task.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        <div id="agent-status-row" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:0.8rem;">
+            <i class="fa-solid fa-gear fa-spin" style="color:var(--accent-purple);"></i> Enviando tarefa ao agente...
+        </div>
+    `;
+    messagesEl.appendChild(taskCard);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/agents/${currentAgentId}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: task })
+        });
+        const data = await res.json();
+
+        const statusRow = taskCard.querySelector('#agent-status-row');
+        if (statusRow) {
+            statusRow.innerHTML = `<i class="fa-solid fa-gear fa-spin" style="color:var(--accent-purple);"></i> Agente trabalhando em segundo plano...`;
+        }
+
+        // Poll for completion
+        const aiMsgsBefore = await getAgentAiMsgCount();
+        if (agentPollInterval) clearInterval(agentPollInterval);
+        agentPollInterval = setInterval(async () => {
+            try {
+                const pollRes = await fetch(`/api/writer/environments/${currentEnvId}/agents/${currentAgentId}/last`);
+                const pollData = await pollRes.json();
+                if (pollData.done) {
+                    const newCount = await getAgentAiMsgCount();
+                    if (newCount > aiMsgsBefore) {
+                        clearInterval(agentPollInterval);
+                        agentPollInterval = null;
+                        // Replace working indicator with report
+                        if (statusRow) {
+                            statusRow.innerHTML = `
+                                <div style="width:100%">
+                                    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent-purple);margin-bottom:5px;display:flex;align-items:center;gap:5px;">
+                                        <i class="fa-solid fa-circle-check"></i> Relatório
+                                    </div>
+                                    <div style="font-size:0.84rem;color:var(--text-light);line-height:1.5;word-break:break-word;">${pollData.message.message.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                                </div>
+                            `;
+                        }
+                        input.disabled = false;
+                        sendBtn.disabled = false;
+                        sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+                    }
+                }
+            } catch (e) { /* keep polling */ }
+        }, 2500);
+
+    } catch (err) {
+        console.error('Error sending agent task:', err);
+        input.disabled = false;
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+    }
+}
+
+async function getAgentAiMsgCount() {
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/agents/${currentAgentId}/messages`);
+        const msgs = await res.json();
+        return msgs.filter(m => m.sender === 'ai').length;
+    } catch { return 0; }
+}
+
+window.openAgentChat = openAgentChat;
+window.deleteAgent = deleteAgent;
+window.resetAgent = resetAgent;
+window.sendAgentMessage = sendAgentMessage;
+
 // Academic Citation Click Handler
 document.addEventListener('click', async function (e) {
     const citationEl = e.target.closest('.writer-citation');
@@ -1208,7 +1550,7 @@ async function openCitationModal(materialId, snippet, page) {
             // Fallback if match not found
             contentEl.textContent = fullText;
         } else {
-            contentEl.innerHTML = `<div style="color: var(--accent-pink); text-align: center; padding: 20px;">Erro ao carregar o conteúdo do material.</div>`;
+            contentEl.innerHTML = `<div style="color: var(--accent-pink); text-align: center; padding: 20px;"><i class="fa-solid fa-triangle-exclamation" style="margin-bottom: 10px; font-size: 24px;"></i><br>${data.error || 'Erro ao carregar o conteúdo do material.'}</div>`;
         }
     } catch (err) {
         console.error('Error opening citation modal:', err);
