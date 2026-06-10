@@ -1149,4 +1149,30 @@ body {
     animation: fa-spin 1s infinite linear;
 }
 
+/* Context Section & Info Box */
+.context-section {
+    margin-top: 1rem;
+}
 
+.context-info-box {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--text-muted);
+    max-height: 150px;
+    overflow-y: auto;
+    transition: all 0.2s;
+}
+
+.context-info-box:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.context-text-preview {
+    white-space: pre-wrap;
+    word-break: break-word;
+}

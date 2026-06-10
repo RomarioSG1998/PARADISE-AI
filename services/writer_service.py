@@ -4,10 +4,20 @@ from database import (
     get_writer_materials_with_text,
     get_writer_documents,
     get_writer_document,
-    get_writer_messages
+    get_writer_messages,
+    get_writer_contexts
 )
 
 async def generate_writer_chat_response_async(env_id, user_message, username, active_doc_id=None, selected_text=None):
+    # Fetch environments details for production contexts
+    contexts = get_writer_contexts(env_id)
+    production_context = ""
+    for ctx in contexts:
+        ctx_text = ctx.get("content_text")
+        if ctx_text:
+            production_context += f"--- CONTEXTO: {ctx['name']} ---\n{ctx_text.strip()}\n\n"
+    production_context = production_context.strip()
+
     # 1. Fetch materials (models & references) in a single optimized DB round-trip
     materials = get_writer_materials_with_text(env_id)
     models_context = ""
@@ -95,6 +105,36 @@ async def generate_writer_chat_response_async(env_id, user_message, username, ac
             "### BASE TEÓRICA / REFERÊNCIAS (Consulte e cite apenas se necessário):\n"
             f"{references_context}\n"
         )
+
+    if production_context:
+        system_prompt += (
+            "### CONTEXTO DE PRODUÇÃO (Orientações obrigatórias sobre o projeto, público-alvo ou tema):\n"
+            f"{production_context}\n\n"
+        )
+
+    missing_elements = []
+    if not models_context:
+        missing_elements.append("- Modelos/Templates de texto (tom de voz, formato, estilo)")
+    if not references_context:
+        missing_elements.append("- Base Teórica/Referências (conteúdo a consultar ou citar)")
+    if not production_context:
+        missing_elements.append("- Contexto de Produção (detalhes sobre o projeto, público-alvo ou tema)")
+
+    if missing_elements:
+        system_prompt += (
+            "### AVISOS DE MATERIAIS AUSENTES (OBRIGATÓRIO ALERTAR SE SOLICITADO):\n"
+            "Os seguintes elementos de apoio NÃO foram fornecidos pelo usuário neste ambiente:\n"
+            + "\n".join(missing_elements) + "\n\n"
+            "Se o usuário solicitar ações que necessitem de algum desses materiais ausentes, "
+            "você DEVE responder no campo 'message' alertando-o de forma clara. Siga estritamente as regras abaixo para cada caso:\n"
+        )
+        if not models_context:
+            system_prompt += "- Se o usuário solicitar seguir o estilo ou template de modelos, você deve alertar: 'Você não forneceu nenhum arquivo de modelo/template de texto para eu seguir o estilo.'\n"
+        if not references_context:
+            system_prompt += "- Se o usuário solicitar consultar a base teórica ou referências, você deve alertar: 'Você não forneceu nenhum arquivo de base teórica/referência para eu consultar.'\n"
+        if not production_context:
+            system_prompt += "- Se o usuário solicitar adequar ao contexto de produção do projeto, você deve alertar: 'Você não forneceu nenhuma descrição ou arquivo de contexto de produção para eu saber os detalhes do projeto.'\n"
+        system_prompt += "\n"
 
     system_prompt += (
         "### DOCUMENTO ATUAL NO EDITOR:\n"

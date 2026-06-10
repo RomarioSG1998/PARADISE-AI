@@ -115,6 +115,16 @@ function setupEventListeners() {
             }
         });
     }
+
+    // Context Actions
+    const editContextBtn = document.getElementById('edit-context-btn');
+    if (editContextBtn) {
+        editContextBtn.addEventListener('click', () => openWriterModal('edit-context-modal'));
+    }
+    const editContextForm = document.getElementById('edit-context-form');
+    if (editContextForm) {
+        editContextForm.addEventListener('submit', saveProductionContext);
+    }
 }
 
 // Check connection and update indicator
@@ -256,6 +266,8 @@ async function selectEnvironment(id, name) {
     newDocBtn.disabled = false;
     uploadMaterialBtn.disabled = false;
     chatSendBtn.disabled = false;
+    const editContextBtn = document.getElementById('edit-context-btn');
+    if (editContextBtn) editContextBtn.disabled = false;
     
     // Visual toggle
     document.querySelectorAll('.env-item').forEach(el => el.classList.remove('active'));
@@ -264,10 +276,11 @@ async function selectEnvironment(id, name) {
     
     updateUILayout();
     
-    // Load environment documents, materials, and messages
+    // Load environment documents, materials, messages, and production context
     await loadDocuments();
     await loadMaterials();
     await loadChatMessages();
+    await loadProductionContext();
     
     // Select first doc by default if exists, otherwise create first doc
     if (documents.length > 0) {
@@ -291,6 +304,13 @@ function updateUILayout() {
         newDocBtn.disabled = true;
         uploadMaterialBtn.disabled = true;
         chatSendBtn.disabled = true;
+        
+        const editContextBtn = document.getElementById('edit-context-btn');
+        if (editContextBtn) editContextBtn.disabled = true;
+        const contextContainer = document.getElementById('context-display-container');
+        if (contextContainer) {
+            contextContainer.innerHTML = '<div class="empty-list-info">Selecione um ambiente para ver o contexto.</div>';
+        }
         
         modelsContainer.innerHTML = '<div class="empty-list-info">Nenhum modelo enviado.</div>';
         referencesContainer.innerHTML = '<div class="empty-list-info">Nenhum material enviado.</div>';
@@ -911,3 +931,108 @@ async function submitSelectionEdit() {
         hideSelectionPopover();
     }
 }
+
+async function loadProductionContext() {
+    if (!currentEnvId) return;
+    const container = document.getElementById('context-display-container');
+    if (!container) return;
+    
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/contexts`);
+        const contexts = await res.json();
+        
+        container.innerHTML = '';
+        if (contexts.length === 0) {
+            container.innerHTML = '<div class="empty-list-info">Nenhum contexto de produção configurado. Clique no botão + para adicionar.</div>';
+            return;
+        }
+        
+        contexts.forEach(ctx => {
+            const item = document.createElement('div');
+            item.className = 'material-item';
+            item.innerHTML = `
+                <span title="${(ctx.content_text || '').replace(/"/g, '&quot;')}"><i class="fa-solid fa-bullseye material-icon"></i> ${ctx.name}</span>
+                <button class="delete-item-btn" onclick="deleteProductionContext(event, '${ctx.id}')"><i class="fa-solid fa-trash-can"></i></button>
+            `;
+            container.appendChild(item);
+        });
+    } catch (err) {
+        console.error('Error loading production contexts:', err);
+        container.innerHTML = `<div class="empty-list-info">Erro ao carregar contexto.</div>`;
+    }
+}
+
+async function saveProductionContext(event) {
+    if (event) event.preventDefault();
+    if (!currentEnvId) return;
+    
+    const submitBtn = document.getElementById('submit-context-btn');
+    const form = document.getElementById('edit-context-form');
+    const nameInput = document.getElementById('context-name-input');
+    const fileInput = document.getElementById('context-file-input');
+    const textInput = document.getElementById('context-text-input');
+    
+    if (!form || !submitBtn) return;
+    
+    const name = nameInput ? nameInput.value.trim() : '';
+    const textContent = textInput ? textInput.value.trim() : '';
+    const file = fileInput && fileInput.files.length > 0 ? fileInput.files[0] : null;
+    
+    if (!name && !file) {
+        alert('Por favor, informe o nome do contexto ou envie um arquivo.');
+        return;
+    }
+    if (!textContent && !file) {
+        alert('Por favor, informe o texto do contexto ou envie um arquivo.');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('text_content', textContent);
+    if (file) {
+        formData.append('file', file);
+    }
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+    
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/contexts`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            closeWriterModal('edit-context-modal');
+            form.reset();
+            await loadProductionContext();
+        } else {
+            alert('Erro ao salvar contexto: ' + (data.error || 'Erro desconhecido'));
+        }
+    } catch (err) {
+        console.error('Error saving production context:', err);
+        alert('Erro de rede ao salvar contexto.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Adicionar Contexto';
+    }
+}
+
+async function deleteProductionContext(event, id) {
+    event.stopPropagation();
+    if (!confirm('Deseja realmente excluir este item de contexto de produção?')) return;
+    
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/contexts/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            await loadProductionContext();
+        }
+    } catch (err) {
+        console.error('Error deleting production context:', err);
+    }
+}
+
+window.deleteProductionContext = deleteProductionContext;

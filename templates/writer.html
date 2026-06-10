@@ -65,6 +65,16 @@
                         <!-- Loaded dynamically -->
                     </div>
                 </div>
+
+                <div class="panel-section context-section">
+                    <div class="section-header">
+                        <h3><i class="fa-solid fa-bullseye"></i> Contexto de Produção</h3>
+                        <button class="icon-btn" id="edit-context-btn" title="Adicionar Contexto de Produção" disabled><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div class="context-info-box" id="context-display-container">
+                        <div class="empty-list-info">Selecione um ambiente para ver o contexto.</div>
+                    </div>
+                </div>
             </aside>
 
             <!-- Center Panel: The Writer Desk & Sheet -->
@@ -159,6 +169,33 @@
     </div>
 
     <!-- Modals -->
+    <!-- Edit Context Modal -->
+    <div class="modal-overlay" id="edit-context-modal">
+        <div class="modal-card">
+            <button class="close-modal" onclick="closeWriterModal('edit-context-modal')">&times;</button>
+            <h2 class="modal-title">Adicionar Contexto de Produção</h2>
+            <form id="edit-context-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="context-name-input">Nome do Contexto (Ex: Público-alvo, Persona, Regras)</label>
+                    <input type="text" id="context-name-input" name="name" placeholder="Ex: Público-Alvo / Tom de Voz" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none; margin-bottom: 10px;">
+                </div>
+                <div class="form-group">
+                    <label for="context-text-input">Descreva o Contexto do Projeto (Instruções gerais, tema, objetivo)</label>
+                    <textarea id="context-text-input" name="text_content" rows="6" placeholder="Ex: Este projeto é um artigo científico para a revista XYZ sobre o tema..." style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none; resize:vertical;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="context-file-input">Ou envie um arquivo contendo o contexto (.pdf, .txt)</label>
+                    <input type="file" name="file" id="context-file-input" accept=".pdf,.txt">
+                    <small style="color:var(--text-muted); display:block; margin-top:4px;">Enviar um arquivo extrairá o texto correspondente.</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeWriterModal('edit-context-modal')">Cancelar</button>
+                    <button type="submit" class="btn-save" id="submit-context-btn">Adicionar Contexto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Create Env Modal -->
     <div class="modal-overlay" id="new-env-modal">
         <div class="modal-card">

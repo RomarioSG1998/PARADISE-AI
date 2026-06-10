@@ -14,7 +14,10 @@ from database import (
     delete_writer_document,
     get_writer_document,
     get_writer_messages,
-    add_writer_message
+    add_writer_message,
+    add_writer_context,
+    get_writer_contexts,
+    delete_writer_context
 )
 from services.writer_service import generate_writer_chat_response_async
 from utils.async_loop import run_in_background
@@ -256,3 +259,62 @@ def edit_document_selection(env_id, doc_id):
         "success": True,
         "updated_text": cleaned_text
     })
+
+@writer_bp.route("/api/writer/environments/<env_id>/contexts", methods=["GET", "POST"])
+def manage_environment_contexts(env_id):
+    if not session.get("username"):
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    if request.method == "POST":
+        name = ""
+        content_text = ""
+        
+        # Check if form or JSON
+        if request.is_json:
+            data = request.get_json()
+            name = data.get("name", "").strip()
+            content_text = data.get("text_content", "").strip()
+        else:
+            name = request.form.get("name", "").strip()
+            content_text = request.form.get("text_content", "").strip()
+            
+            file = request.files.get("file")
+            if file and file.filename:
+                if not name:
+                    name = file.filename
+                filename = file.filename
+                if filename.lower().endswith(".pdf"):
+                    try:
+                        file_bytes = file.read()
+                        reader = PdfReader(io.BytesIO(file_bytes))
+                        extracted_text = ""
+                        for page in reader.pages:
+                            t = page.extract_text()
+                            if t:
+                                extracted_text += t + "\n"
+                        content_text = extracted_text.strip()
+                    except Exception as e:
+                        return jsonify({"error": f"Falha ao extrair texto do PDF: {str(e)}"}), 400
+                else:
+                    try:
+                        content_text = file.read().decode("utf-8", errors="ignore").strip()
+                    except Exception as e:
+                        return jsonify({"error": f"Falha ao ler arquivo: {str(e)}"}), 400
+        
+        if not name:
+            name = "Contexto Sem Nome"
+        if not content_text:
+            return jsonify({"error": "Nome do contexto e arquivo/texto são obrigatórios!"}), 400
+            
+        add_writer_context(env_id, name, content_text)
+        return jsonify({"success": True})
+    else:
+        contexts = get_writer_contexts(env_id)
+        return jsonify(contexts)
+
+@writer_bp.route("/api/writer/environments/<env_id>/contexts/<context_id>", methods=["DELETE"])
+def delete_context_route(env_id, context_id):
+    if not session.get("username"):
+        return jsonify({"error": "Unauthorized"}), 401
+    delete_writer_context(context_id)
+    return jsonify({"success": True})

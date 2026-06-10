@@ -10,6 +10,12 @@ ENV_PATH = os.path.join(root_dir, ".env")
 load_dotenv(ENV_PATH, override=True)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "CRITICAL DATABASE ERROR: DATABASE_URL is not set! "
+        "Supabase connection is mandatory for persistence. "
+        "Please check your .env file."
+    )
 
 def qry(sql: str) -> str:
     if DATABASE_URL:
@@ -130,6 +136,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT REFERENCES profiles(username) ON DELETE CASCADE,
             name TEXT NOT NULL,
+            production_context TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """)
@@ -167,6 +174,17 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """)
+
+        # Create writer_contexts table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS writer_contexts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            environment_id INTEGER REFERENCES writer_environments(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            content_text TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
         conn.commit()
     else:
         try:
@@ -176,6 +194,7 @@ def init_db():
                 id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
                 username TEXT REFERENCES public.profiles(username) ON DELETE CASCADE,
                 name TEXT NOT NULL,
+                production_context TEXT,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
             )
             """)
@@ -198,12 +217,24 @@ def init_db():
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
             )
             """)
+            # Create writer_messages table
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS public.writer_messages (
                 id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
                 environment_id UUID REFERENCES public.writer_environments(id) ON DELETE CASCADE,
                 sender TEXT NOT NULL CHECK(sender IN ('user', 'ai')),
                 message TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+            """)
+
+            # Create writer_contexts table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS public.writer_contexts (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                environment_id UUID REFERENCES public.writer_environments(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                content_text TEXT,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
             )
             """)
@@ -246,10 +277,16 @@ def init_db():
 
     if DATABASE_URL:
         cursor.execute("ALTER TABLE public.gemini_accounts ADD COLUMN IF NOT EXISTS provider TEXT DEFAULT 'gemini'")
+        cursor.execute("ALTER TABLE public.writer_environments ADD COLUMN IF NOT EXISTS production_context TEXT")
         conn.commit()
     else:
         try:
             cursor.execute("ALTER TABLE gemini_accounts ADD COLUMN provider TEXT DEFAULT 'gemini'")
+            conn.commit()
+        except:
+            pass
+        try:
+            cursor.execute("ALTER TABLE writer_environments ADD COLUMN production_context TEXT")
             conn.commit()
         except:
             pass
@@ -680,5 +717,33 @@ def delete_writer_document(doc_id):
     cursor = get_cursor(conn)
     tbl = "public.writer_documents" if DATABASE_URL else "writer_documents"
     cursor.execute(qry(f"DELETE FROM {tbl} WHERE id = ?"), (doc_id,))
+    conn.commit()
+    conn.close()
+
+def add_writer_context(env_id, name, content_text):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_contexts" if DATABASE_URL else "writer_contexts"
+    cursor.execute(
+        qry(f"INSERT INTO {tbl} (environment_id, name, content_text) VALUES (?, ?, ?)"),
+        (env_id, name, content_text)
+    )
+    conn.commit()
+    conn.close()
+
+def get_writer_contexts(env_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_contexts" if DATABASE_URL else "writer_contexts"
+    cursor.execute(qry(f"SELECT id, name, content_text, created_at FROM {tbl} WHERE environment_id = ? ORDER BY created_at ASC"), (env_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def delete_writer_context(context_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_contexts" if DATABASE_URL else "writer_contexts"
+    cursor.execute(qry(f"DELETE FROM {tbl} WHERE id = ?"), (context_id,))
     conn.commit()
     conn.close()
