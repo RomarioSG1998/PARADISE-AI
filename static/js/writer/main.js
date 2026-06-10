@@ -410,8 +410,23 @@ function selectDocument(id, title, content) {
     if (activeEl) activeEl.classList.add('active');
 
     // Load contents to editor
+    // Strip out hallucinated boilerplate tags (style, html, body) if present
+    function sanitizeEditorHtml(htmlStr) {
+        if (!htmlStr) return '';
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlStr;
+        tempDiv.querySelectorAll('style, script, head, meta, link, title').forEach(el => el.remove());
+        let clean = tempDiv.innerHTML;
+        clean = clean.replace(/<!DOCTYPE[^>]*>/gi, '');
+        clean = clean.replace(/<html[^>]*>/gi, '');
+        clean = clean.replace(/<\/html>/gi, '');
+        clean = clean.replace(/<body[^>]*>/gi, '');
+        clean = clean.replace(/<\/body>/gi, '');
+        return clean;
+    }
+
     docTitleInput.value = title === 'Sem título' ? '' : title;
-    richEditor.innerHTML = content || '';
+    richEditor.innerHTML = sanitizeEditorHtml(content || '');
 
     updateStats();
     setSaveStatus("saved");
@@ -737,7 +752,19 @@ async function sendChatMessage() {
             if (data.document_update !== null && data.document_update !== undefined) {
                 // Store previous state and show review overlay
                 window.previousEditorContent = richEditor.innerHTML;
-                richEditor.innerHTML = data.document_update;
+                
+                // Strip out hallucinated boilerplate tags (style, html, body) if present
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = data.document_update;
+                tempDiv.querySelectorAll('style, script, head, meta, link, title').forEach(el => el.remove());
+                let clean = tempDiv.innerHTML;
+                clean = clean.replace(/<!DOCTYPE[^>]*>/gi, '');
+                clean = clean.replace(/<html[^>]*>/gi, '');
+                clean = clean.replace(/<\/html>/gi, '');
+                clean = clean.replace(/<body[^>]*>/gi, '');
+                clean = clean.replace(/<\/body>/gi, '');
+                
+                richEditor.innerHTML = clean;
                 updateStats();
                 setSaveStatus("unsaved");
 
