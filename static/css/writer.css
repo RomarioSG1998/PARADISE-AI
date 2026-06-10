@@ -1030,3 +1030,123 @@ body {
     0%, 80%, 100% { transform: scale(0); }
     40% { transform: scale(1.0); }
 }
+
+/* Floating Selection Handlers styles */
+.editor-selection-highlight {
+    background-color: rgba(147, 51, 234, 0.25) !important;
+    border-bottom: 2px solid var(--accent-purple);
+    border-radius: 4px;
+    padding: 1px 2px;
+    transition: background-color 0.8s ease;
+}
+
+/* Floating AI Selection Popover styling */
+.selection-ia-popover {
+    position: absolute;
+    z-index: 1000;
+    background: rgba(17, 19, 36, 0.92);
+    border: 1px solid rgba(147, 51, 234, 0.4);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(147, 51, 234, 0.15);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 12px;
+    padding: 12px 16px;
+    width: 360px;
+    animation: popover-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popover-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.popover-container {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.popover-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.9rem;
+    box-shadow: 0 0 10px rgba(147, 51, 234, 0.4);
+    flex-shrink: 0;
+}
+
+.popover-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.popover-question {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #e2e8f0;
+}
+
+.popover-input-group {
+    display: flex;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 4px 6px 4px 12px;
+    align-items: center;
+    transition: border-color 0.2s;
+}
+
+.popover-input-group:focus-within {
+    border-color: var(--accent-purple);
+}
+
+#selection-ia-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 0.85rem;
+    padding: 6px 0;
+}
+
+#selection-ia-submit {
+    background: var(--accent-purple);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+#selection-ia-submit:hover {
+    background: var(--accent-pink);
+    transform: scale(1.05);
+}
+
+.popover-loading-spinner {
+    font-size: 0.95rem;
+    color: var(--accent-purple);
+    animation: fa-spin 1s infinite linear;
+}
+
+

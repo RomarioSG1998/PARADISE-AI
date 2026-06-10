@@ -646,6 +646,15 @@ def get_writer_documents(env_id):
     conn.close()
     return [dict(r) for r in rows]
 
+def get_writer_document(doc_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_documents" if DATABASE_URL else "writer_documents"
+    cursor.execute(qry(f"SELECT * FROM {tbl} WHERE id = ?"), (doc_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
 def get_writer_messages(env_id):
     conn = get_db_connection()
     cursor = get_cursor(conn)

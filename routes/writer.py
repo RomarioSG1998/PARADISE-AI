@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify, render_template, session, redirect, url_for
+import json
+import re
 from database import (
     create_writer_environment,
     get_writer_environments,
@@ -10,6 +12,7 @@ from database import (
     save_writer_document,
     get_writer_documents,
     delete_writer_document,
+    get_writer_document,
     get_writer_messages,
     add_writer_message
 )
@@ -136,6 +139,22 @@ def delete_document_route(env_id, doc_id):
     delete_writer_document(doc_id)
     return jsonify({"success": True})
 
+def parse_ai_json_response(text):
+    if not text:
+        return {"message": "", "document_update": None}
+    text = text.strip()
+    if text.startswith("```"):
+        match = re.match(r"^```(?:json)?\s*([\s\S]*?)\s*```$", text)
+        if match:
+            text = match.group(1).strip()
+    try:
+        return json.loads(text)
+    except Exception:
+        return {
+            "message": text,
+            "document_update": None
+        }
+
 @writer_bp.route("/api/writer/environments/<env_id>/messages", methods=["GET", "POST"])
 def manage_messages(env_id):
     username = session.get("username")
@@ -145,6 +164,9 @@ def manage_messages(env_id):
     if request.method == "POST":
         data = request.get_json() or {}
         user_message = data.get("message", "").strip()
+        active_doc_id = data.get("active_doc_id")
+        selected_text = data.get("selected_text")
+        
         if not user_message:
             return jsonify({"error": "Message content is required"}), 400
             
@@ -152,17 +174,85 @@ def manage_messages(env_id):
         add_writer_message(env_id, "user", user_message)
         
         # 2. Generate AI response in background thread
-        ai_response, err = run_in_background(generate_writer_chat_response_async(env_id, user_message, username))
+        ai_response, err = run_in_background(generate_writer_chat_response_async(env_id, user_message, username, active_doc_id, selected_text))
         if err:
-            ai_response = f"Desculpe, ocorreu um erro ao chamar a inteligência artificial: {err}"
+            ai_response_str = f"Desculpe, ocorreu um erro ao chamar a inteligência artificial: {err}"
+            add_writer_message(env_id, "ai", ai_response_str)
+            return jsonify({
+                "success": True,
+                "message": ai_response_str,
+                "document_update": None,
+                "selection_update": None
+            })
+            
+        # Parse JSON response
+        parsed = parse_ai_json_response(ai_response)
+        ai_msg = parsed.get("message", ai_response)
+        doc_update = parsed.get("document_update")
+        selection_update = parsed.get("selection_update")
+        
+        # If there's an update, save it
+        if doc_update is not None and active_doc_id:
+            current_doc = get_writer_document(active_doc_id)
+            title = current_doc.get("title", "Sem título") if current_doc else "Sem título"
+            save_writer_document(env_id, active_doc_id, title, doc_update)
             
         # 3. Log AI message
-        add_writer_message(env_id, "ai", ai_response)
+        add_writer_message(env_id, "ai", ai_msg)
         
         return jsonify({
             "success": True,
-            "message": ai_response
+            "message": ai_msg,
+            "document_update": doc_update,
+            "selection_update": selection_update
         })
     else:
         msgs = get_writer_messages(env_id)
         return jsonify(msgs)
+
+@writer_bp.route("/api/writer/environments/<env_id>/documents/<doc_id>/edit-selection", methods=["POST"])
+def edit_document_selection(env_id, doc_id):
+    username = session.get("username")
+    if not username:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    data = request.get_json() or {}
+    selected_text = data.get("selected_text", "").strip()
+    instruction = data.get("instruction", "").strip()
+    full_content = data.get("full_content", "").strip()
+    
+    if not selected_text or not instruction:
+        return jsonify({"error": "Selection and instruction are required"}), 400
+        
+    prompt = (
+        "Você é um editor assistente de escrita de alto nível.\n"
+        "O usuário deseja alterar um trecho específico de um documento.\n\n"
+        "### CONTEXTO DO DOCUMENTO COMPLETO:\n"
+        f"{full_content}\n\n"
+        "### TRECHO SELECIONADO QUE DEVE SER ALTERADO:\n"
+        f"{selected_text}\n\n"
+        "### INSTRUÇÃO DE ALTERAÇÃO DO USUÁRIO:\n"
+        f"{instruction}\n\n"
+        "### DIRETRIZES DE RETORNO:\n"
+        "1. Retorne APENAS o trecho reescrito/alterado correspondente à seleção, aplicando a instrução dada.\n"
+        "2. NÃO inclua explicações, comentários, introduções, aspas extras ou qualquer outro texto ao redor. Retorne estritamente o trecho substituto final (com tags HTML básicas de formatação se o trecho original tinha formatação, ou apenas texto simples).\n"
+        "3. Vá direto ao texto reescrito."
+    )
+    
+    updated_text, err = run_in_background(generate_text_unified_async(prompt, username=username))
+    if err:
+        return jsonify({"error": str(err)}), 500
+        
+    cleaned_text = updated_text.strip()
+    if cleaned_text.startswith("```"):
+        match = re.match(r"^```(?:html|text|markdown)?\s*([\s\S]*?)\s*```$", cleaned_text)
+        if match:
+            cleaned_text = match.group(1).strip()
+            
+    if (cleaned_text.startswith('"') and cleaned_text.endswith('"')) or (cleaned_text.startswith("'") and cleaned_text.endswith("'")):
+        cleaned_text = cleaned_text[1:-1].strip()
+        
+    return jsonify({
+        "success": True,
+        "updated_text": cleaned_text
+    })

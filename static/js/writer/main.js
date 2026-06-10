@@ -47,6 +47,10 @@ const submitUploadBtn = document.getElementById('submit-upload-btn');
 const modelsContainer = document.getElementById('models-container');
 const referencesContainer = document.getElementById('references-container');
 
+// Floating Selection state
+let lastSelectionRange = null;
+let lastSelectedText = '';
+
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
     loadEnvironments();
@@ -84,6 +88,33 @@ function setupEventListeners() {
         }
     });
     chatSendBtn.addEventListener('click', sendChatMessage);
+
+    // Floating Selection Event Listeners
+    richEditor.addEventListener('mouseup', checkTextSelection);
+    richEditor.addEventListener('keyup', checkTextSelection);
+    
+    document.addEventListener('mousedown', (e) => {
+        const popover = document.getElementById('selection-ia-popover');
+        if (popover && popover.style.display !== 'none') {
+            if (!popover.contains(e.target) && !richEditor.contains(e.target)) {
+                hideSelectionPopover();
+            }
+        }
+    });
+
+    const popoverSubmitBtn = document.getElementById('selection-ia-submit');
+    const popoverInputEl = document.getElementById('selection-ia-input');
+    if (popoverSubmitBtn) {
+        popoverSubmitBtn.addEventListener('click', submitSelectionEdit);
+    }
+    if (popoverInputEl) {
+        popoverInputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submitSelectionEdit();
+            }
+        });
+    }
 }
 
 // Check connection and update indicator
@@ -613,7 +644,7 @@ async function sendChatMessage() {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ message, active_doc_id: currentDocId })
         });
         const data = await res.json();
         
@@ -630,6 +661,21 @@ async function sendChatMessage() {
                 <div class="chat-text">${formatMarkdownSimple(data.message)}</div>
             `;
             chatMessagesContainer.appendChild(aiBubble);
+            
+            // Apply document update if available
+            if (data.document_update !== null && data.document_update !== undefined) {
+                richEditor.innerHTML = data.document_update;
+                updateStats();
+                setSaveStatus("saved");
+                
+                // Visual feedback of change: quick yellow highlight flash
+                richEditor.style.transition = 'none';
+                richEditor.style.backgroundColor = 'rgba(253, 224, 71, 0.2)';
+                setTimeout(() => {
+                    richEditor.style.transition = 'background-color 0.8s ease';
+                    richEditor.style.backgroundColor = 'transparent';
+                }, 100);
+            }
         } else {
             alert('Falha na resposta: ' + data.error);
         }
@@ -699,3 +745,169 @@ chatInput.addEventListener('input', function() {
     const newHeight = Math.min(this.scrollHeight, 80);
     this.style.height = newHeight + 'px';
 });
+
+// Floating Selection Handlers
+function checkTextSelection() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    
+    const range = selection.getRangeAt(0);
+    const text = selection.toString().trim();
+    
+    if (text.length > 0 && richEditor.contains(range.commonAncestorContainer)) {
+        lastSelectionRange = range.cloneRange();
+        lastSelectedText = text;
+        showSelectionPopover(range);
+    }
+}
+
+function showSelectionPopover(range) {
+    const popover = document.getElementById('selection-ia-popover');
+    if (!popover) return;
+    
+    popover.style.display = 'block';
+    
+    const rect = range.getBoundingClientRect();
+    const popoverWidth = popover.offsetWidth;
+    const popoverHeight = popover.offsetHeight;
+    
+    // Position the popover centered above the selection bounds
+    const topPos = rect.top + window.scrollY - popoverHeight - 10;
+    const leftPos = rect.left + window.scrollX + (rect.width / 2) - (popoverWidth / 2);
+    
+    popover.style.top = `${Math.max(10, topPos)}px`;
+    popover.style.left = `${Math.max(10, leftPos)}px`;
+    
+    const input = document.getElementById('selection-ia-input');
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+}
+
+function hideSelectionPopover() {
+    const popover = document.getElementById('selection-ia-popover');
+    if (popover) {
+        popover.style.display = 'none';
+    }
+    lastSelectionRange = null;
+    lastSelectedText = '';
+}
+
+async function submitSelectionEdit() {
+    const input = document.getElementById('selection-ia-input');
+    const submitBtn = document.getElementById('selection-ia-submit');
+    if (!input || !submitBtn || !lastSelectedText || !lastSelectionRange || !currentEnvId) return;
+    
+    const message = input.value.trim();
+    if (!message) return;
+    
+    // Show loading state in popover
+    input.disabled = true;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner popover-loading-spinner"></i>';
+    
+    // Append user message to the chat sidebar as usual
+    const userBubble = document.createElement('div');
+    userBubble.className = 'chat-bubble user';
+    userBubble.innerHTML = `
+        <div class="chat-avatar"><i class="fa-solid fa-user"></i></div>
+        <div class="chat-text"><p>${message.replace(/\n/g, '<br>')}</p></div>
+    `;
+    chatMessagesContainer.appendChild(userBubble);
+    scrollToBottom();
+    
+    // Add AI loading bubble to chat sidebar
+    const loadingBubble = document.createElement('div');
+    loadingBubble.className = 'chat-bubble ai loading-bubble';
+    loadingBubble.innerHTML = `
+        <div class="chat-avatar"><i class="fa-solid fa-robot"></i></div>
+        <div class="chat-text">
+            <div class="chat-loading">
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+        </div>
+    `;
+    chatMessagesContainer.appendChild(loadingBubble);
+    scrollToBottom();
+    
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: message,
+                active_doc_id: currentDocId,
+                selected_text: lastSelectedText
+            })
+        });
+        const data = await res.json();
+        
+        // Remove loading bubble from chat
+        const lb = chatMessagesContainer.querySelector('.loading-bubble');
+        if (lb) lb.remove();
+        
+        if (data.success) {
+            // Add AI response bubble to chat sidebar
+            const aiBubble = document.createElement('div');
+            aiBubble.className = 'chat-bubble ai';
+            aiBubble.innerHTML = `
+                <div class="chat-avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="chat-text">${formatMarkdownSimple(data.message)}</div>
+            `;
+            chatMessagesContainer.appendChild(aiBubble);
+            scrollToBottom();
+            
+            // Apply selection update in the editor range
+            if (data.selection_update !== null && data.selection_update !== undefined) {
+                // Restore selection range
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(lastSelectionRange);
+                
+                lastSelectionRange.deleteContents();
+                
+                const el = document.createElement("span");
+                el.innerHTML = data.selection_update;
+                
+                // Highlight change with neon purple-glow briefly
+                el.style.backgroundColor = 'rgba(168, 85, 247, 0.25)';
+                el.style.transition = 'background-color 0.8s ease';
+                el.style.borderRadius = '4px';
+                el.style.padding = '2px 4px';
+                
+                lastSelectionRange.insertNode(el);
+                selection.removeAllRanges();
+                
+                // Save document change to DB immediately
+                saveCurrentDocument();
+                
+                setTimeout(() => {
+                    el.style.backgroundColor = 'transparent';
+                    setTimeout(() => {
+                        const parent = el.parentNode;
+                        if (parent) {
+                            while (el.firstChild) {
+                                parent.insertBefore(el.firstChild, el);
+                            }
+                            parent.removeChild(el);
+                        }
+                        richEditor.normalize();
+                    }, 800);
+                }, 500);
+            }
+        } else {
+            alert('Falha na resposta: ' + data.error);
+        }
+    } catch (err) {
+        console.error('Error sending selection edit:', err);
+    } finally {
+        // Reset popover input state
+        input.disabled = false;
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+        hideSelectionPopover();
+    }
+}
