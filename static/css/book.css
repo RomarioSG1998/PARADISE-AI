@@ -501,7 +501,6 @@
         }
 
         .book-text p.speaking-highlight {
-            background: #fef08a !important; /* Yellow pop for speaking */
             border-color: var(--accent-pink);
             box-shadow: 4px 4px 0px var(--accent-pink);
         }
