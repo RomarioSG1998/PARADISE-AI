@@ -33,22 +33,27 @@ async def generate_writer_chat_response_async(env_id, user_message, username, ac
             models_context += f"--- MODELO/TEMPLATE: {mat['name']} ---\n{truncated_text}\n\n"
         else:
             references_context += f"--- BASE TEÓRICA: {mat['name']} ---\n{truncated_text}\n\n"
-
-    # 2. Fetch current active document content
+    # 2. Fetch all documents in the environment to enable cross-document context awareness
+    all_docs = get_writer_documents(env_id)
     active_doc = None
     if active_doc_id:
-        active_doc = get_writer_document(active_doc_id)
+        active_doc = next((d for d in all_docs if str(d['id']) == str(active_doc_id)), None)
         
-    if not active_doc:
-        docs = get_writer_documents(env_id)
-        if docs:
-            active_doc = docs[0]
+    if not active_doc and all_docs:
+        active_doc = all_docs[0]
             
     doc_context = ""
     if active_doc:
         doc_context = f"Título: {active_doc['title']}\nConteúdo atual:\n{active_doc['content']}"
     else:
         doc_context = "(Nenhum texto foi escrito no editor ainda)"
+
+    other_docs_context = ""
+    for doc in all_docs:
+        if active_doc and str(doc['id']) == str(active_doc['id']):
+            continue
+        content_snippet = (doc['content'] or '')[:15000]
+        other_docs_context += f"--- DOCUMENTO ANTERIOR/APOIO: '{doc['title']}' ---\n{content_snippet}\n\n"
 
     # 3. Fetch past messages for conversation history (last 10 to keep context responsive)
     past_msgs = get_writer_messages(env_id)
@@ -89,7 +94,7 @@ async def generate_writer_chat_response_async(env_id, user_message, username, ac
             '  "selection_update": null\n'
             "}\n\n"
             "### DIRETRIZES CRÍTICAS:\n"
-            "1. Se o usuário pedir para reescrever, corrigir, apagar ou adicionar texto, altere o documento todo e retorne o HTML completo em 'document_update'.\n"
+            "1. Se o usuário pedir para reescrever, corrigir, apagar ou adicionar texto, altere o documento todo e retorne o HTML completo in 'document_update'.\n"
             "2. Se o usuário estiver apenas conversando, retorne 'document_update' como null.\n"
             "3. Mantenha as tags HTML básicas (<p>, <h1>, <h2>, <strong>, <em>, <ul>, <li>) no seu 'document_update' para não perder a formatação.\n"
         )
@@ -110,6 +115,12 @@ async def generate_writer_chat_response_async(env_id, user_message, username, ac
         system_prompt += (
             "### CONTEXTO DE PRODUÇÃO (Orientações obrigatórias sobre o projeto, público-alvo ou tema):\n"
             f"{production_context}\n\n"
+        )
+
+    if other_docs_context:
+        system_prompt += (
+            "### OUTROS TEXTOS/DOCUMENTOS NESTE AMBIENTE (Use para manter a consistência e continuidade de escrita do projeto):\n"
+            f"{other_docs_context.strip()}\n\n"
         )
 
     missing_elements = []
