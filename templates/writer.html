@@ -114,6 +114,21 @@
                         <p>Crie um ambiente de escrita ou selecione um existente na barra lateral esquerda para começar a redigir com a inteligência artificial.</p>
                         <button class="btn-primary" id="start-env-btn"><i class="fa-solid fa-circle-plus"></i> Criar Meu Primeiro Ambiente</button>
                     </div>
+
+                    <!-- AI Review Overlay -->
+                    <div class="ai-review-overlay" id="ai-review-overlay" style="display: none;">
+                        <div class="ai-review-box">
+                            <div class="ai-review-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                            <div class="ai-review-text">
+                                <strong>O Assistente modificou o documento!</strong>
+                                <span>Deseja manter essas alterações?</span>
+                            </div>
+                            <div class="ai-review-actions">
+                                <button class="btn-cancel" onclick="rejectAiChanges()">Desfazer</button>
+                                <button class="btn-save" onclick="acceptAiChanges()">Manter</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </main>
 

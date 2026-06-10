@@ -735,9 +735,11 @@ async function sendChatMessage() {
 
             // Apply document update if available
             if (data.document_update !== null && data.document_update !== undefined) {
+                // Store previous state and show review overlay
+                window.previousEditorContent = richEditor.innerHTML;
                 richEditor.innerHTML = data.document_update;
                 updateStats();
-                setSaveStatus("saved");
+                setSaveStatus("unsaved");
 
                 // Visual feedback of change: quick yellow highlight flash
                 richEditor.style.transition = 'none';
@@ -746,6 +748,10 @@ async function sendChatMessage() {
                     richEditor.style.transition = 'background-color 0.8s ease';
                     richEditor.style.backgroundColor = 'transparent';
                 }, 100);
+                
+                // Show review overlay
+                const overlay = document.getElementById('ai-review-overlay');
+                if (overlay) overlay.style.display = 'block';
             }
         } else {
             alert('Falha na resposta: ' + data.error);
@@ -760,6 +766,27 @@ async function sendChatMessage() {
         scrollToBottom();
     }
 }
+
+// Review AI Changes Functions
+window.acceptAiChanges = function() {
+    const overlay = document.getElementById('ai-review-overlay');
+    if (overlay) overlay.style.display = 'none';
+    
+    // Save to server
+    saveDocument();
+};
+
+window.rejectAiChanges = function() {
+    const overlay = document.getElementById('ai-review-overlay');
+    if (overlay) overlay.style.display = 'none';
+    
+    // Revert content
+    if (window.previousEditorContent !== undefined) {
+        richEditor.innerHTML = window.previousEditorContent;
+        updateStats();
+        setSaveStatus("saved");
+    }
+};
 
 // Auto-scroll chat window
 function scrollToBottom() {
@@ -1523,7 +1550,7 @@ async function openCitationModal(materialId, snippet, page) {
             // Fallback if match not found
             contentEl.textContent = fullText;
         } else {
-            contentEl.innerHTML = `<div style="color: var(--accent-pink); text-align: center; padding: 20px;">Erro ao carregar o conteúdo do material.</div>`;
+            contentEl.innerHTML = `<div style="color: var(--accent-pink); text-align: center; padding: 20px;"><i class="fa-solid fa-triangle-exclamation" style="margin-bottom: 10px; font-size: 24px;"></i><br>${data.error || 'Erro ao carregar o conteúdo do material.'}</div>`;
         }
     } catch (err) {
         console.error('Error opening citation modal:', err);

@@ -95,8 +95,8 @@ async def generate_writer_chat_response_async(env_id, user_message, username, ac
             '  "selection_update": null\n'
             "}\n\n"
             "### DIRETRIZES CRÍTICAS:\n"
-            "1. EDITE O DOCUMENTO: Se a solicitação do usuário envolver qualquer tipo de escrita, reescrita, correção ortográfica, alteração de estilo, adição de parágrafos, formatação ou qualquer modificação no texto do documento atual, você DEVE processar a mudança e retornar o HTML atualizado do documento COMPLETO no campo 'document_update'. Nunca retorne apenas texto no chat se a intenção for escrever ou editar o documento.\n"
-            "2. APENAS NO CHAT: Retorne 'document_update' como null somente se o usuário estiver apenas conversando de forma genérica, tirando dúvidas teóricas, fazendo perguntas conceituais ou solicitando críticas/feedbacks sobre o texto atual (sem intenção de aplicar modificações no documento).\n"
+            "1. EDITE O DOCUMENTO APENAS SE SOLICITADO: Retorne o campo 'document_update' como null a menos que o usuário EXPLICITAMENTE peça para você escrever, reescrever, alterar, formatar ou inserir algo no texto do editor (a 'folha'). Se ele pedir para modificar o documento, retorne o HTML atualizado do documento COMPLETO no campo 'document_update'.\n"
+            "2. CONVERSA PADRÃO: Se o usuário estiver apenas fazendo uma pergunta, conversando normalmente, pedindo ideias, ou pedindo feedback/crítica sobre o texto (sem pedir para você alterar o texto), você DEVE retornar 'document_update' como null. Sua resposta deve ir apenas no campo 'message'.\n"
             "3. Mantenha as tags HTML básicas (<p>, <h1>, <h2>, <strong>, <em>, <ul>, <li>) no seu 'document_update' para não perder a formatação.\n"
             "4. REQUISITO DE CITAÇÃO ACADÊMICA (ABNT): O texto citado (direta ou indiretamente) DEVE ser escrito por extenso no corpo do documento (ou da resposta no chat). Imediatamente após esse texto, você deve adicionar a indicação bibliográfica de citação formatada de acordo com as normas ABNT (ex: (SOBRENOME, Ano, p. X) ou (SOBRENOME, Ano)) envolta na seguinte tag HTML de verificação:\n"
             "   `<span class=\"writer-citation\" data-material-id=\"ID_DO_MATERIAL\" data-snippet=\"trecho exato de 10-50 palavras consecutivas do texto original da referência\" data-page=\"X\">(SOBRENOME, Ano, p. X)</span>`\n"
@@ -253,4 +253,5 @@ async def generate_agent_task_response_async(agent_id, env_id, task, username):
         if len(sentences) > 4:
             response_text = " ".join(sentences[:4])
 
+    return response_text, None
     return response_text, None

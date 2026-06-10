@@ -422,7 +422,7 @@ def get_material_text_route(env_id, material_id):
                 details = dict(matched_row)
 
     if not details:
-        return jsonify({"error": "Material not found"}), 404
+        return jsonify({"error": "Trecho da citação ou material não encontrado nos arquivos de referência enviados."}), 404
         
     actual_id = details.get("id") or material_id
     # Check if PDF file exists on the server to render directly
