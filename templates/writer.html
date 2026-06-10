@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>writer.AI — Estúdio de Escrita Inteligente</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/writer.css') }}">
+</head>
+<body>
+
+    <!-- Main App Container -->
+    <div class="app-layout">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <a href="/hub" class="back-link"><i class="fa-solid fa-arrow-left"></i> Hub</a>
+                <div class="brand">
+                    <div class="brand-logo"><i class="fa-solid fa-pen-nib"></i></div>
+                    <div class="brand-title">writer.AI</div>
+                </div>
+            </div>
+            <div class="header-center">
+                <span class="active-env-title" id="active-env-display">Selecione um Ambiente</span>
+            </div>
+            <div class="header-right">
+                <span class="connection-badge" id="conn-badge">
+                    <span class="badge-dot"></span>
+                    <span class="badge-label">Verificando IA...</span>
+                </span>
+            </div>
+        </header>
+
+        <!-- Main Body -->
+        <div class="app-body">
+            
+            <!-- Left Panel: Workspaces and Documents -->
+            <aside class="left-panel">
+                <div class="panel-section">
+                    <div class="section-header">
+                        <h3><i class="fa-solid fa-folder-open"></i> Ambientes</h3>
+                        <button class="icon-btn" id="new-env-btn" title="Novo Ambiente"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div class="envs-list" id="envs-container">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+                
+                <div class="panel-section docs-section">
+                    <div class="section-header">
+                        <h3><i class="fa-solid fa-file-signature"></i> Textos / Docs</h3>
+                        <button class="icon-btn" id="new-doc-btn" title="Novo Documento" disabled><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div class="docs-list" id="docs-container">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center Panel: The Writer Desk & Sheet -->
+            <main class="center-panel">
+                <div class="editor-toolbar" id="text-toolbar">
+                    <button class="toolbar-btn" data-cmd="bold" title="Negrito"><i class="fa-solid fa-bold"></i></button>
+                    <button class="toolbar-btn" data-cmd="italic" title="Itálico"><i class="fa-solid fa-italic"></i></button>
+                    <button class="toolbar-btn" data-cmd="underline" title="Sublinhado"><i class="fa-solid fa-underline"></i></button>
+                    <span class="toolbar-divider"></span>
+                    <button class="toolbar-btn" data-cmd="formatBlock" data-val="h1" title="Título 1">H1</button>
+                    <button class="toolbar-btn" data-cmd="formatBlock" data-val="h2" title="Título 2">H2</button>
+                    <button class="toolbar-btn" data-cmd="formatBlock" data-val="p" title="Parágrafo">P</button>
+                    <span class="toolbar-divider"></span>
+                    <button class="toolbar-btn" data-cmd="insertUnorderedList" title="Lista de Marcadores"><i class="fa-solid fa-list-ul"></i></button>
+                    <button class="toolbar-btn" data-cmd="insertOrderedList" title="Lista Numerada"><i class="fa-solid fa-list-ol"></i></button>
+                    <span class="toolbar-divider"></span>
+                    <button class="toolbar-btn" data-cmd="removeFormat" title="Limpar Formatação"><i class="fa-solid fa-eraser"></i></button>
+                    <span class="toolbar-spacer"></span>
+                    <button class="save-indicator" id="save-status-btn"><i class="fa-solid fa-cloud-arrow-up"></i> Salvo</button>
+                </div>
+                
+                <div class="desk-viewport">
+                    <!-- Page Sheet simulating a real sheet of paper -->
+                    <div class="paper-sheet" id="paper-editor-container" style="display: none;">
+                        <input type="text" class="paper-title" id="doc-title-input" placeholder="Documento Sem Título...">
+                        <div class="paper-divider"></div>
+                        <div class="paper-content" id="rich-editor" contenteditable="true" placeholder="Comece a escrever a sua obra de arte aqui..."></div>
+                        <div class="paper-footer">
+                            <span id="char-count">0 caracteres</span>
+                            <span id="word-count">0 palavras</span>
+                        </div>
+                    </div>
+                    
+                    <div class="no-env-placeholder" id="no-env-screen">
+                        <i class="fa-solid fa-feather-pointed"></i>
+                        <h2>Bem-vindo ao writer.AI</h2>
+                        <p>Crie um ambiente de escrita ou selecione um existente na barra lateral esquerda para começar a redigir com a inteligência artificial.</p>
+                        <button class="btn-primary" id="start-env-btn"><i class="fa-solid fa-circle-plus"></i> Criar Meu Primeiro Ambiente</button>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Panel: Reference Materials & Chat -->
+            <section class="right-panel">
+                <!-- Reference Materials Sub-Panel -->
+                <div class="materials-subpanel">
+                    <div class="subpanel-header">
+                        <h3><i class="fa-solid fa-book-bookmark"></i> Materiais de Apoio</h3>
+                        <button class="btn-sm" id="upload-material-btn" disabled><i class="fa-solid fa-file-arrow-up"></i> Adicionar PDF</button>
+                    </div>
+                    
+                    <div class="materials-tabs">
+                        <button class="material-tab-link active" onclick="switchMaterialTab(this, 'tab-models')">Modelos (Templates)</button>
+                        <button class="material-tab-link" onclick="switchMaterialTab(this, 'tab-references')">Base Teórica</button>
+                    </div>
+                    
+                    <div class="materials-content">
+                        <!-- Models Tab -->
+                        <div class="material-tab-pane active" id="tab-models">
+                            <div class="materials-list" id="models-container">
+                                <div class="empty-list-info">Nenhum modelo de texto enviado.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- References Tab -->
+                        <div class="material-tab-pane" id="tab-references">
+                            <div class="materials-list" id="references-container">
+                                <div class="empty-list-info">Nenhum material de apoio enviado.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Sub-Panel -->
+                <div class="chat-subpanel">
+                    <div class="subpanel-header">
+                        <h3><i class="fa-solid fa-comments"></i> Assistente IA</h3>
+                        <span class="chat-hint" title="A IA analisa o documento no editor central e os materiais de apoio ao responder.">Como funciona? <i class="fa-solid fa-circle-question"></i></span>
+                    </div>
+                    
+                    <div class="chat-messages" id="chat-messages-container">
+                        <!-- Loaded dynamically -->
+                    </div>
+                    
+                    <div class="chat-input-bar">
+                        <textarea id="chat-input" placeholder="Pergunte à IA, sugira alterações ou peça revisões..." rows="1"></textarea>
+                        <button class="chat-send-btn" id="chat-send-btn" disabled><i class="fa-solid fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Create Env Modal -->
+    <div class="modal-overlay" id="new-env-modal">
+        <div class="modal-card">
+            <button class="close-modal" onclick="closeWriterModal('new-env-modal')">&times;</button>
+            <h2 class="modal-title">Novo Ambiente de Escrita</h2>
+            <div class="form-group">
+                <label for="env-name-input">Nome do Ambiente</label>
+                <input type="text" id="env-name-input" placeholder="Ex: TCC - Engenharia, Romance Policial, Artigo de Opinião">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeWriterModal('new-env-modal')">Cancelar</button>
+                <button class="btn-save" id="save-new-env-btn">Criar Ambiente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Material Modal -->
+    <div class="modal-overlay" id="upload-material-modal">
+        <div class="modal-card">
+            <button class="close-modal" onclick="closeWriterModal('upload-material-modal')">&times;</button>
+            <h2 class="modal-title">Adicionar Material de Apoio</h2>
+            <form id="upload-material-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="material-name-input">Nome do Material (Opcional)</label>
+                    <input type="text" id="material-name-input" placeholder="Ex: Guia de Tom, Capítulo 1 Base">
+                </div>
+                <div class="form-group">
+                    <label for="material-type-select">Tipo de Material</label>
+                    <select id="material-type-select">
+                        <option value="model">Modelo de Texto / Template (A IA seguirá o estilo e estrutura)</option>
+                        <option value="reference">Base Teórica / Referência (A IA consultará e citará as fontes)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="material-file-input">Arquivo PDF ou Texto (.pdf, .txt)</label>
+                    <input type="file" id="material-file-input" accept=".pdf,.txt" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeWriterModal('upload-material-modal')">Cancelar</button>
+                    <button type="submit" class="btn-save" id="submit-upload-btn">Enviar Material</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Javascript -->
+    <script src="{{ url_for('static', filename='js/writer/main.js') }}"></script>
+</body>
+</html>
