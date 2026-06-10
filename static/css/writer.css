@@ -307,13 +307,18 @@ body {
     cursor: pointer;
     padding: 0.25rem;
     font-size: 0.8rem;
+    flex-shrink: 0;
     transition: all 0.2s;
+    pointer-events: none;
 }
-.env-item:hover .delete-item-btn, .doc-item:hover .delete-item-btn {
-    opacity: 1;
+.env-item:hover .delete-item-btn,
+.doc-item:hover .delete-item-btn,
+.material-item:hover .delete-item-btn {
+    opacity: 1 !important;
+    pointer-events: auto;
 }
 .delete-item-btn:hover {
-    color: #ef4444;
+    color: #ef4444 !important;
 }
 
 /* CENTER PANEL: THE WORKSPACE */
@@ -688,12 +693,21 @@ body {
 .material-item:hover {
     background: rgba(255,255,255,0.05);
 }
+.material-item:hover .delete-item-btn {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
 
 .material-item span {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color 0.15s ease;
+}
+
+.material-item span:hover {
+    color: var(--accent-purple);
 }
 
 .material-icon {

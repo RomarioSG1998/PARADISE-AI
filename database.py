@@ -599,12 +599,26 @@ def add_writer_material(env_id, name, material_type, content_text):
     conn = get_db_connection()
     cursor = get_cursor(conn)
     tbl = "public.writer_materials" if DATABASE_URL else "writer_materials"
-    cursor.execute(
-        qry(f"INSERT INTO {tbl} (environment_id, name, material_type, content_text) VALUES (?, ?, ?, ?)"),
-        (env_id, name, material_type, content_text)
-    )
+    
+    new_id = None
+    if DATABASE_URL:
+        cursor.execute(
+            f"INSERT INTO {tbl} (environment_id, name, material_type, content_text) VALUES (%s, %s, %s, %s) RETURNING id",
+            (env_id, name, material_type, content_text)
+        )
+        row = cursor.fetchone()
+        if row:
+            new_id = row[0]
+    else:
+        cursor.execute(
+            f"INSERT INTO {tbl} (environment_id, name, material_type, content_text) VALUES (?, ?, ?, ?)",
+            (env_id, name, material_type, content_text)
+        )
+        new_id = cursor.lastrowid
+        
     conn.commit()
     conn.close()
+    return new_id
 
 def get_writer_materials(env_id):
     conn = get_db_connection()

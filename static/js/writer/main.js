@@ -65,21 +65,21 @@ function setupEventListeners() {
     newEnvBtn.addEventListener('click', () => openWriterModal('new-env-modal'));
     startEnvBtn.addEventListener('click', () => openWriterModal('new-env-modal'));
     saveNewEnvBtn.addEventListener('click', createEnvironment);
-    
+
     // Document Creation
     newDocBtn.addEventListener('click', createNewDocument);
-    
+
     // Materials Modal
     uploadMaterialBtn.addEventListener('click', () => openWriterModal('upload-material-modal'));
     uploadMaterialForm.addEventListener('submit', uploadMaterial);
-    
+
     // Auto-save on Title & Content changes
     docTitleInput.addEventListener('input', triggerAutoSave);
     richEditor.addEventListener('input', () => {
         updateStats();
         triggerAutoSave();
     });
-    
+
     // Chat Actions
     chatInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -92,7 +92,7 @@ function setupEventListeners() {
     // Floating Selection Event Listeners
     richEditor.addEventListener('mouseup', checkTextSelection);
     richEditor.addEventListener('keyup', checkTextSelection);
-    
+
     document.addEventListener('mousedown', (e) => {
         const popover = document.getElementById('selection-ia-popover');
         if (popover && popover.style.display !== 'none') {
@@ -134,7 +134,7 @@ async function checkConnectionStatus() {
         const data = await res.json();
         const dot = connBadge.querySelector('.badge-dot');
         const label = connBadge.querySelector('.badge-label');
-        
+
         if (data.active) {
             dot.className = 'badge-dot active';
             label.textContent = 'IA Conectada Pro';
@@ -161,22 +161,22 @@ async function loadEnvironments() {
 // Render Environments in sidebar
 function renderEnvironments() {
     envsContainer.innerHTML = '';
-    
+
     if (environments.length === 0) {
         envsContainer.innerHTML = '<div class="empty-list-info">Nenhum ambiente</div>';
         return;
     }
-    
+
     environments.forEach(env => {
         const item = document.createElement('div');
         item.className = `env-item ${currentEnvId == env.id ? 'active' : ''}`;
         item.dataset.id = env.id;
-        
+
         item.innerHTML = `
             <span><i class="fa-solid fa-folder"></i> ${env.name}</span>
             <button class="delete-item-btn" onclick="deleteEnvironment(event, '${env.id}')"><i class="fa-solid fa-trash-can"></i></button>
         `;
-        
+
         item.addEventListener('click', () => selectEnvironment(env.id, env.name));
         envsContainer.appendChild(item);
     });
@@ -186,7 +186,7 @@ function renderEnvironments() {
 async function createEnvironment() {
     const name = envNameInput.value.trim();
     if (!name) return;
-    
+
     try {
         const res = await fetch('/api/writer/environments', {
             method: 'POST',
@@ -194,7 +194,7 @@ async function createEnvironment() {
             body: JSON.stringify({ name })
         });
         const data = await res.json();
-        
+
         if (data.success) {
             closeWriterModal('new-env-modal');
             envNameInput.value = '';
@@ -212,7 +212,7 @@ async function createEnvironment() {
 async function deleteEnvironment(event, id) {
     event.stopPropagation();
     if (!confirm('Deseja realmente excluir este ambiente e todos os seus materiais e documentos?')) return;
-    
+
     try {
         const res = await fetch(`/api/writer/environments/${id}`, { method: 'DELETE' });
         const data = await res.json();
@@ -233,7 +233,7 @@ async function deleteEnvironment(event, id) {
 async function deleteDocument(event, id) {
     event.stopPropagation();
     if (!confirm('Deseja realmente excluir este documento?')) return;
-    
+
     try {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/documents/${id}`, { method: 'DELETE' });
         const data = await res.json();
@@ -261,27 +261,27 @@ async function selectEnvironment(id, name) {
     currentEnvId = id;
     currentDocId = null;
     activeEnvDisplay.textContent = name;
-    
+
     // Enable/disable buttons
     newDocBtn.disabled = false;
     uploadMaterialBtn.disabled = false;
     chatSendBtn.disabled = false;
     const editContextBtn = document.getElementById('edit-context-btn');
     if (editContextBtn) editContextBtn.disabled = false;
-    
+
     // Visual toggle
     document.querySelectorAll('.env-item').forEach(el => el.classList.remove('active'));
     const activeEl = document.querySelector(`.env-item[data-id="${id}"]`);
     if (activeEl) activeEl.classList.add('active');
-    
+
     updateUILayout();
-    
+
     // Load environment documents, materials, messages, and production context
     await loadDocuments();
     await loadMaterials();
     await loadChatMessages();
     await loadProductionContext();
-    
+
     // Select first doc by default if exists, otherwise create first doc
     if (documents.length > 0) {
         selectDocument(documents[0].id, documents[0].title, documents[0].content);
@@ -304,14 +304,14 @@ function updateUILayout() {
         newDocBtn.disabled = true;
         uploadMaterialBtn.disabled = true;
         chatSendBtn.disabled = true;
-        
+
         const editContextBtn = document.getElementById('edit-context-btn');
         if (editContextBtn) editContextBtn.disabled = true;
         const contextContainer = document.getElementById('context-display-container');
         if (contextContainer) {
             contextContainer.innerHTML = '<div class="empty-list-info">Selecione um ambiente para ver o contexto.</div>';
         }
-        
+
         modelsContainer.innerHTML = '<div class="empty-list-info">Nenhum modelo enviado.</div>';
         referencesContainer.innerHTML = '<div class="empty-list-info">Nenhum material enviado.</div>';
         chatMessagesContainer.innerHTML = '';
@@ -337,17 +337,17 @@ function renderDocuments() {
         docsContainer.innerHTML = '<div class="empty-list-info">Nenhum texto</div>';
         return;
     }
-    
+
     documents.forEach(doc => {
         const item = document.createElement('div');
         item.className = `doc-item ${currentDocId == doc.id ? 'active' : ''}`;
         item.dataset.id = doc.id;
-        
+
         item.innerHTML = `
             <span><i class="fa-regular fa-file-lines"></i> ${doc.title}</span>
             <button class="delete-item-btn" onclick="deleteDocument(event, '${doc.id}')"><i class="fa-solid fa-trash-can"></i></button>
         `;
-        
+
         item.addEventListener('click', () => selectDocument(doc.id, doc.title, doc.content));
         docsContainer.appendChild(item);
     });
@@ -356,7 +356,7 @@ function renderDocuments() {
 // Create New Document
 async function createNewDocument() {
     if (!currentEnvId) return;
-    
+
     try {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/documents`, {
             method: 'POST',
@@ -379,16 +379,16 @@ async function createNewDocument() {
 // Select and open Document
 function selectDocument(id, title, content) {
     currentDocId = id;
-    
+
     // Toggle active document highlight
     document.querySelectorAll('.doc-item').forEach(el => el.classList.remove('active'));
     const activeEl = document.querySelector(`.doc-item[data-id="${id}"]`);
     if (activeEl) activeEl.classList.add('active');
-    
+
     // Load contents to editor
     docTitleInput.value = title === 'Sem título' ? '' : title;
     richEditor.innerHTML = content || '';
-    
+
     updateStats();
     setSaveStatus("saved");
 }
@@ -396,20 +396,20 @@ function selectDocument(id, title, content) {
 // Auto save with Debouncing
 function triggerAutoSave() {
     if (!currentEnvId || !currentDocId) return;
-    
+
     if (saveTimeout) clearTimeout(saveTimeout);
     setSaveStatus("saving");
-    
+
     saveTimeout = setTimeout(saveCurrentDocument, 1200);
 }
 
 // Save document details
 async function saveCurrentDocument() {
     if (!currentEnvId || !currentDocId) return;
-    
+
     const title = docTitleInput.value.trim() || 'Sem título';
     const content = richEditor.innerHTML;
-    
+
     try {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/documents`, {
             method: 'POST',
@@ -453,7 +453,7 @@ function updateStats() {
     const charLen = text.length;
     const cleanText = text.trim().replace(/\s+/g, ' ');
     const wordLen = cleanText === '' ? 0 : cleanText.split(' ').length;
-    
+
     charCount.textContent = `${charLen} ${charLen === 1 ? 'caractere' : 'caracteres'}`;
     wordCount.textContent = `${wordLen} ${wordLen === 1 ? 'palavra' : 'palavras'}`;
 }
@@ -486,7 +486,7 @@ async function loadMaterials() {
 function renderMaterials() {
     const modelsList = materials.filter(m => m.material_type === 'model');
     const referencesList = materials.filter(m => m.material_type === 'reference');
-    
+
     // Render Models
     modelsContainer.innerHTML = '';
     if (modelsList.length === 0) {
@@ -496,13 +496,13 @@ function renderMaterials() {
             const item = document.createElement('div');
             item.className = 'material-item';
             item.innerHTML = `
-                <span><i class="fa-solid fa-file-pdf material-icon"></i> ${m.name}</span>
+                <span style="cursor: pointer; display: flex; align-items: center; gap: 8px;" onclick="openCitationModal('${m.id}', null, null)"><i class="fa-solid fa-file-pdf material-icon"></i> ${m.name}</span>
                 <button class="delete-item-btn" onclick="deleteMaterial(event, '${m.id}')"><i class="fa-solid fa-trash-can"></i></button>
             `;
             modelsContainer.appendChild(item);
         });
     }
-    
+
     // Render References
     referencesContainer.innerHTML = '';
     if (referencesList.length === 0) {
@@ -512,7 +512,7 @@ function renderMaterials() {
             const item = document.createElement('div');
             item.className = 'material-item';
             item.innerHTML = `
-                <span><i class="fa-solid fa-file-pdf material-icon"></i> ${m.name}</span>
+                <span style="cursor: pointer; display: flex; align-items: center; gap: 8px;" onclick="openCitationModal('${m.id}', null, null)"><i class="fa-solid fa-file-pdf material-icon"></i> ${m.name}</span>
                 <button class="delete-item-btn" onclick="deleteMaterial(event, '${m.id}')"><i class="fa-solid fa-trash-can"></i></button>
             `;
             referencesContainer.appendChild(item);
@@ -524,19 +524,19 @@ function renderMaterials() {
 async function uploadMaterial(e) {
     e.preventDefault();
     if (!currentEnvId) return;
-    
+
     submitUploadBtn.disabled = true;
     submitUploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
-    
+
     const formData = new FormData(uploadMaterialForm);
-    
+
     try {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/materials`, {
             method: 'POST',
             body: formData
         });
         const data = await res.json();
-        
+
         if (data.success) {
             closeWriterModal('upload-material-modal');
             uploadMaterialForm.reset();
@@ -556,7 +556,7 @@ async function uploadMaterial(e) {
 async function deleteMaterial(event, id) {
     event.stopPropagation();
     if (!confirm('Deseja excluir este material de apoio do ambiente?')) return;
-    
+
     try {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/materials/${id}`, { method: 'DELETE' });
         const data = await res.json();
@@ -569,10 +569,10 @@ async function deleteMaterial(event, id) {
 }
 
 // Switch between Material Sub-panel tabs
-window.switchMaterialTab = function(btn, tabId) {
+window.switchMaterialTab = function (btn, tabId) {
     document.querySelectorAll('.material-tab-link').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.material-tab-pane').forEach(el => el.classList.remove('active'));
-    
+
     btn.classList.add('active');
     document.getElementById(tabId).classList.add('active');
 };
@@ -591,7 +591,7 @@ async function loadChatMessages() {
 // Render messages
 function renderChatMessages(msgs) {
     chatMessagesContainer.innerHTML = '';
-    
+
     if (msgs.length === 0) {
         chatMessagesContainer.innerHTML = `
             <div class="chat-bubble ai">
@@ -603,37 +603,49 @@ function renderChatMessages(msgs) {
         `;
         return;
     }
-    
+
     msgs.forEach(m => {
         const bubble = document.createElement('div');
         bubble.className = `chat-bubble ${m.sender}`;
-        
+
         const avatar = m.sender === 'user' ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-robot"></i>';
         const formattedMsg = formatMarkdownSimple(m.message);
-        
+
+        let actionsHtml = '';
+        if (m.sender === 'ai') {
+            actionsHtml = `
+                <div class="chat-bubble-actions" style="display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end;">
+                    <button class="chat-action-btn" onclick="applyChatToEditor(this)" style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.35); color: #d8b4fe; padding: 4px 8px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-file-import"></i> Aplicar no Editor</button>
+                </div>
+            `;
+        }
+
         bubble.innerHTML = `
             <div class="chat-avatar">${avatar}</div>
-            <div class="chat-text">${formattedMsg}</div>
+            <div class="chat-text">
+                <div>${formattedMsg}</div>
+                ${actionsHtml}
+            </div>
         `;
-        
+
         chatMessagesContainer.appendChild(bubble);
     });
-    
+
     scrollToBottom();
 }
 
 // Send user message
 async function sendChatMessage() {
     if (!currentEnvId || chatLoading) return;
-    
+
     const message = chatInput.value.trim();
     if (!message) return;
-    
+
     chatInput.value = '';
     chatInput.style.height = '32px';
     chatLoading = true;
     chatSendBtn.disabled = true;
-    
+
     // Add User bubble instantly
     const userBubble = document.createElement('div');
     userBubble.className = 'chat-bubble user';
@@ -643,7 +655,7 @@ async function sendChatMessage() {
     `;
     chatMessagesContainer.appendChild(userBubble);
     scrollToBottom();
-    
+
     // Add AI temporary loading bubble
     const loadingBubble = document.createElement('div');
     loadingBubble.className = 'chat-bubble ai loading-bubble';
@@ -659,7 +671,7 @@ async function sendChatMessage() {
     `;
     chatMessagesContainer.appendChild(loadingBubble);
     scrollToBottom();
-    
+
     try {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/messages`, {
             method: 'POST',
@@ -667,27 +679,37 @@ async function sendChatMessage() {
             body: JSON.stringify({ message, active_doc_id: currentDocId })
         });
         const data = await res.json();
-        
+
         // Remove loading
         const lb = chatMessagesContainer.querySelector('.loading-bubble');
         if (lb) lb.remove();
-        
+
         if (data.success) {
             // Render AI bubble
             const aiBubble = document.createElement('div');
             aiBubble.className = 'chat-bubble ai';
+
+            const actionsHtml = `
+                <div class="chat-bubble-actions" style="display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end;">
+                    <button class="chat-action-btn" onclick="applyChatToEditor(this)" style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.35); color: #d8b4fe; padding: 4px 8px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-file-import"></i> Aplicar no Editor</button>
+                </div>
+            `;
+
             aiBubble.innerHTML = `
                 <div class="chat-avatar"><i class="fa-solid fa-robot"></i></div>
-                <div class="chat-text">${formatMarkdownSimple(data.message)}</div>
+                <div class="chat-text">
+                    <div>${formatMarkdownSimple(data.message)}</div>
+                    ${actionsHtml}
+                </div>
             `;
             chatMessagesContainer.appendChild(aiBubble);
-            
+
             // Apply document update if available
             if (data.document_update !== null && data.document_update !== undefined) {
                 richEditor.innerHTML = data.document_update;
                 updateStats();
                 setSaveStatus("saved");
-                
+
                 // Visual feedback of change: quick yellow highlight flash
                 richEditor.style.transition = 'none';
                 richEditor.style.backgroundColor = 'rgba(253, 224, 71, 0.2)';
@@ -719,24 +741,24 @@ function scrollToBottom() {
 function formatMarkdownSimple(text) {
     if (!text) return '';
     let html = text;
-    
+
     // Escape standard HTML tags safely
     html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    
+
     // Code blocks
     html = html.replace(/```([\s\S]+?)```/g, (match, code) => {
         return `<pre><code>${code.trim()}</code></pre>`;
     });
-    
+
     // Inline code
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-    
+
     // Bold
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    
+
     // Italic
     html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-    
+
     // Paragraph lists/line breaks
     html = html.split('\n\n').map(p => {
         p = p.trim();
@@ -746,21 +768,21 @@ function formatMarkdownSimple(text) {
         }
         return `<p>${p.replace(/\n/g, '<br>')}</p>`;
     }).join('');
-    
+
     return html;
 }
 
 // Modal Toggle Helpers
-window.openWriterModal = function(id) {
+window.openWriterModal = function (id) {
     document.getElementById(id).classList.add('active');
 };
 
-window.closeWriterModal = function(id) {
+window.closeWriterModal = function (id) {
     document.getElementById(id).classList.remove('active');
 };
 
 // Expand input textareas as user types
-chatInput.addEventListener('input', function() {
+chatInput.addEventListener('input', function () {
     this.style.height = '32px';
     const newHeight = Math.min(this.scrollHeight, 80);
     this.style.height = newHeight + 'px';
@@ -770,10 +792,10 @@ chatInput.addEventListener('input', function() {
 function checkTextSelection() {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
-    
+
     const range = selection.getRangeAt(0);
     const text = selection.toString().trim();
-    
+
     if (text.length > 0 && richEditor.contains(range.commonAncestorContainer)) {
         lastSelectionRange = range.cloneRange();
         lastSelectedText = text;
@@ -784,20 +806,20 @@ function checkTextSelection() {
 function showSelectionPopover(range) {
     const popover = document.getElementById('selection-ia-popover');
     if (!popover) return;
-    
+
     popover.style.display = 'block';
-    
+
     const rect = range.getBoundingClientRect();
     const popoverWidth = popover.offsetWidth;
     const popoverHeight = popover.offsetHeight;
-    
+
     // Position the popover centered above the selection bounds
     const topPos = rect.top + window.scrollY - popoverHeight - 10;
     const leftPos = rect.left + window.scrollX + (rect.width / 2) - (popoverWidth / 2);
-    
+
     popover.style.top = `${Math.max(10, topPos)}px`;
     popover.style.left = `${Math.max(10, leftPos)}px`;
-    
+
     const input = document.getElementById('selection-ia-input');
     if (input) {
         input.value = '';
@@ -818,15 +840,15 @@ async function submitSelectionEdit() {
     const input = document.getElementById('selection-ia-input');
     const submitBtn = document.getElementById('selection-ia-submit');
     if (!input || !submitBtn || !lastSelectedText || !lastSelectionRange || !currentEnvId) return;
-    
+
     const message = input.value.trim();
     if (!message) return;
-    
+
     // Show loading state in popover
     input.disabled = true;
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fa-solid fa-spinner popover-loading-spinner"></i>';
-    
+
     // Append user message to the chat sidebar as usual
     const userBubble = document.createElement('div');
     userBubble.className = 'chat-bubble user';
@@ -836,7 +858,7 @@ async function submitSelectionEdit() {
     `;
     chatMessagesContainer.appendChild(userBubble);
     scrollToBottom();
-    
+
     // Add AI loading bubble to chat sidebar
     const loadingBubble = document.createElement('div');
     loadingBubble.className = 'chat-bubble ai loading-bubble';
@@ -852,7 +874,7 @@ async function submitSelectionEdit() {
     `;
     chatMessagesContainer.appendChild(loadingBubble);
     scrollToBottom();
-    
+
     try {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/messages`, {
             method: 'POST',
@@ -864,46 +886,56 @@ async function submitSelectionEdit() {
             })
         });
         const data = await res.json();
-        
+
         // Remove loading bubble from chat
         const lb = chatMessagesContainer.querySelector('.loading-bubble');
         if (lb) lb.remove();
-        
+
         if (data.success) {
             // Add AI response bubble to chat sidebar
             const aiBubble = document.createElement('div');
             aiBubble.className = 'chat-bubble ai';
+
+            const actionsHtml = `
+                <div class="chat-bubble-actions" style="display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end;">
+                    <button class="chat-action-btn" onclick="applyChatToEditor(this)" style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.35); color: #d8b4fe; padding: 4px 8px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-file-import"></i> Aplicar no Editor</button>
+                </div>
+            `;
+
             aiBubble.innerHTML = `
                 <div class="chat-avatar"><i class="fa-solid fa-robot"></i></div>
-                <div class="chat-text">${formatMarkdownSimple(data.message)}</div>
+                <div class="chat-text">
+                    <div>${formatMarkdownSimple(data.message)}</div>
+                    ${actionsHtml}
+                </div>
             `;
             chatMessagesContainer.appendChild(aiBubble);
             scrollToBottom();
-            
+
             // Apply selection update in the editor range
             if (data.selection_update !== null && data.selection_update !== undefined) {
                 // Restore selection range
                 const selection = window.getSelection();
                 selection.removeAllRanges();
                 selection.addRange(lastSelectionRange);
-                
+
                 lastSelectionRange.deleteContents();
-                
+
                 const el = document.createElement("span");
                 el.innerHTML = data.selection_update;
-                
+
                 // Highlight change with neon purple-glow briefly
                 el.style.backgroundColor = 'rgba(168, 85, 247, 0.25)';
                 el.style.transition = 'background-color 0.8s ease';
                 el.style.borderRadius = '4px';
                 el.style.padding = '2px 4px';
-                
+
                 lastSelectionRange.insertNode(el);
                 selection.removeAllRanges();
-                
+
                 // Save document change to DB immediately
                 saveCurrentDocument();
-                
+
                 setTimeout(() => {
                     el.style.backgroundColor = 'transparent';
                     setTimeout(() => {
@@ -936,17 +968,17 @@ async function loadProductionContext() {
     if (!currentEnvId) return;
     const container = document.getElementById('context-display-container');
     if (!container) return;
-    
+
     try {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/contexts`);
         const contexts = await res.json();
-        
+
         container.innerHTML = '';
         if (contexts.length === 0) {
             container.innerHTML = '<div class="empty-list-info">Nenhum contexto de produção configurado. Clique no botão + para adicionar.</div>';
             return;
         }
-        
+
         contexts.forEach(ctx => {
             const item = document.createElement('div');
             item.className = 'material-item';
@@ -965,19 +997,19 @@ async function loadProductionContext() {
 async function saveProductionContext(event) {
     if (event) event.preventDefault();
     if (!currentEnvId) return;
-    
+
     const submitBtn = document.getElementById('submit-context-btn');
     const form = document.getElementById('edit-context-form');
     const nameInput = document.getElementById('context-name-input');
     const fileInput = document.getElementById('context-file-input');
     const textInput = document.getElementById('context-text-input');
-    
+
     if (!form || !submitBtn) return;
-    
+
     const name = nameInput ? nameInput.value.trim() : '';
     const textContent = textInput ? textInput.value.trim() : '';
     const file = fileInput && fileInput.files.length > 0 ? fileInput.files[0] : null;
-    
+
     if (!name && !file) {
         alert('Por favor, informe o nome do contexto ou envie um arquivo.');
         return;
@@ -986,24 +1018,24 @@ async function saveProductionContext(event) {
         alert('Por favor, informe o texto do contexto ou envie um arquivo.');
         return;
     }
-    
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('text_content', textContent);
     if (file) {
         formData.append('file', file);
     }
-    
+
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
-    
+
     try {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/contexts`, {
             method: 'POST',
             body: formData
         });
         const data = await res.json();
-        
+
         if (data.success) {
             closeWriterModal('edit-context-modal');
             form.reset();
@@ -1023,7 +1055,7 @@ async function saveProductionContext(event) {
 async function deleteProductionContext(event, id) {
     event.stopPropagation();
     if (!confirm('Deseja realmente excluir este item de contexto de produção?')) return;
-    
+
     try {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/contexts/${id}`, { method: 'DELETE' });
         const data = await res.json();
@@ -1038,7 +1070,7 @@ async function deleteProductionContext(event, id) {
 window.deleteProductionContext = deleteProductionContext;
 
 // Academic Citation Click Handler
-document.addEventListener('click', async function(e) {
+document.addEventListener('click', async function (e) {
     const citationEl = e.target.closest('.writer-citation');
     if (citationEl) {
         e.preventDefault();
@@ -1055,24 +1087,35 @@ async function openCitationModal(materialId, snippet, page) {
     const modal = document.getElementById('citation-modal');
     const titleEl = document.getElementById('citation-modal-title');
     const contentEl = document.getElementById('citation-modal-content');
-    
+
     if (!modal || !contentEl) return;
-    
+
     contentEl.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px; color: var(--accent-purple);"></i> Carregando fonte original...</div>';
     openWriterModal('citation-modal');
     
     try {
-        const res = await fetch(`/api/writer/environments/${currentEnvId}/materials/${materialId}/text`);
+        const url = `/api/writer/environments/${currentEnvId}/materials/${materialId}/text?snippet=${encodeURIComponent(snippet || '')}&page=${encodeURIComponent(page || '')}`;
+        const res = await fetch(url);
         const data = await res.json();
-        
+
         if (data.success) {
             let pageLabel = (page && page !== 'n/a') ? ` (Pág. ${page})` : '';
             titleEl.textContent = `Origem da Citação: ${data.name}${pageLabel}`;
+
+            if (data.has_pdf && data.pdf_url) {
+                let pdfUrlWithPage = data.pdf_url;
+                if (page && page !== 'n/a') {
+                    pdfUrlWithPage += `#page=${page}`;
+                }
+                contentEl.innerHTML = `<iframe src="${pdfUrlWithPage}" style="width: 100%; height: 60vh; border: none; border-radius: 4px; background: white;"></iframe>`;
+                return;
+            }
+
             let fullText = data.content_text || '';
-            
+
             if (snippet && snippet.trim().length > 3) {
                 const cleanSnippet = snippet.trim();
-                
+
                 // Normalization helper (remove punctuation and collapse spaces)
                 const normalize = (str) => {
                     return str.toLowerCase()
@@ -1080,13 +1123,13 @@ async function openCitationModal(materialId, snippet, page) {
                         .replace(/\s+/g, " ")
                         .trim();
                 };
-                
+
                 const normFull = normalize(fullText);
                 const normSnippet = normalize(cleanSnippet);
-                
+
                 let index = -1;
                 let matchLength = 0;
-                
+
                 // 1. Try exact normalized match
                 let normIndex = normFull.indexOf(normSnippet);
                 if (normIndex !== -1) {
@@ -1099,11 +1142,11 @@ async function openCitationModal(materialId, snippet, page) {
                             index = match.index;
                             matchLength = match[0].length;
                         }
-                    } catch(e) {
+                    } catch (e) {
                         console.error('Regex match error:', e);
                     }
                 }
-                
+
                 // 2. Fallback: Try with the first 4 words of the snippet
                 if (index === -1) {
                     const words = normSnippet.split(' ').filter(w => w.length > 2);
@@ -1117,18 +1160,18 @@ async function openCitationModal(materialId, snippet, page) {
                                 index = match.index;
                                 matchLength = match[0].length;
                             }
-                        } catch(e) {
+                        } catch (e) {
                             console.error('Sub-regex match error:', e);
                         }
                     }
                 }
-                
+
                 if (index !== -1 && matchLength > 0) {
                     // Match found! Highlight and scroll
                     const before = fullText.substring(0, index);
                     const match = fullText.substring(index, index + matchLength);
                     const after = fullText.substring(index + matchLength);
-                    
+
                     const escapeHtml = (str) => {
                         return str
                             .replace(/&/g, '&amp;')
@@ -1137,13 +1180,13 @@ async function openCitationModal(materialId, snippet, page) {
                             .replace(/"/g, '&quot;')
                             .replace(/'/g, '&#039;');
                     };
-                    
-                    contentEl.innerHTML = escapeHtml(before) + 
-                        `<mark id="citation-highlight" style="background: #eab308; color: #000000; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid #ca8a04; box-shadow: 0 0 10px rgba(234, 179, 8, 0.4);">` + 
-                        escapeHtml(match) + 
-                        `</mark>` + 
+
+                    contentEl.innerHTML = escapeHtml(before) +
+                        `<mark id="citation-highlight" style="background: #eab308; color: #000000; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid #ca8a04; box-shadow: 0 0 10px rgba(234, 179, 8, 0.4);">` +
+                        escapeHtml(match) +
+                        `</mark>` +
                         escapeHtml(after);
-                        
+
                     // Scroll to highlight container-aware
                     setTimeout(() => {
                         const container = document.getElementById('citation-modal-content');
@@ -1161,7 +1204,7 @@ async function openCitationModal(materialId, snippet, page) {
                     return;
                 }
             }
-            
+
             // Fallback if match not found
             contentEl.textContent = fullText;
         } else {
@@ -1174,3 +1217,45 @@ async function openCitationModal(materialId, snippet, page) {
 }
 
 window.openCitationModal = openCitationModal;
+
+window.applyChatToEditor = function (btn) {
+    const textEl = btn.closest('.chat-text');
+    if (!textEl) return;
+
+    // Clone node to strip the button actions element
+    const clone = textEl.cloneNode(true);
+    const actions = clone.querySelector('.chat-bubble-actions');
+    if (actions) actions.remove();
+
+    // Extract the cleaned HTML content
+    const cleanedHtml = clone.innerHTML.trim();
+
+    // Target the editor
+    richEditor.focus();
+
+    // Try to insert HTML at cursor position, or append if selection not active
+    try {
+        if (!document.execCommand('insertHTML', false, cleanedHtml)) {
+            richEditor.innerHTML += cleanedHtml;
+        }
+    } catch (e) {
+        richEditor.innerHTML += cleanedHtml;
+    }
+
+    // Update document statistics and save status
+    updateStats();
+    saveCurrentDocument();
+
+    // Provide temporary visual success animation on the button
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Aplicado!';
+    btn.style.borderColor = '#22c55e';
+    btn.style.color = '#22c55e';
+    btn.style.background = 'rgba(34, 197, 94, 0.15)';
+    setTimeout(() => {
+        btn.innerHTML = originalContent;
+        btn.style.borderColor = 'rgba(168, 85, 247, 0.35)';
+        btn.style.color = '#d8b4fe';
+        btn.style.background = 'rgba(168, 85, 247, 0.12)';
+    }, 1500);
+};

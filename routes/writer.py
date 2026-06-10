@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, render_template, session, redirect, url_for
 import json
 import re
+import os
 from database import (
     create_writer_environment,
     get_writer_environments,
@@ -106,7 +107,20 @@ def manage_materials(env_id):
         if not name or not text_content:
             return jsonify({"error": "Nome do material e arquivo/texto são obrigatórios!"}), 400
             
-        add_writer_material(env_id, name, material_type, text_content)
+        material_id = add_writer_material(env_id, name, material_type, text_content)
+        
+        # Save original PDF binary if uploaded and created successfully
+        if material_id and file and file.filename and filename.lower().endswith(".pdf"):
+            try:
+                uploads_dir = os.path.join(writer_bp.root_path, "..", "static", "uploads", "materials")
+                os.makedirs(uploads_dir, exist_ok=True)
+                pdf_path = os.path.join(uploads_dir, f"{material_id}.pdf")
+                with open(pdf_path, "wb") as f:
+                    f.write(file_bytes)
+                print(f"[Paradise AI Debug] PDF file saved successfully to: '{pdf_path}'")
+            except Exception as e:
+                print(f"[Paradise AI Debug] Error saving PDF file: {e}")
+                
         return jsonify({"success": True})
     else:
         materials = get_writer_materials(env_id)
@@ -147,17 +161,38 @@ def parse_ai_json_response(text):
     if not text:
         return {"message": "", "document_update": None}
     text = text.strip()
-    if text.startswith("```"):
-        match = re.match(r"^```(?:json)?\s*([\s\S]*?)\s*```$", text)
-        if match:
-            text = match.group(1).strip()
+    
+    # Try direct parse first
     try:
         return json.loads(text)
     except Exception:
-        return {
-            "message": text,
-            "document_update": None
-        }
+        pass
+
+    # Try finding the first '{' and last '}' (most robust JSON extractor)
+    start_idx = text.find('{')
+    end_idx = text.rfind('}')
+    
+    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+        json_candidate = text[start_idx:end_idx+1]
+        try:
+            return json.loads(json_candidate)
+        except Exception:
+            pass
+
+    # Fallback to code block regex extraction
+    match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+    if match:
+        json_candidate = match.group(1).strip()
+        try:
+            return json.loads(json_candidate)
+        except Exception:
+            pass
+
+    # Completely failed to parse as JSON, return text as message
+    return {
+        "message": text,
+        "document_update": None
+    }
 
 @writer_bp.route("/api/writer/environments/<env_id>/messages", methods=["GET", "POST"])
 def manage_messages(env_id):
@@ -324,11 +359,74 @@ def delete_context_route(env_id, context_id):
 def get_material_text_route(env_id, material_id):
     if not session.get("username"):
         return jsonify({"error": "Unauthorized"}), 401
+        
+    snippet = request.args.get("snippet", "").strip()
+    
+    # Try direct lookup by material_id/slug
     details = get_writer_material_details(material_id)
+    
+    # If no snippet was passed (e.g. browser caching of the old JS file),
+    # but the found material is a short placeholder, treat its content as the snippet!
+    if details and not snippet and details.get("content_text") and len(details["content_text"]) < 300:
+        snippet = details["content_text"].strip()
+        
+    # Scan all reference materials in the environment to find which one contains the snippet.
+    # This acts as a robust recovery mechanism when citation IDs are misaligned or placeholder IDs are used.
+    if snippet and len(snippet) > 8:
+        from database import get_db_connection, get_cursor, DATABASE_URL, qry
+        import re
+        
+        def normalize_text(t):
+            if not t:
+                return ""
+            return re.sub(r"[^a-zA-Z0-9À-ÿ]", "", t.lower())
+            
+        norm_snippet = normalize_text(snippet)
+        norm_snippet_part = norm_snippet[:40] if len(norm_snippet) > 40 else norm_snippet
+        
+        if len(norm_snippet_part) >= 8:
+            conn = get_db_connection()
+            cursor = get_cursor(conn)
+            tbl = "public.writer_materials" if DATABASE_URL else "writer_materials"
+            
+            try:
+                # Fetch only reference materials (ignore models and short placeholders)
+                if DATABASE_URL:
+                    cursor.execute(f"SELECT id, name, content_text FROM {tbl} WHERE environment_id = %s AND material_type = 'reference'", (env_id,))
+                else:
+                    cursor.execute(qry(f"SELECT id, name, content_text FROM {tbl} WHERE environment_id = ? AND material_type = 'reference'"), (env_id,))
+                rows = cursor.fetchall()
+            except Exception as e:
+                print(f"[Paradise AI Debug] Fetch materials error: {e}")
+                rows = []
+                if DATABASE_URL:
+                    conn.rollback()
+            conn.close()
+            
+            matched_row = None
+            for r in rows:
+                row_text_norm = normalize_text(r["content_text"])
+                if norm_snippet_part in row_text_norm:
+                    # Prefer the material with the longest text (the original book/source)
+                    if not matched_row or len(r["content_text"]) > len(matched_row["content_text"]):
+                        matched_row = r
+            
+            if matched_row:
+                details = dict(matched_row)
+
     if not details:
         return jsonify({"error": "Material not found"}), 404
+        
+    actual_id = details.get("id") or material_id
+    # Check if PDF file exists on the server to render directly
+    uploads_dir = os.path.join(writer_bp.root_path, "..", "static", "uploads", "materials")
+    pdf_path = os.path.join(uploads_dir, f"{actual_id}.pdf")
+    has_pdf = os.path.exists(pdf_path)
+    
     return jsonify({
         "success": True,
         "name": details["name"],
-        "content_text": details["content_text"]
+        "content_text": details["content_text"],
+        "has_pdf": has_pdf,
+        "pdf_url": f"/static/uploads/materials/{actual_id}.pdf" if has_pdf else None
     })
