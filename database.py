@@ -168,6 +168,49 @@ def init_db():
         )
         """)
         conn.commit()
+    else:
+        try:
+            cursor.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS public.writer_environments (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                username TEXT REFERENCES public.profiles(username) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+            """)
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS public.writer_materials (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                environment_id UUID REFERENCES public.writer_environments(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                material_type TEXT NOT NULL CHECK(material_type IN ('model', 'reference')),
+                content_text TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+            """)
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS public.writer_documents (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                environment_id UUID REFERENCES public.writer_environments(id) ON DELETE CASCADE,
+                title TEXT NOT NULL,
+                content TEXT,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+            """)
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS public.writer_messages (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                environment_id UUID REFERENCES public.writer_environments(id) ON DELETE CASCADE,
+                sender TEXT NOT NULL CHECK(sender IN ('user', 'ai')),
+                message TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+            """)
+            conn.commit()
+        except Exception as e:
+            print(f"Error initializing postgres writer tables: {e}")
+            conn.rollback()
 
     # Check if we have any registered apps. If not, seed the first one
     cursor.execute(qry("SELECT COUNT(*) as cnt FROM apps"))
@@ -535,6 +578,15 @@ def get_writer_materials(env_id):
     conn.close()
     return [dict(r) for r in rows]
 
+def get_writer_materials_with_text(env_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_materials" if DATABASE_URL else "writer_materials"
+    cursor.execute(qry(f"SELECT id, name, material_type, content_text FROM {tbl} WHERE environment_id = ? ORDER BY created_at ASC"), (env_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
 def get_writer_material_text(material_id):
     conn = get_db_connection()
     cursor = get_cursor(conn)
@@ -611,5 +663,13 @@ def add_writer_message(env_id, sender, message):
         qry(f"INSERT INTO {tbl} (environment_id, sender, message) VALUES (?, ?, ?)"),
         (env_id, sender, message)
     )
+    conn.commit()
+    conn.close()
+
+def delete_writer_document(doc_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_documents" if DATABASE_URL else "writer_documents"
+    cursor.execute(qry(f"DELETE FROM {tbl} WHERE id = ?"), (doc_id,))
     conn.commit()
     conn.close()

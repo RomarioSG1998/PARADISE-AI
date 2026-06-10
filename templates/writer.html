@@ -183,18 +183,18 @@
             <form id="upload-material-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="material-name-input">Nome do Material (Opcional)</label>
-                    <input type="text" id="material-name-input" placeholder="Ex: Guia de Tom, Capítulo 1 Base">
+                    <input type="text" name="name" id="material-name-input" placeholder="Ex: Guia de Tom, Capítulo 1 Base">
                 </div>
                 <div class="form-group">
                     <label for="material-type-select">Tipo de Material</label>
-                    <select id="material-type-select">
+                    <select name="material_type" id="material-type-select">
                         <option value="model">Modelo de Texto / Template (A IA seguirá o estilo e estrutura)</option>
                         <option value="reference">Base Teórica / Referência (A IA consultará e citará as fontes)</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label for="material-file-input">Arquivo PDF ou Texto (.pdf, .txt)</label>
-                    <input type="file" id="material-file-input" accept=".pdf,.txt" required>
+                    <input type="file" name="file" id="material-file-input" accept=".pdf,.txt" required>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-cancel" onclick="closeWriterModal('upload-material-modal')">Cancelar</button>

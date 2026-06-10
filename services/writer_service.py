@@ -1,20 +1,19 @@
 import os
 from services.ai_service import generate_text_unified_async
 from database import (
-    get_writer_materials,
-    get_writer_material_text,
+    get_writer_materials_with_text,
     get_writer_documents,
     get_writer_messages
 )
 
 async def generate_writer_chat_response_async(env_id, user_message, username):
-    # 1. Fetch materials (models & references)
-    materials = get_writer_materials(env_id)
+    # 1. Fetch materials (models & references) in a single optimized DB round-trip
+    materials = get_writer_materials_with_text(env_id)
     models_context = ""
     references_context = ""
     
     for mat in materials:
-        mat_text = get_writer_material_text(mat["id"])
+        mat_text = mat.get("content_text")
         if not mat_text:
             continue
         # Limit context size to avoid overloading (approx 20k chars per doc)
@@ -41,38 +40,32 @@ async def generate_writer_chat_response_async(env_id, user_message, username):
 
     # 4. Build Prompt
     system_prompt = (
-        "Você é o agente inteligente do **writer.AI**, um assistente de escrita de elite, "
-        "altamente colaborativo, criativo e preciso. Seu papel é interagir dinamicamente com o usuário, "
-        "ajudando-o a redigir, corrigir, estruturar e refinar seu texto no editor central.\n\n"
-        "Você deve guiar suas sugestões e estilo de escrita com base nos materiais fornecidos a seguir.\n\n"
+        "Você é o assistente de escrita do **writer.AI**. Seu papel é ajudar o usuário a redigir, "
+        "corrigir, estruturar e refinar seu texto de forma direta, objetiva e sem rodeios.\n\n"
+        "### DIRETRIZES CRÍTICAS DE RESPOSTA:\n"
+        "1. Dê respostas claras, curtas e 100% diretas ao ponto.\n"
+        "2. NUNCA envie introduções, explicações prévias ou saudações formais repetitivas (ex: NÃO diga coisas como 'Com base nos materiais...' ou 'Aqui está a versão corrigida:'). Vá direto ao texto reescrito ou à resposta.\n"
+        "3. Se o usuário pedir para reescrever ou corrigir um trecho, retorne APENAS o texto revisado em Markdown, sem explicações prolixas ao redor.\n"
+        "4. Apenas consulte ou cite os modelos e materiais de apoio teóricos (fornecidos abaixo) caso o comando do usuário exija isso explicitamente (ex: se pedir para embasar cientificamente ou imitar a estrutura do modelo). Caso contrário, ignore-os e responda diretamente.\n\n"
     )
 
     if models_context:
         system_prompt += (
-            "### MODELOS DE TEXTO / TEMPLATES (Siga a estrutura, tom e formato destes modelos):\n"
+            "### MODELOS DE TEXTO / TEMPLATES (Use como base de estilo apenas se solicitado):\n"
             f"{models_context}\n"
         )
-    else:
-        system_prompt += "### MODELOS DE TEXTO:\nNenhum modelo foi fornecido. Oriente o usuário de acordo com as boas práticas gerais.\n\n"
 
     if references_context:
         system_prompt += (
-            "### BASE TEÓRICA / MATERIAIS DE REFERÊNCIA (Consulte e cite este material se necessário):\n"
+            "### BASE TEÓRICA / REFERÊNCIAS (Consulte e cite apenas se necessário):\n"
             f"{references_context}\n"
         )
-    else:
-        system_prompt += "### BASE TEÓRICA:\nNenhum material de referência teórica foi fornecido.\n\n"
 
     system_prompt += (
-        "### DOCUMENTO ATUAL NO EDITOR (O texto no centro da tela):\n"
+        "### DOCUMENTO ATUAL NO EDITOR:\n"
         f"{doc_context}\n\n"
-        "### HISTÓRICO RECENTE DA CONVERSA:\n"
+        "### HISTÓRICO DA CONVERSA:\n"
         f"{chat_history}\n"
-        "### DIRETRIZES DE RESPOSTA:\n"
-        "1. Responda diretamente à mensagem do usuário.\n"
-        "2. Se ele solicitar alterações ou correções, forneça trechos revisados do texto prontos para serem copiados ou inseridos.\n"
-        "3. Faça citações e referências aos materiais de apoio quando apropriado.\n"
-        "4. Mantenha a resposta focada, construtiva e formatada em Markdown limpo.\n"
     )
 
     full_prompt = f"{system_prompt}\nUsuário: {user_message}\nAI:"

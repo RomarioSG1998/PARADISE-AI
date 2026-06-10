@@ -9,6 +9,7 @@ from database import (
     delete_writer_material,
     save_writer_document,
     get_writer_documents,
+    delete_writer_document,
     get_writer_messages,
     add_writer_message
 )
@@ -62,14 +63,19 @@ def manage_materials(env_id):
         file = request.files.get("file")
         text_content = request.form.get("text_content", "").strip()
         
-        if file:
+        print(f"[Paradise AI Debug] manage_materials - name received: '{name}'")
+        print(f"[Paradise AI Debug] manage_materials - text_content length: {len(text_content)}")
+        
+        if file and file.filename:
             filename = file.filename
+            print(f"[Paradise AI Debug] manage_materials - file name: '{filename}'")
             if not name:
                 name = filename
+                print(f"[Paradise AI Debug] manage_materials - fallback name to filename: '{name}'")
             if filename.lower().endswith(".pdf"):
                 try:
-                    # Read into memory first to avoid closed stream issues
                     file_bytes = file.read()
+                    print(f"[Paradise AI Debug] manage_materials - read {len(file_bytes)} file bytes")
                     reader = PdfReader(io.BytesIO(file_bytes))
                     extracted_text = ""
                     for page in reader.pages:
@@ -77,14 +83,19 @@ def manage_materials(env_id):
                         if t:
                             extracted_text += t + "\n"
                     text_content = extracted_text.strip()
+                    print(f"[Paradise AI Debug] manage_materials - PDF extracted text length: {len(text_content)}")
                 except Exception as e:
+                    print(f"[Paradise AI Debug] PDF Extraction error: {e}")
                     return jsonify({"error": f"Falha ao extrair texto do PDF: {str(e)}"}), 400
             else:
                 try:
                     text_content = file.read().decode("utf-8", errors="ignore")
+                    print(f"[Paradise AI Debug] manage_materials - TXT file read text length: {len(text_content)}")
                 except Exception as e:
+                    print(f"[Paradise AI Debug] TXT File Read error: {e}")
                     return jsonify({"error": f"Falha ao ler arquivo de texto: {str(e)}"}), 400
                     
+        print(f"[Paradise AI Debug] Final validation check - name: '{name}', text_content length: {len(text_content)}")
         if not name or not text_content:
             return jsonify({"error": "Nome do material e arquivo/texto são obrigatórios!"}), 400
             
@@ -117,6 +128,13 @@ def manage_documents(env_id):
     else:
         docs = get_writer_documents(env_id)
         return jsonify(docs)
+
+@writer_bp.route("/api/writer/environments/<env_id>/documents/<doc_id>", methods=["DELETE"])
+def delete_document_route(env_id, doc_id):
+    if not session.get("username"):
+        return jsonify({"error": "Unauthorized"}), 401
+    delete_writer_document(doc_id)
+    return jsonify({"success": True})
 
 @writer_bp.route("/api/writer/environments/<env_id>/messages", methods=["GET", "POST"])
 def manage_messages(env_id):

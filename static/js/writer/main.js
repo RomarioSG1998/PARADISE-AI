@@ -133,7 +133,7 @@ function renderEnvironments() {
         
         item.innerHTML = `
             <span><i class="fa-solid fa-folder"></i> ${env.name}</span>
-            <button class="delete-item-btn" onclick="deleteEnvironment(event, ${env.id})"><i class="fa-solid fa-trash-can"></i></button>
+            <button class="delete-item-btn" onclick="deleteEnvironment(event, '${env.id}')"><i class="fa-solid fa-trash-can"></i></button>
         `;
         
         item.addEventListener('click', () => selectEnvironment(env.id, env.name));
@@ -185,6 +185,33 @@ async function deleteEnvironment(event, id) {
         }
     } catch (err) {
         console.error('Error deleting environment:', err);
+    }
+}
+
+// Delete Document
+async function deleteDocument(event, id) {
+    event.stopPropagation();
+    if (!confirm('Deseja realmente excluir este documento?')) return;
+    
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/documents/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            if (currentDocId == id) {
+                currentDocId = null;
+                // Clear editor contents
+                docTitleInput.value = '';
+                richEditor.innerHTML = '';
+                updateStats();
+            }
+            await loadDocuments();
+            // If there are documents left, select the first one, otherwise show empty editor
+            if (documents.length > 0) {
+                selectDocument(documents[0].id, documents[0].title, documents[0].content);
+            }
+        }
+    } catch (err) {
+        console.error('Error deleting document:', err);
     }
 }
 
@@ -267,6 +294,7 @@ function renderDocuments() {
         
         item.innerHTML = `
             <span><i class="fa-regular fa-file-lines"></i> ${doc.title}</span>
+            <button class="delete-item-btn" onclick="deleteDocument(event, '${doc.id}')"><i class="fa-solid fa-trash-can"></i></button>
         `;
         
         item.addEventListener('click', () => selectDocument(doc.id, doc.title, doc.content));
@@ -418,7 +446,7 @@ function renderMaterials() {
             item.className = 'material-item';
             item.innerHTML = `
                 <span><i class="fa-solid fa-file-pdf material-icon"></i> ${m.name}</span>
-                <button class="delete-item-btn" onclick="deleteMaterial(event, ${m.id})"><i class="fa-solid fa-trash-can"></i></button>
+                <button class="delete-item-btn" onclick="deleteMaterial(event, '${m.id}')"><i class="fa-solid fa-trash-can"></i></button>
             `;
             modelsContainer.appendChild(item);
         });
@@ -434,7 +462,7 @@ function renderMaterials() {
             item.className = 'material-item';
             item.innerHTML = `
                 <span><i class="fa-solid fa-file-pdf material-icon"></i> ${m.name}</span>
-                <button class="delete-item-btn" onclick="deleteMaterial(event, ${m.id})"><i class="fa-solid fa-trash-can"></i></button>
+                <button class="delete-item-btn" onclick="deleteMaterial(event, '${m.id}')"><i class="fa-solid fa-trash-can"></i></button>
             `;
             referencesContainer.appendChild(item);
         });
