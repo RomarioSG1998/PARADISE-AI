@@ -1036,3 +1036,141 @@ async function deleteProductionContext(event, id) {
 }
 
 window.deleteProductionContext = deleteProductionContext;
+
+// Academic Citation Click Handler
+document.addEventListener('click', async function(e) {
+    const citationEl = e.target.closest('.writer-citation');
+    if (citationEl) {
+        e.preventDefault();
+        const materialId = citationEl.getAttribute('data-material-id');
+        const snippet = citationEl.getAttribute('data-snippet');
+        const page = citationEl.getAttribute('data-page');
+        if (materialId) {
+            await openCitationModal(materialId, snippet, page);
+        }
+    }
+});
+
+async function openCitationModal(materialId, snippet, page) {
+    const modal = document.getElementById('citation-modal');
+    const titleEl = document.getElementById('citation-modal-title');
+    const contentEl = document.getElementById('citation-modal-content');
+    
+    if (!modal || !contentEl) return;
+    
+    contentEl.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px; color: var(--accent-purple);"></i> Carregando fonte original...</div>';
+    openWriterModal('citation-modal');
+    
+    try {
+        const res = await fetch(`/api/writer/environments/${currentEnvId}/materials/${materialId}/text`);
+        const data = await res.json();
+        
+        if (data.success) {
+            let pageLabel = (page && page !== 'n/a') ? ` (Pág. ${page})` : '';
+            titleEl.textContent = `Origem da Citação: ${data.name}${pageLabel}`;
+            let fullText = data.content_text || '';
+            
+            if (snippet && snippet.trim().length > 3) {
+                const cleanSnippet = snippet.trim();
+                
+                // Normalization helper (remove punctuation and collapse spaces)
+                const normalize = (str) => {
+                    return str.toLowerCase()
+                        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\[\]?]/g, "")
+                        .replace(/\s+/g, " ")
+                        .trim();
+                };
+                
+                const normFull = normalize(fullText);
+                const normSnippet = normalize(cleanSnippet);
+                
+                let index = -1;
+                let matchLength = 0;
+                
+                // 1. Try exact normalized match
+                let normIndex = normFull.indexOf(normSnippet);
+                if (normIndex !== -1) {
+                    const escapedWords = normSnippet.split(' ').map(w => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
+                    const regexStr = escapedWords.join('[^a-zA-Z0-9À-ÿ]*');
+                    try {
+                        const regex = new RegExp(regexStr, 'i');
+                        const match = fullText.match(regex);
+                        if (match) {
+                            index = match.index;
+                            matchLength = match[0].length;
+                        }
+                    } catch(e) {
+                        console.error('Regex match error:', e);
+                    }
+                }
+                
+                // 2. Fallback: Try with the first 4 words of the snippet
+                if (index === -1) {
+                    const words = normSnippet.split(' ').filter(w => w.length > 2);
+                    if (words.length >= 4) {
+                        const subWords = words.slice(0, 4);
+                        const subRegexStr = subWords.map(w => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('[^a-zA-Z0-9À-ÿ]*');
+                        try {
+                            const regex = new RegExp(subRegexStr, 'i');
+                            const match = fullText.match(regex);
+                            if (match) {
+                                index = match.index;
+                                matchLength = match[0].length;
+                            }
+                        } catch(e) {
+                            console.error('Sub-regex match error:', e);
+                        }
+                    }
+                }
+                
+                if (index !== -1 && matchLength > 0) {
+                    // Match found! Highlight and scroll
+                    const before = fullText.substring(0, index);
+                    const match = fullText.substring(index, index + matchLength);
+                    const after = fullText.substring(index + matchLength);
+                    
+                    const escapeHtml = (str) => {
+                        return str
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/"/g, '&quot;')
+                            .replace(/'/g, '&#039;');
+                    };
+                    
+                    contentEl.innerHTML = escapeHtml(before) + 
+                        `<mark id="citation-highlight" style="background: #eab308; color: #000000; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid #ca8a04; box-shadow: 0 0 10px rgba(234, 179, 8, 0.4);">` + 
+                        escapeHtml(match) + 
+                        `</mark>` + 
+                        escapeHtml(after);
+                        
+                    // Scroll to highlight container-aware
+                    setTimeout(() => {
+                        const container = document.getElementById('citation-modal-content');
+                        const hl = document.getElementById('citation-highlight');
+                        if (container && hl) {
+                            const containerTop = container.getBoundingClientRect().top;
+                            const hlTop = hl.getBoundingClientRect().top;
+                            const relativeTop = hlTop - containerTop;
+                            container.scrollTo({
+                                top: container.scrollTop + relativeTop - (container.clientHeight / 2),
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 250);
+                    return;
+                }
+            }
+            
+            // Fallback if match not found
+            contentEl.textContent = fullText;
+        } else {
+            contentEl.innerHTML = `<div style="color: var(--accent-pink); text-align: center; padding: 20px;">Erro ao carregar o conteúdo do material.</div>`;
+        }
+    } catch (err) {
+        console.error('Error opening citation modal:', err);
+        contentEl.innerHTML = `<div style="color: var(--accent-pink); text-align: center; padding: 20px;">Erro de rede ao carregar citação.</div>`;
+    }
+}
+
+window.openCitationModal = openCitationModal;

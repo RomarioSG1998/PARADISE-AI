@@ -17,7 +17,8 @@ from database import (
     add_writer_message,
     add_writer_context,
     get_writer_contexts,
-    delete_writer_context
+    delete_writer_context,
+    get_writer_material_details
 )
 from services.writer_service import generate_writer_chat_response_async
 from utils.async_loop import run_in_background
@@ -318,3 +319,16 @@ def delete_context_route(env_id, context_id):
         return jsonify({"error": "Unauthorized"}), 401
     delete_writer_context(context_id)
     return jsonify({"success": True})
+
+@writer_bp.route("/api/writer/environments/<env_id>/materials/<material_id>/text", methods=["GET"])
+def get_material_text_route(env_id, material_id):
+    if not session.get("username"):
+        return jsonify({"error": "Unauthorized"}), 401
+    details = get_writer_material_details(material_id)
+    if not details:
+        return jsonify({"error": "Material not found"}), 404
+    return jsonify({
+        "success": True,
+        "name": details["name"],
+        "content_text": details["content_text"]
+    })

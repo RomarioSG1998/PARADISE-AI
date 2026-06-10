@@ -747,3 +747,12 @@ def delete_writer_context(context_id):
     cursor.execute(qry(f"DELETE FROM {tbl} WHERE id = ?"), (context_id,))
     conn.commit()
     conn.close()
+
+def get_writer_material_details(material_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_materials" if DATABASE_URL else "writer_materials"
+    cursor.execute(qry(f"SELECT name, content_text FROM {tbl} WHERE id = ?"), (material_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None

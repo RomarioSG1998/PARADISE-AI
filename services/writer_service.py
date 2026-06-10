@@ -30,9 +30,9 @@ async def generate_writer_chat_response_async(env_id, user_message, username, ac
         # Limit context size to avoid overloading (approx 20k chars per doc)
         truncated_text = mat_text[:20000]
         if mat["material_type"] == "model":
-            models_context += f"--- MODELO/TEMPLATE: {mat['name']} ---\n{truncated_text}\n\n"
+            models_context += f"--- MODELO/TEMPLATE: {mat['name']} (ID: {mat['id']}) ---\n{truncated_text}\n\n"
         else:
-            references_context += f"--- BASE TEÓRICA: {mat['name']} ---\n{truncated_text}\n\n"
+            references_context += f"--- BASE TEÓRICA: {mat['name']} (ID: {mat['id']}) ---\n{truncated_text}\n\n"
     # 2. Fetch all documents in the environment to enable cross-document context awareness
     all_docs = get_writer_documents(env_id)
     active_doc = None
@@ -80,7 +80,8 @@ async def generate_writer_chat_response_async(env_id, user_message, username, ac
             "1. Retorne APENAS o trecho reescrito/alterado correspondente à seleção em 'selection_update', aplicando a instrução dada.\n"
             "2. Não reescreva o documento inteiro, reescreva APENAS o trecho selecionado.\n"
             "3. Mantenha 'document_update' como null.\n"
-            "4. Vá direto ao ponto."
+            "4. Vá direto ao ponto.\n"
+            "5. REQUISITO DE CITAÇÃO (ABNT): O texto citado deve aparecer por extenso no corpo do documento. Insira imediatamente após o texto citado a tag contendo APENAS a indicação bibliográfica ABNT: `<span class=\"writer-citation\" data-material-id=\"ID_DO_MATERIAL\" data-snippet=\"trecho exato citado de 10-50 palavras consecutivas\" data-page=\"X\">(SOBRENOME, Ano, p. X)</span>`. A tag deve conter unicamente os parênteses da citação bibliográfica, funcionando apenas como link de verificação para o usuário."
         )
     else:
         system_prompt = (
@@ -97,6 +98,9 @@ async def generate_writer_chat_response_async(env_id, user_message, username, ac
             "1. Se o usuário pedir para reescrever, corrigir, apagar ou adicionar texto, altere o documento todo e retorne o HTML completo in 'document_update'.\n"
             "2. Se o usuário estiver apenas conversando, retorne 'document_update' como null.\n"
             "3. Mantenha as tags HTML básicas (<p>, <h1>, <h2>, <strong>, <em>, <ul>, <li>) no seu 'document_update' para não perder a formatação.\n"
+            "4. REQUISITO DE CITAÇÃO ACADÊMICA (ABNT): O texto citado (direta ou indiretamente) DEVE ser escrito por extenso no corpo do documento (ou da resposta no chat). Imediatamente após esse texto, você deve adicionar a indicação bibliográfica de citação formatada de acordo com as normas ABNT (ex: (SOBRENOME, Ano, p. X) ou (SOBRENOME, Ano)) envolta na seguinte tag HTML de verificação:\n"
+            "   `<span class=\"writer-citation\" data-material-id=\"ID_DO_MATERIAL\" data-snippet=\"trecho exato de 10-50 palavras consecutivas do texto original da referência\" data-page=\"X\">(SOBRENOME, Ano, p. X)</span>`\n"
+            "   NÃO envolva a frase ou o parágrafo inteiro na tag `writer-citation`. A tag deve envolver unicamente a indicação entre parênteses. Ela servirá como link clicável para o usuário validar a fonte original no arquivo base. Insira o ID correto do material e a página estimada (se disponível)."
         )
 
     if models_context:
