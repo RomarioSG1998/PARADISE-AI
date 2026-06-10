@@ -10,6 +10,12 @@ ENV_PATH = os.path.join(root_dir, ".env")
 load_dotenv(ENV_PATH, override=True)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "CRITICAL DATABASE ERROR: DATABASE_URL is not set! "
+        "Supabase connection is mandatory for persistence. "
+        "Please check your .env file."
+    )
 
 def qry(sql: str) -> str:
     if DATABASE_URL:
@@ -123,7 +129,119 @@ def init_db():
             UNIQUE (narrative_id, segment_index)
         )
         """)
+
+        # Create writer_environments table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS writer_environments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT REFERENCES profiles(username) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            production_context TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        # Create writer_materials table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS writer_materials (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            environment_id INTEGER REFERENCES writer_environments(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            material_type TEXT NOT NULL CHECK(material_type IN ('model', 'reference')),
+            content_text TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        # Create writer_documents table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS writer_documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            environment_id INTEGER REFERENCES writer_environments(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            content TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        # Create writer_messages table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS writer_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            environment_id INTEGER REFERENCES writer_environments(id) ON DELETE CASCADE,
+            sender TEXT NOT NULL CHECK(sender IN ('user', 'ai')),
+            message TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        # Create writer_contexts table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS writer_contexts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            environment_id INTEGER REFERENCES writer_environments(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            content_text TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
         conn.commit()
+    else:
+        try:
+            cursor.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS public.writer_environments (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                username TEXT REFERENCES public.profiles(username) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                production_context TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+            """)
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS public.writer_materials (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                environment_id UUID REFERENCES public.writer_environments(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                material_type TEXT NOT NULL CHECK(material_type IN ('model', 'reference')),
+                content_text TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+            """)
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS public.writer_documents (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                environment_id UUID REFERENCES public.writer_environments(id) ON DELETE CASCADE,
+                title TEXT NOT NULL,
+                content TEXT,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+            """)
+            # Create writer_messages table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS public.writer_messages (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                environment_id UUID REFERENCES public.writer_environments(id) ON DELETE CASCADE,
+                sender TEXT NOT NULL CHECK(sender IN ('user', 'ai')),
+                message TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+            """)
+
+            # Create writer_contexts table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS public.writer_contexts (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                environment_id UUID REFERENCES public.writer_environments(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                content_text TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+            """)
+            conn.commit()
+        except Exception as e:
+            print(f"Error initializing postgres writer tables: {e}")
+            conn.rollback()
 
     # Check if we have any registered apps. If not, seed the first one
     cursor.execute(qry("SELECT COUNT(*) as cnt FROM apps"))
@@ -159,10 +277,16 @@ def init_db():
 
     if DATABASE_URL:
         cursor.execute("ALTER TABLE public.gemini_accounts ADD COLUMN IF NOT EXISTS provider TEXT DEFAULT 'gemini'")
+        cursor.execute("ALTER TABLE public.writer_environments ADD COLUMN IF NOT EXISTS production_context TEXT")
         conn.commit()
     else:
         try:
             cursor.execute("ALTER TABLE gemini_accounts ADD COLUMN provider TEXT DEFAULT 'gemini'")
+            conn.commit()
+        except:
+            pass
+        try:
+            cursor.execute("ALTER TABLE writer_environments ADD COLUMN production_context TEXT")
             conn.commit()
         except:
             pass
@@ -423,3 +547,226 @@ def authenticate_user(username_or_email, password):
         if user_dict.get("password_hash") and check_password_hash(user_dict["password_hash"], password):
             return user_dict
     return None
+
+# =========================================================================
+# WRITER.AI DATABASE HELPER FUNCTIONS
+# =========================================================================
+
+def create_writer_environment(username, name):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_environments" if DATABASE_URL else "writer_environments"
+    if DATABASE_URL:
+        cursor.execute(qry(f"INSERT INTO {tbl} (username, name) VALUES (?, ?) RETURNING id"), (username, name))
+        row = cursor.fetchone()
+        env_id = row["id"] if isinstance(row, dict) else row[0]
+    else:
+        cursor.execute(f"INSERT INTO writer_environments (username, name) VALUES (?, ?)", (username, name))
+        env_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return env_id
+
+def get_writer_environments(username):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_environments" if DATABASE_URL else "writer_environments"
+    cursor.execute(qry(f"SELECT * FROM {tbl} WHERE username = ? ORDER BY created_at DESC"), (username,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_writer_environment(env_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_environments" if DATABASE_URL else "writer_environments"
+    cursor.execute(qry(f"SELECT * FROM {tbl} WHERE id = ?"), (env_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
+
+def delete_writer_environment(env_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_environments" if DATABASE_URL else "writer_environments"
+    cursor.execute(qry(f"DELETE FROM {tbl} WHERE id = ?"), (env_id,))
+    conn.commit()
+    conn.close()
+
+def add_writer_material(env_id, name, material_type, content_text):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_materials" if DATABASE_URL else "writer_materials"
+    
+    new_id = None
+    if DATABASE_URL:
+        cursor.execute(
+            f"INSERT INTO {tbl} (environment_id, name, material_type, content_text) VALUES (%s, %s, %s, %s) RETURNING id",
+            (env_id, name, material_type, content_text)
+        )
+        row = cursor.fetchone()
+        if row:
+            new_id = row[0]
+    else:
+        cursor.execute(
+            f"INSERT INTO {tbl} (environment_id, name, material_type, content_text) VALUES (?, ?, ?, ?)",
+            (env_id, name, material_type, content_text)
+        )
+        new_id = cursor.lastrowid
+        
+    conn.commit()
+    conn.close()
+    return new_id
+
+def get_writer_materials(env_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_materials" if DATABASE_URL else "writer_materials"
+    cursor.execute(qry(f"SELECT id, name, material_type, created_at FROM {tbl} WHERE environment_id = ? ORDER BY created_at ASC"), (env_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_writer_materials_with_text(env_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_materials" if DATABASE_URL else "writer_materials"
+    cursor.execute(qry(f"SELECT id, name, material_type, content_text FROM {tbl} WHERE environment_id = ? ORDER BY created_at ASC"), (env_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_writer_material_text(material_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_materials" if DATABASE_URL else "writer_materials"
+    cursor.execute(qry(f"SELECT content_text FROM {tbl} WHERE id = ?"), (material_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)["content_text"]
+    return ""
+
+def delete_writer_material(material_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_materials" if DATABASE_URL else "writer_materials"
+    cursor.execute(qry(f"DELETE FROM {tbl} WHERE id = ?"), (material_id,))
+    conn.commit()
+    conn.close()
+
+def save_writer_document(env_id, doc_id, title, content):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_documents" if DATABASE_URL else "writer_documents"
+    
+    # Check if doc_id exists
+    has_doc = False
+    if doc_id:
+        cursor.execute(qry(f"SELECT id FROM {tbl} WHERE id = ?"), (doc_id,))
+        if cursor.fetchone():
+            has_doc = True
+            
+    if has_doc:
+        cursor.execute(
+            qry(f"UPDATE {tbl} SET title = ?, content = ?, updated_at = ? WHERE id = ?"),
+            (title, content, datetime.utcnow().isoformat(), doc_id)
+        )
+        new_doc_id = doc_id
+    else:
+        if DATABASE_URL:
+            cursor.execute(qry(f"INSERT INTO {tbl} (environment_id, title, content) VALUES (?, ?, ?) RETURNING id"), (env_id, title, content))
+            row = cursor.fetchone()
+            new_doc_id = row["id"] if isinstance(row, dict) else row[0]
+        else:
+            cursor.execute(f"INSERT INTO writer_documents (environment_id, title, content) VALUES (?, ?, ?)", (env_id, title, content))
+            new_doc_id = cursor.lastrowid
+            
+    conn.commit()
+    conn.close()
+    return new_doc_id
+
+def get_writer_documents(env_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_documents" if DATABASE_URL else "writer_documents"
+    cursor.execute(qry(f"SELECT * FROM {tbl} WHERE environment_id = ? ORDER BY updated_at DESC"), (env_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_writer_document(doc_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_documents" if DATABASE_URL else "writer_documents"
+    cursor.execute(qry(f"SELECT * FROM {tbl} WHERE id = ?"), (doc_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def get_writer_messages(env_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_messages" if DATABASE_URL else "writer_messages"
+    cursor.execute(qry(f"SELECT * FROM {tbl} WHERE environment_id = ? ORDER BY created_at ASC"), (env_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def add_writer_message(env_id, sender, message):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_messages" if DATABASE_URL else "writer_messages"
+    cursor.execute(
+        qry(f"INSERT INTO {tbl} (environment_id, sender, message) VALUES (?, ?, ?)"),
+        (env_id, sender, message)
+    )
+    conn.commit()
+    conn.close()
+
+def delete_writer_document(doc_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_documents" if DATABASE_URL else "writer_documents"
+    cursor.execute(qry(f"DELETE FROM {tbl} WHERE id = ?"), (doc_id,))
+    conn.commit()
+    conn.close()
+
+def add_writer_context(env_id, name, content_text):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_contexts" if DATABASE_URL else "writer_contexts"
+    cursor.execute(
+        qry(f"INSERT INTO {tbl} (environment_id, name, content_text) VALUES (?, ?, ?)"),
+        (env_id, name, content_text)
+    )
+    conn.commit()
+    conn.close()
+
+def get_writer_contexts(env_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_contexts" if DATABASE_URL else "writer_contexts"
+    cursor.execute(qry(f"SELECT id, name, content_text, created_at FROM {tbl} WHERE environment_id = ? ORDER BY created_at ASC"), (env_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def delete_writer_context(context_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_contexts" if DATABASE_URL else "writer_contexts"
+    cursor.execute(qry(f"DELETE FROM {tbl} WHERE id = ?"), (context_id,))
+    conn.commit()
+    conn.close()
+
+def get_writer_material_details(material_id):
+    conn = get_db_connection()
+    cursor = get_cursor(conn)
+    tbl = "public.writer_materials" if DATABASE_URL else "writer_materials"
+    cursor.execute(qry(f"SELECT name, content_text FROM {tbl} WHERE id = ?"), (material_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
