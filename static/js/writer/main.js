@@ -10,6 +10,7 @@ let documents = [];
 let materials = [];
 let saveTimeout = null;
 let chatLoading = false;
+let agentsListPollInterval = null;
 
 // DOM Elements
 const envsContainer = document.getElementById('envs-container');
@@ -57,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkConnectionStatus();
     setupEventListeners();
     setupFormattingToolbar();
+    setupDragAndDrop();
 });
 
 // Setup All Main Event Listeners
@@ -70,7 +72,10 @@ function setupEventListeners() {
     newDocBtn.addEventListener('click', createNewDocument);
 
     // Materials Modal
-    uploadMaterialBtn.addEventListener('click', () => openWriterModal('upload-material-modal'));
+    uploadMaterialBtn.addEventListener('click', () => {
+        if (!currentEnvId) return;
+        document.getElementById('drag-drop-overlay').style.display = 'flex';
+    });
     uploadMaterialForm.addEventListener('submit', uploadMaterial);
 
     // Auto-save on Title & Content changes
@@ -146,6 +151,18 @@ function setupEventListeners() {
             }
         });
     }
+
+    // Initialize Voice Speech-to-Text
+    initSpeechRecognition('chat-mic-btn', 'chat-input');
+    initSpeechRecognition('agent-chat-mic-btn', 'agent-chat-input');
+    initSpeechRecognition('selection-ia-mic', 'selection-ia-input');
+    initSpeechRecognition('agent-name-mic', 'agent-name-input');
+    initSpeechRecognition('agent-role-mic', 'agent-role-input');
+    initSpeechRecognition('agent-prompt-mic', 'agent-prompt-input');
+    initSpeechRecognition('context-name-mic', 'context-name-input');
+    initSpeechRecognition('context-text-mic', 'context-text-input');
+    initSpeechRecognition('env-name-mic', 'env-name-input');
+    initSpeechRecognition('material-name-mic', 'material-name-input');
 }
 
 // Check connection and update indicator
@@ -305,6 +322,15 @@ async function selectEnvironment(id, name) {
     await loadChatMessages();
     await loadProductionContext();
     await loadAgents();
+
+    // Start background polling for agent statuses and main chat notifications
+    if (agentsListPollInterval) clearInterval(agentsListPollInterval);
+    agentsListPollInterval = setInterval(async () => {
+        if (currentEnvId) {
+            await loadAgents();
+            await loadChatMessages();
+        }
+    }, 5000);
 
     // Select first doc by default if exists, otherwise create first doc
     if (documents.length > 0) {
@@ -653,10 +679,40 @@ function renderChatMessages(msgs) {
         bubble.className = `chat-bubble ${m.sender}`;
 
         const avatar = m.sender === 'user' ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-robot"></i>';
-        const formattedMsg = formatMarkdownSimple(m.message);
+        
+        let formattedMsg = '';
+        let proposalHtml = '';
+        
+        if (m.sender === 'ai') {
+            const payload = parseAgentMessagePayload(m.message);
+            formattedMsg = formatMarkdownSimple(payload.report);
+            
+            if (payload.proposal) {
+                const base64Content = btoa(unescape(encodeURIComponent(payload.proposal.content)));
+                const diffLinesHtml = generateLineDiff(payload.proposal.original_content || '', payload.proposal.content || '');
+                
+                proposalHtml = `
+                    <div class="proposed-change-card" style="margin-top: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(168,85,247,0.25); border-radius: 10px; padding: 12px;">
+                        <div style="font-size:0.75rem; font-weight:600; color:#d8b4fe; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-file-pen"></i> Alterações Propostas em: <strong>${payload.proposal.document_title}</strong>
+                        </div>
+                        <div class="diff-container">
+                            ${diffLinesHtml || '<div style="color: var(--text-muted); font-style: italic; padding: 4px;">Nenhuma alteração textual detectada.</div>'}
+                        </div>
+                        <div style="display:flex; justify-content:flex-end;">
+                            <button class="approve-proposal-btn" onclick="applyProposedChange(this, '${payload.proposal.document_id}', '${base64Content}')">
+                                <i class="fa-solid fa-circle-check"></i> Aprovar e Aplicar Alterações
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            formattedMsg = formatMarkdownSimple(m.message);
+        }
 
         let actionsHtml = '';
-        if (m.sender === 'ai') {
+        if (m.sender === 'ai' && !proposalHtml) {
             actionsHtml = `
                 <div class="chat-bubble-actions" style="display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end;">
                     <button class="chat-action-btn" onclick="applyChatToEditor(this)" style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.35); color: #d8b4fe; padding: 4px 8px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-file-import"></i> Aplicar no Editor</button>
@@ -668,6 +724,7 @@ function renderChatMessages(msgs) {
             <div class="chat-avatar">${avatar}</div>
             <div class="chat-text">
                 <div>${formattedMsg}</div>
+                ${proposalHtml}
                 ${actionsHtml}
             </div>
         `;
@@ -729,6 +786,8 @@ async function sendChatMessage() {
         if (lb) lb.remove();
 
         if (data.success) {
+            // Refresh agents list in case an agent was created or updated
+            loadAgents();
             // Render AI bubble
             const aiBubble = document.createElement('div');
             aiBubble.className = 'chat-bubble ai';
@@ -846,9 +905,34 @@ function formatMarkdownSimple(text) {
     html = html.split('\n\n').map(p => {
         p = p.trim();
         if (p.startsWith('- ') || p.startsWith('* ')) {
-            const listItems = p.split(/\n[-*]\s/).map(li => `<li>${li.replace(/^[-*]\s/, '')}</li>`).join('');
+            const listItems = p.split(/\n[-*]\s/).map(li => {
+                let liText = li.replace(/^[-*]\s/, '');
+                
+                // Parse visual tags for academic correctness review
+                if (liText.includes('[CORRETO]') || liText.includes('[CORRECT]')) {
+                    liText = liText.replace('[CORRETO]', '').replace('[CORRECT]', '');
+                    return `<li class="correct-highlight" style="list-style-type: none; margin-left: -20px;"><i class="fa-solid fa-circle-check" style="color: #22c55e; margin-right: 6px;"></i>${liText}</li>`;
+                }
+                if (liText.includes('[INCORRETO]') || liText.includes('[INCORRECT]')) {
+                    liText = liText.replace('[INCORRETO]', '').replace('[INCORRECT]', '');
+                    return `<li class="incorrect-highlight" style="list-style-type: none; margin-left: -20px;"><i class="fa-solid fa-circle-xmark" style="color: #ef4444; margin-right: 6px;"></i>${liText}</li>`;
+                }
+                
+                return `<li>${liText}</li>`;
+            }).join('');
             return `<ul>${listItems}</ul>`;
         }
+        
+        // Handle standalone text blocks with tags
+        if (p.includes('[CORRETO]') || p.includes('[CORRECT]')) {
+            let cleanP = p.replace('[CORRETO]', '').replace('[CORRECT]', '');
+            return `<div class="correct-highlight"><i class="fa-solid fa-circle-check" style="color: #22c55e; margin-right: 6px;"></i><strong>Correto:</strong> ${cleanP}</div>`;
+        }
+        if (p.includes('[INCORRETO]') || p.includes('[INCORRECT]')) {
+            let cleanP = p.replace('[INCORRETO]', '').replace('[INCORRECT]', '');
+            return `<div class="incorrect-highlight"><i class="fa-solid fa-circle-xmark" style="color: #ef4444; margin-right: 6px;"></i><strong>Ajustar:</strong> ${cleanP}</div>`;
+        }
+        
         return `<p>${p.replace(/\n/g, '<br>')}</p>`;
     }).join('');
 
@@ -1157,6 +1241,58 @@ window.deleteProductionContext = deleteProductionContext;
 let currentAgentId = null;
 let currentAgentName = 'Agente';
 
+// Toast System
+function showToast(title, body, onClickCallback) {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-card';
+    toast.innerHTML = `
+        <div class="toast-icon">
+            <i class="fa-solid fa-robot"></i>
+        </div>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-body">${body}</div>
+        </div>
+        <button class="toast-close">&times;</button>
+    `;
+
+    toast.addEventListener('click', (e) => {
+        if (e.target.classList.contains('toast-close')) {
+            return;
+        }
+        if (onClickCallback) {
+            onClickCallback();
+        }
+        removeToast(toast);
+    });
+
+    toast.querySelector('.toast-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeToast(toast);
+    });
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        removeToast(toast);
+    }, 6000);
+}
+
+function removeToast(toast) {
+    if (toast.classList.contains('toast-fadeOut')) return;
+    toast.classList.add('toast-fadeOut');
+    setTimeout(() => {
+        toast.remove();
+    }, 350);
+}
+
 async function loadAgents() {
     if (!currentEnvId) return;
     const container = document.getElementById('agents-list-container');
@@ -1164,6 +1300,27 @@ async function loadAgents() {
     try {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/agents`);
         const agents = await res.json();
+        
+        // Track state transitions to show toasts
+        if (window.previousAgentsState) {
+            agents.forEach(newAgent => {
+                const oldAgent = window.previousAgentsState.find(a => a.id === newAgent.id);
+                if (oldAgent) {
+                    if (oldAgent.status === 'working' && newAgent.status === 'idle') {
+                        const lastMsgSnippet = newAgent.last_message ? (newAgent.last_message.substring(0, 80) + '...') : 'Relatório concluído.';
+                        showToast(
+                            `🤖 ${newAgent.name} Concluído!`,
+                            lastMsgSnippet,
+                            () => {
+                                openAgentChat(newAgent.id, newAgent.name, newAgent.role);
+                            }
+                        );
+                    }
+                }
+            });
+        }
+        window.previousAgentsState = agents;
+
         renderAgents(agents);
     } catch (err) {
         console.error('Error loading agents:', err);
@@ -1183,16 +1340,34 @@ function renderAgents(agents) {
     agents.forEach(agent => {
         const item = document.createElement('div');
         item.className = `agent-item${agent.is_leader ? ' leader' : ''}`;
-        item.innerHTML = `
-            <div class="agent-item-info" onclick="openAgentChat('${agent.id}', '${agent.name.replace(/'/g,"\\'")}', '${(agent.role||'').replace(/'/g,"\\'")}')">
-                <div class="agent-item-name">
-                    <i class="fa-solid fa-robot" style="font-size:0.8rem; color:${agent.is_leader ? 'var(--accent-pink)' : 'var(--accent-purple)'}"></i>
-                    ${agent.name}
-                    ${agent.is_leader ? '<span class="agent-badge">Líder</span>' : ''}
+        
+        let statusHtml = '';
+        if (agent.status === 'working') {
+            statusHtml = `
+                <div class="agent-working-badge" style="display:flex; align-items:center; gap:4px; font-size:0.7rem; color:var(--accent-purple); margin-top:2.5px; font-weight:500;">
+                    <i class="fa-solid fa-gear fa-spin"></i> Em segundo plano...
                 </div>
-                <div class="agent-item-role">${agent.role || 'sub-agente'}</div>
+            `;
+        } else if (agent.last_message && agent.last_message_sender === 'ai') {
+            const truncated = agent.last_message.length > 42 ? agent.last_message.substring(0, 42) + '...' : agent.last_message;
+            statusHtml = `
+                <div class="agent-last-msg" style="font-size:0.7rem; color:var(--text-muted); margin-top:2.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 175px;" title="${agent.last_message.replace(/"/g, '&quot;')}">
+                    <i class="fa-solid fa-check" style="color:var(--accent-pink); font-size:0.65rem;"></i> ${truncated}
+                </div>
+            `;
+        }
+
+        item.innerHTML = `
+            <div class="agent-item-info" style="flex:1; min-width:0; padding-right:8px;" onclick="openAgentChat('${agent.id}', '${agent.name.replace(/'/g,"\\'")}', '${(agent.role||'').replace(/'/g,"\\'")}')">
+                <div class="agent-item-name" style="display:flex; align-items:center; gap:6px; font-weight:600; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    <i class="fa-solid fa-robot" style="font-size:0.8rem; color:${agent.is_leader ? 'var(--accent-pink)' : 'var(--accent-purple)'}; flex-shrink:0;"></i>
+                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;">${agent.name}</span>
+                    ${agent.is_leader ? '<span class="agent-badge" style="flex-shrink:0;">Líder</span>' : ''}
+                </div>
+                <div class="agent-item-role" style="font-size:0.72rem; color:var(--text-muted); margin-top:1px;">${agent.role || 'sub-agente'}</div>
+                ${statusHtml}
             </div>
-            <div class="agent-actions">
+            <div class="agent-actions" style="flex-shrink:0; display:flex; gap:4px; align-items:center;">
                 <button class="agent-action-btn" title="Resetar conversa" onclick="resetAgent(event, '${agent.id}')">
                     <i class="fa-solid fa-arrow-rotate-left"></i>
                 </button>
@@ -1285,9 +1460,10 @@ async function openAgentChat(agentId, agentName, agentRole) {
     messagesEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i></div>';
     openWriterModal('agent-chat-modal');
 
+    let msgs = [];
     try {
         const res = await fetch(`/api/writer/environments/${currentEnvId}/agents/${agentId}/messages`);
-        const msgs = await res.json();
+        msgs = await res.json();
         renderAgentMessages(msgs);
     } catch (err) {
         console.error('Error loading agent messages:', err);
@@ -1295,10 +1471,169 @@ async function openAgentChat(agentId, agentName, agentRole) {
     }
 
     const input = document.getElementById('agent-chat-input');
+    const sendBtn = document.getElementById('agent-chat-send-btn');
     if (input) {
         input.placeholder = `Atribua uma tarefa a ${agentName}...`;
         input.focus();
     }
+
+    if (msgs.length > 0 && msgs[msgs.length - 1].sender === 'user') {
+        if (input && sendBtn) {
+            input.disabled = true;
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i class="fa-solid fa-hourglass-half fa-spin"></i>';
+        }
+
+        const aiMsgsBefore = msgs.filter(m => m.sender === 'ai').length;
+        if (agentPollInterval) clearInterval(agentPollInterval);
+        agentPollInterval = setInterval(async () => {
+            if (currentAgentId !== agentId) {
+                clearInterval(agentPollInterval);
+                agentPollInterval = null;
+                return;
+            }
+            try {
+                const pollRes = await fetch(`/api/writer/environments/${currentEnvId}/agents/${agentId}/last`);
+                const pollData = await pollRes.json();
+                if (pollData.done) {
+                    const res2 = await fetch(`/api/writer/environments/${currentEnvId}/agents/${agentId}/messages`);
+                    const msgs2 = await res2.json();
+                    const newCount = msgs2.filter(m => m.sender === 'ai').length;
+                    if (newCount > aiMsgsBefore) {
+                        clearInterval(agentPollInterval);
+                        agentPollInterval = null;
+                        renderAgentMessages(msgs2);
+                        if (input && sendBtn) {
+                            input.disabled = false;
+                            sendBtn.disabled = false;
+                            sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+                        }
+                        await loadAgents();
+                    }
+                }
+            } catch (e) {}
+        }, 2500);
+    } else {
+        if (input && sendBtn) {
+            input.disabled = false;
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+        }
+    }
+}
+
+function parseAgentMessagePayload(msgStr) {
+    if (!msgStr) return { report: '', proposal: null };
+    const trimmed = msgStr.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed && typeof parsed === 'object') {
+                return {
+                    report: parsed.report || '',
+                    proposal: parsed.proposal || null
+                };
+            }
+        } catch (e) {
+            // Not valid JSON
+        }
+    }
+    return { report: msgStr, proposal: null };
+}
+
+window.applyProposedChange = async function (btn, documentId, base64Content) {
+    // Close the subagent chat modal if it is active
+    const agentModal = document.getElementById('agent-chat-modal');
+    if (agentModal && agentModal.classList.contains('active')) {
+        closeWriterModal('agent-chat-modal');
+    }
+    
+    // Put application request message in main chat input
+    if (chatInput) {
+        chatInput.value = "Por favor, aplique as alterações propostas pelo subagente para o documento.";
+        
+        // Trigger main chat submission
+        await sendChatMessage();
+    }
+};
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function generateLineDiff(originalHtml, proposedHtml) {
+    function htmlToText(html) {
+        if (!html) return '';
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        const blocks = temp.querySelectorAll('p, div, br, li, h1, h2, h3, h4');
+        blocks.forEach(b => {
+            if (b.tagName === 'BR') {
+                b.replaceWith('\n');
+            } else {
+                b.after('\n');
+            }
+        });
+        return temp.textContent.trim();
+    }
+
+    const origText = htmlToText(originalHtml);
+    const propText = htmlToText(proposedHtml);
+
+    const origLines = origText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const propLines = propText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+    let diffHtml = '';
+    let i = 0, j = 0;
+    while (i < origLines.length || j < propLines.length) {
+        if (i < origLines.length && j < propLines.length && origLines[i] === propLines[j]) {
+            diffHtml += `<div class="diff-line unchanged">  ${escapeHtml(origLines[i])}</div>`;
+            i++;
+            j++;
+        } else {
+            // Look ahead for matches
+            let foundInProp = -1;
+            for (let k = j; k < Math.min(j + 8, propLines.length); k++) {
+                if (origLines[i] === propLines[k]) {
+                    foundInProp = k;
+                    break;
+                }
+            }
+            
+            if (foundInProp !== -1) {
+                for (let k = j; k < foundInProp; k++) {
+                    diffHtml += `<div class="diff-line addition">+ ${escapeHtml(propLines[k])}</div>`;
+                }
+                j = foundInProp;
+            } else {
+                let foundInOrig = -1;
+                for (let k = i; k < Math.min(i + 8, origLines.length); k++) {
+                    if (propLines[j] === origLines[k]) {
+                        foundInOrig = k;
+                        break;
+                    }
+                }
+                
+                if (foundInOrig !== -1) {
+                    for (let k = i; k < foundInOrig; k++) {
+                        diffHtml += `<div class="diff-line deletion">- ${escapeHtml(origLines[k])}</div>`;
+                    }
+                    i = foundInOrig;
+                } else {
+                    if (i < origLines.length) {
+                        diffHtml += `<div class="diff-line deletion">- ${escapeHtml(origLines[i])}</div>`;
+                        i++;
+                    }
+                    if (j < propLines.length) {
+                        diffHtml += `<div class="diff-line addition">+ ${escapeHtml(propLines[j])}</div>`;
+                        j++;
+                    }
+                }
+            }
+        }
+    }
+    return diffHtml;
 }
 
 function renderAgentMessages(msgs) {
@@ -1318,25 +1653,61 @@ function renderAgentMessages(msgs) {
         i += report ? 2 : 1;
     }
 
-    el.innerHTML = pairs.map(({ task, report }) => `
-        <div style="background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.18); border-radius:10px; padding:12px 14px; margin-bottom:4px;">
-            <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
-                <i class="fa-solid fa-list-check"></i> Tarefa
-            </div>
-            <div style="font-size:0.84rem; color:var(--text-light); word-break:break-word;">${task.message.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-            ${report
-                ? `<div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06);">
-                    <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--accent-purple); margin-bottom:5px; display:flex; align-items:center; gap:5px;">
-                        <i class="fa-solid fa-circle-check"></i> Relatório
+    el.innerHTML = pairs.map(({ task, report }) => {
+        let reportHtml = '';
+        if (report) {
+            const payload = parseAgentMessagePayload(report.message);
+            const formattedReport = formatMarkdownSimple(payload.report);
+            
+            let proposalHtml = '';
+            if (payload.proposal) {
+                const base64Content = btoa(unescape(encodeURIComponent(payload.proposal.content)));
+                const diffLinesHtml = generateLineDiff(payload.proposal.original_content || '', payload.proposal.content || '');
+                
+                proposalHtml = `
+                    <div class="proposed-change-card" style="margin-top: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(168,85,247,0.25); border-radius: 10px; padding: 12px;">
+                        <div style="font-size:0.75rem; font-weight:600; color:#d8b4fe; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-file-pen"></i> Alterações Propostas em: <strong>${payload.proposal.document_title}</strong>
+                        </div>
+                        <div class="diff-container">
+                            ${diffLinesHtml || '<div style="color: var(--text-muted); font-style: italic; padding: 4px;">Nenhuma alteração textual detectada.</div>'}
+                        </div>
+                        <div style="display:flex; justify-content:flex-end;">
+                            <button class="approve-proposal-btn" onclick="applyProposedChange(this, '${payload.proposal.document_id}', '${base64Content}')">
+                                <i class="fa-solid fa-circle-check"></i> Aprovar e Aplicar Alterações
+                            </button>
+                        </div>
                     </div>
-                    <div style="font-size:0.84rem; color:var(--text-light); line-height:1.5; word-break:break-word;">${report.message.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-                   </div>`
-                : `<div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:8px; color:var(--text-muted); font-size:0.8rem;" id="agent-working-indicator">
-                    <i class="fa-solid fa-gear fa-spin" style="color:var(--accent-purple);"></i> Agente trabalhando em segundo plano...
-                   </div>`
+                `;
             }
-        </div>
-    `).join('');
+            
+            reportHtml = `
+                <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06);">
+                    <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--accent-purple); margin-bottom:5px; display:flex; align-items:center; gap:5px;">
+                        <i class="fa-solid fa-circle-check"></i> Relatório do Subagente
+                    </div>
+                    <div class="agent-report-container">${formattedReport}</div>
+                    ${proposalHtml}
+                </div>
+            `;
+        } else {
+            reportHtml = `
+                <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:8px; color:var(--text-muted); font-size:0.8rem;" id="agent-working-indicator">
+                    <i class="fa-solid fa-gear fa-spin" style="color:var(--accent-purple);"></i> Agente trabalhando em segundo plano...
+                </div>
+            `;
+        }
+        
+        return `
+            <div style="background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.18); border-radius:10px; padding:12px 14px; margin-bottom:4px;">
+                <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                    <i class="fa-solid fa-list-check"></i> Tarefa
+                </div>
+                <div style="font-size:0.84rem; color:var(--text-light); word-break:break-word;">${task.message.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                ${reportHtml}
+            </div>
+        `;
+    }).join('');
     el.scrollTop = el.scrollHeight;
 }
 
@@ -1398,20 +1769,17 @@ async function sendAgentMessage() {
                     if (newCount > aiMsgsBefore) {
                         clearInterval(agentPollInterval);
                         agentPollInterval = null;
-                        // Replace working indicator with report
-                        if (statusRow) {
-                            statusRow.innerHTML = `
-                                <div style="width:100%">
-                                    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent-purple);margin-bottom:5px;display:flex;align-items:center;gap:5px;">
-                                        <i class="fa-solid fa-circle-check"></i> Relatório
-                                    </div>
-                                    <div style="font-size:0.84rem;color:var(--text-light);line-height:1.5;word-break:break-word;">${pollData.message.message.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-                                </div>
-                            `;
-                        }
+                        
+                        // Fetch all messages and re-render completely to show format/proposals properly
+                        const resMessages = await fetch(`/api/writer/environments/${currentEnvId}/agents/${currentAgentId}/messages`);
+                        const msgsList = await resMessages.json();
+                        renderAgentMessages(msgsList);
+                        
                         input.disabled = false;
                         sendBtn.disabled = false;
                         sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+                        await loadAgents();
+                        await loadChatMessages();
                     }
                 }
             } catch (e) { /* keep polling */ }
@@ -1628,3 +1996,308 @@ window.applyChatToEditor = function (btn) {
         btn.style.background = 'rgba(168, 85, 247, 0.12)';
     }, 1500);
 };
+
+// Setup Drag and Drop File Upload
+function setupDragAndDrop() {
+    const dragDropOverlay = document.getElementById('drag-drop-overlay');
+    const dragDropCancelBtn = document.getElementById('drag-drop-cancel-btn');
+    const dropZones = document.querySelectorAll('.drop-zone');
+
+    let dragCounter = 0;
+
+    // Show overlay when dragging files into window
+    window.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        if (!currentEnvId) return;
+        
+        if (e.dataTransfer && e.dataTransfer.types.includes('Files')) {
+            dragCounter++;
+            if (dragCounter === 1) {
+                dragDropOverlay.style.display = 'flex';
+            }
+        }
+    });
+
+    window.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+
+    window.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        if (!currentEnvId) return;
+        
+        dragCounter--;
+        if (dragCounter === 0) {
+            dragDropOverlay.style.display = 'none';
+        }
+    });
+
+    window.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dragCounter = 0;
+        dragDropOverlay.style.display = 'none';
+    });
+
+    // Close on cancel click
+    if (dragDropCancelBtn) {
+        dragDropCancelBtn.addEventListener('click', () => {
+            dragCounter = 0;
+            dragDropOverlay.style.display = 'none';
+        });
+    }
+
+    // Close when clicking overlay backdrop
+    if (dragDropOverlay) {
+        dragDropOverlay.addEventListener('click', (e) => {
+            if (e.target === dragDropOverlay) {
+                dragCounter = 0;
+                dragDropOverlay.style.display = 'none';
+            }
+        });
+    }
+
+    // Drop zone dragover/dragleave visual feedback
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zone.classList.add('drag-active');
+        });
+
+        zone.addEventListener('dragleave', () => {
+            zone.classList.remove('drag-active');
+        });
+
+        zone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            zone.classList.remove('drag-active');
+            dragCounter = 0;
+            dragDropOverlay.style.display = 'none';
+
+            if (!currentEnvId) {
+                alert('Selecione um Ambiente primeiro.');
+                return;
+            }
+
+            const files = e.dataTransfer.files;
+            if (files.length === 0) return;
+
+            const materialType = zone.getAttribute('data-type');
+            await handleMultipleFilesUpload(files, materialType);
+        });
+        
+        // Fallback: click to select files in that category
+        zone.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.multiple = true;
+            input.accept = '.pdf,.txt';
+            input.onchange = async (e) => {
+                const files = e.target.files;
+                if (files.length > 0) {
+                    const materialType = zone.getAttribute('data-type');
+                    await handleMultipleFilesUpload(files, materialType);
+                }
+            };
+            input.click();
+        });
+    });
+}
+
+// Upload multiple files in parallel and track their individual status
+async function handleMultipleFilesUpload(files, materialType) {
+    const uploadStatusOverlay = document.getElementById('upload-status-overlay');
+    const uploadFileList = document.getElementById('upload-file-list');
+    
+    if (!uploadStatusOverlay || !uploadFileList) return;
+
+    // Show status overlay
+    uploadFileList.innerHTML = '';
+    uploadStatusOverlay.style.display = 'flex';
+
+    // Create file status rows in overlay
+    const fileTasks = [];
+    const filesArray = Array.from(files);
+
+    filesArray.forEach((file, index) => {
+        const row = document.createElement('div');
+        row.className = 'upload-file-row';
+        row.id = `upload-file-${index}`;
+        
+        const isPdf = file.name.toLowerCase().endsWith('.pdf');
+        const iconClass = isPdf ? 'fa-solid fa-file-pdf' : 'fa-solid fa-file-lines';
+        
+        row.innerHTML = `
+            <div class="upload-file-info">
+                <i class="${iconClass}"></i>
+                <span class="upload-file-name" title="${file.name}">${file.name}</span>
+            </div>
+            <div class="upload-file-status pending">
+                <i class="fa-solid fa-clock"></i> Pendente
+            </div>
+        `;
+        uploadFileList.appendChild(row);
+
+        // Upload task promise
+        const uploadPromise = (async () => {
+            const statusDiv = row.querySelector('.upload-file-status');
+            statusDiv.className = 'upload-file-status uploading';
+            statusDiv.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Enviando...`;
+
+            const formData = new FormData();
+            
+            // Determine endpoint and variables based on materialType
+            let url = `/api/writer/environments/${currentEnvId}/materials`;
+            if (materialType === 'context') {
+                url = `/api/writer/environments/${currentEnvId}/contexts`;
+                formData.append('name', file.name);
+                formData.append('file', file);
+            } else {
+                formData.append('material_type', materialType);
+                formData.append('name', file.name);
+                formData.append('file', file);
+            }
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    statusDiv.className = 'upload-file-status success';
+                    statusDiv.innerHTML = `<i class="fa-solid fa-circle-check"></i> Concluído`;
+                } else {
+                    statusDiv.className = 'upload-file-status error';
+                    statusDiv.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${data.error || 'Erro'}`;
+                }
+            } catch (err) {
+                console.error('Error uploading file:', err);
+                statusDiv.className = 'upload-file-status error';
+                statusDiv.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Erro de Conexão`;
+            }
+        })();
+
+        fileTasks.push(uploadPromise);
+    });
+
+    // Wait for all uploads to complete
+    await Promise.all(fileTasks);
+
+    // Refresh materials and production context panels
+    await loadMaterials();
+    await loadProductionContext();
+
+    // Hide overlay after 2 seconds
+    setTimeout(() => {
+        uploadStatusOverlay.style.transition = 'opacity 0.5s ease';
+        uploadStatusOverlay.style.opacity = '0';
+        setTimeout(() => {
+            uploadStatusOverlay.style.display = 'none';
+            uploadStatusOverlay.style.opacity = '1';
+            uploadStatusOverlay.style.transition = '';
+        }, 500);
+    }, 2000);
+}
+
+// Reusable browser Speech-to-Text initialization function
+function initSpeechRecognition(buttonId, inputId) {
+    const btn = document.getElementById(buttonId);
+    const input = document.getElementById(inputId);
+    if (!btn || !input) return;
+
+    // Check browser support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        btn.style.display = 'none'; // Hide if not supported in browser
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'pt-BR';
+    recognition.maxAlternatives = 1;
+
+    let isRecording = false;
+    let finalTranscript = '';
+    let startInputValue = '';
+    let selectionStartPos = 0;
+
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isRecording) {
+            recognition.stop();
+        } else {
+            finalTranscript = '';
+            startInputValue = input.value;
+            selectionStartPos = input.selectionStart || 0;
+            recognition.start();
+        }
+    });
+
+    recognition.onstart = () => {
+        isRecording = true;
+        btn.classList.add('recording');
+        btn.innerHTML = '<i class="fa-solid fa-microphone-lines fa-fade"></i>';
+    };
+
+    recognition.onend = async () => {
+        isRecording = false;
+        btn.classList.remove('recording');
+        
+        const textToCorrect = finalTranscript.trim();
+        if (textToCorrect) {
+            // Show magic wand animation to indicate AI correction is active
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles fa-spin" style="color: #c084fc;"></i>';
+            try {
+                const response = await fetch('/api/writer/correct-speech', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: textToCorrect })
+                });
+                const data = await response.json();
+                if (data.corrected_text) {
+                    const before = startInputValue.substring(0, selectionStartPos);
+                    const after = startInputValue.substring(selectionStartPos, startInputValue.length);
+                    const separator = before && !before.endsWith(' ') ? ' ' : '';
+                    input.value = before + separator + data.corrected_text + after;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            } catch (err) {
+                console.error('Speech correction error:', err);
+            }
+        }
+        btn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        isRecording = false;
+        btn.classList.remove('recording');
+        btn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+    };
+
+    recognition.onresult = (event) => {
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                interimTranscript += event.results[i][0].transcript;
+            }
+        }
+
+        const textToInsert = (finalTranscript + interimTranscript).trim();
+        if (textToInsert) {
+            const before = startInputValue.substring(0, selectionStartPos);
+            const after = startInputValue.substring(selectionStartPos, startInputValue.length);
+            const separator = before && !before.endsWith(' ') ? ' ' : '';
+            input.value = before + separator + textToInsert + after;
+            
+            // Trigger input event to resize textarea or enable buttons
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    };
+}
