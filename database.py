@@ -841,8 +841,27 @@ def get_writer_agents(env_id):
     tbl = "public.writer_agents" if DATABASE_URL else "writer_agents"
     cursor.execute(qry(f"SELECT id, name, role, system_prompt, is_leader, created_at FROM {tbl} WHERE environment_id = ? ORDER BY is_leader DESC, created_at ASC"), (env_id,))
     rows = cursor.fetchall()
+    
+    agents = []
+    tbl_msgs = "public.writer_agent_messages" if DATABASE_URL else "writer_agent_messages"
+    for r in rows:
+        agent = dict(r)
+        # Find the last message for this agent
+        cursor.execute(qry(f"SELECT sender, message FROM {tbl_msgs} WHERE agent_id = ? ORDER BY created_at DESC LIMIT 1"), (agent["id"],))
+        last_msg_row = cursor.fetchone()
+        if last_msg_row:
+            last_msg = dict(last_msg_row)
+            agent["last_message"] = last_msg["message"]
+            agent["last_message_sender"] = last_msg["sender"]
+            agent["status"] = "working" if last_msg["sender"] == "user" else "idle"
+        else:
+            agent["last_message"] = None
+            agent["last_message_sender"] = None
+            agent["status"] = "idle"
+        agents.append(agent)
+        
     conn.close()
-    return [dict(r) for r in rows]
+    return agents
 
 def delete_writer_agent(agent_id):
     conn = get_db_connection()

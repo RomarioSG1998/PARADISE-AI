@@ -201,6 +201,56 @@ def parse_ai_json_response(text):
         "document_update": None
     }
 
+def trigger_agent_task_background(agent_id, env_id, task, username):
+    import threading
+    # Log task immediately so UI shows it without waiting
+    add_writer_agent_message(agent_id, "user", task)
+
+    # Run agent in a background thread — non-blocking
+    def run_task():
+        try:
+            ai_response, err = run_in_background(
+                generate_agent_task_response_async(agent_id, env_id, task, username)
+            )
+            if err:
+                report = f"⚠️ Erro na execução: {err}"
+            else:
+                report = (ai_response or "Tarefa concluída.").strip()
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            report = f"⚠️ Erro inesperado no sub-agente: {str(e)}"
+            
+        add_writer_agent_message(agent_id, "ai", report)
+
+        # Notify main assistant chat about subagent completion and pass proposals
+        try:
+            import json
+            parsed_report = json.loads(report)
+            agent = get_writer_agent(agent_id)
+            agent_name = agent["name"] if agent else "Sub-agente"
+
+            if parsed_report.get("proposal"):
+                doc_title = parsed_report["proposal"].get("document_title") or "documento"
+                intro = f"🤖 **{agent_name}** concluiu a tarefa e propôs alterações no documento **{doc_title}**.\n\nDeseja aprovar e aplicar essas alterações no editor?"
+                
+                main_payload = {
+                    "report": intro + "\n\n" + (parsed_report.get("report") or ""),
+                    "proposal": parsed_report.get("proposal")
+                }
+                add_writer_message(env_id, "ai", json.dumps(main_payload))
+            else:
+                intro = f"🤖 **{agent_name}** concluiu a tarefa:\n\n"
+                add_writer_message(env_id, "ai", intro + (parsed_report.get("report") or ""))
+        except Exception:
+            agent = get_writer_agent(agent_id)
+            agent_name = agent["name"] if agent else "Sub-agente"
+            add_writer_message(env_id, "ai", f"🤖 **{agent_name}** concluiu a tarefa:\n\n{report}")
+
+    thread = threading.Thread(target=run_task, daemon=True)
+    thread.start()
+
+
 @writer_bp.route("/api/writer/environments/<env_id>/messages", methods=["GET", "POST"])
 def manage_messages(env_id):
     username = session.get("username")
@@ -236,6 +286,8 @@ def manage_messages(env_id):
         ai_msg = parsed.get("message", ai_response)
         doc_update = parsed.get("document_update")
         selection_update = parsed.get("selection_update")
+        delegate = parsed.get("delegate_agent_task")
+        create_agent_data = parsed.get("create_subagent")
         
         # If there's an update, save it
         if doc_update is not None and active_doc_id:
@@ -243,7 +295,38 @@ def manage_messages(env_id):
             title = current_doc.get("title", "Sem título") if current_doc else "Sem título"
             save_writer_document(env_id, active_doc_id, title, doc_update)
             
-        # 3. Log AI message
+        # Handle agent creation dynamically
+        new_agent_id = None
+        if create_agent_data and isinstance(create_agent_data, dict):
+            agent_name = create_agent_data.get("name")
+            agent_role = create_agent_data.get("role", "sub-agente")
+            agent_prompt = create_agent_data.get("system_prompt", "")
+            if agent_name:
+                new_agent_id = create_writer_agent(env_id, agent_name, agent_role, agent_prompt, is_leader=False)
+                creation_log = f"🤖 **Sub-agente criado com autonomia!**\n- **Nome:** {agent_name}\n- **Especialidade:** {agent_role}"
+                init_task = create_agent_data.get("delegate_task")
+                if init_task:
+                    trigger_agent_task_background(new_agent_id, env_id, init_task, username)
+                    creation_log += f"\n- **Tarefa iniciada:** \"{init_task}\""
+                ai_msg += f"\n\n{creation_log}"
+                
+        # Handle agent delegation in background
+        if delegate:
+            agent_target = delegate.get("agent_id_or_name") or delegate.get("agent_id")
+            sub_task = delegate.get("task")
+            if agent_target and sub_task:
+                all_agents = get_writer_agents(env_id)
+                matched_agent = None
+                for a in all_agents:
+                    if str(a["id"]) == str(agent_target) or agent_target.lower() in a["name"].lower():
+                        matched_agent = a
+                        break
+                if matched_agent:
+                    trigger_agent_task_background(matched_agent["id"], env_id, sub_task, username)
+                    delegation_log = f"⚙️ Delegando tarefa para **{matched_agent['name']}** em segundo plano:\n> *\"{sub_task}\"*"
+                    ai_msg += f"\n\n{delegation_log}"
+        
+        # 3. Log AI message (consolidated)
         add_writer_message(env_id, "ai", ai_msg)
         
         return jsonify({
@@ -495,29 +578,12 @@ def manage_agent_messages(env_id, agent_id):
         return jsonify({"error": "Unauthorized"}), 401
 
     if request.method == "POST":
-        import threading
         data = request.get_json() or {}
         task = data.get("message", "").strip()
         if not task:
             return jsonify({"error": "Tarefa é obrigatória"}), 400
 
-        # Log task immediately so UI shows it without waiting
-        add_writer_agent_message(agent_id, "user", task)
-
-        # Run agent in a background thread — non-blocking
-        def run_task():
-            ai_response, err = run_in_background(
-                generate_agent_task_response_async(agent_id, env_id, task, username)
-            )
-            if err:
-                report = f"⚠️ Erro na execução: {err}"
-            else:
-                report = (ai_response or "Tarefa concluída.").strip()
-            add_writer_agent_message(agent_id, "ai", report)
-
-        thread = threading.Thread(target=run_task, daemon=True)
-        thread.start()
-
+        trigger_agent_task_background(agent_id, env_id, task, username)
         return jsonify({"success": True, "status": "running"})
 
     else:
@@ -542,3 +608,31 @@ def get_agent_last_message(env_id, agent_id):
     if last.get("created_at"):
         last["created_at"] = str(last["created_at"])
     return jsonify({"done": True, "message": last})
+
+
+@writer_bp.route("/api/writer/correct-speech", methods=["POST"])
+def correct_speech():
+    username = session.get("username")
+    if not username:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    data = request.get_json() or {}
+    text = data.get("text", "").strip()
+    if not text:
+        return jsonify({"corrected_text": ""})
+        
+    # Correct the speech transcription using Gemini
+    prompt = (
+        "Você é um assistente de entrada de voz especializado em corrigir transcrições de áudio imperfeitas.\n"
+        "O usuário ditou uma frase para um assistente de escrita acadêmica/técnica, e o mecanismo de transcrição do navegador cometeu erros de fonemas, ortografia ou gramática.\n"
+        "Sua tarefa é corrigir esses erros, ajustando a pontuação, ortografia, concordância e termos técnicos (como ABNT, LaTeX, etc.) para que soe natural e correto, preservando rigorosamente a intenção original do usuário.\n"
+        "Retorne UNICAMENTE o texto corrigido final, sem introduções, explicações, aspas ou comentários.\n\n"
+        f"Texto transcrito:\n\"{text}\""
+    )
+    
+    corrected_text, err = run_in_background(generate_text_unified_async(prompt, username=username))
+    if err or not corrected_text:
+        return jsonify({"corrected_text": text})
+        
+    return jsonify({"corrected_text": corrected_text.strip().strip('"')})
+
