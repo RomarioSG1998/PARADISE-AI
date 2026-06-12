@@ -4,6 +4,7 @@ import re
 from flask import request, jsonify, session
 from pypdf import PdfReader
 from .core import writer_bp
+from services.writer.pdf_extractor import extract_text_from_pdf
 from database import (
     create_writer_environment,
     get_writer_environments,
@@ -67,14 +68,11 @@ def manage_materials(env_id):
                 try:
                     file_bytes = file.read()
                     print(f"[Paradise AI Debug] manage_materials - read {len(file_bytes)} file bytes")
-                    reader = PdfReader(io.BytesIO(file_bytes))
-                    extracted_text = ""
-                    for page in reader.pages:
-                        t = page.extract_text()
-                        if t:
-                            extracted_text += t + "\n"
-                    text_content = extracted_text.strip()
+                    text_content = extract_text_from_pdf(file_bytes)
                     print(f"[Paradise AI Debug] manage_materials - PDF extracted text length: {len(text_content)}")
+                except RuntimeError as e:
+                    print(f"[Paradise AI Debug] PDF Extraction error: {e}")
+                    return jsonify({"error": str(e)}), 400
                 except Exception as e:
                     print(f"[Paradise AI Debug] PDF Extraction error: {e}")
                     return jsonify({"error": f"Falha ao extrair texto do PDF: {str(e)}"}), 400
@@ -239,10 +237,57 @@ def get_material_text_route(env_id, material_id):
     pdf_path = os.path.join(uploads_dir, f"{actual_id}.pdf")
     has_pdf = os.path.exists(pdf_path)
     
+    exact_page = None
+    if has_pdf and snippet:
+        try:
+            reader = PdfReader(pdf_path)
+            
+            def clean_text(text):
+                if not text:
+                    return ""
+                return re.sub(r"\s+", " ", text.lower().replace("\n", " ").strip())
+            
+            clean_snippet = clean_text(snippet)
+            words = [w for w in clean_snippet.split() if len(w) > 2]
+            search_phrase = " ".join(words[:5]) if len(words) >= 5 else clean_snippet
+            
+            for idx, pdf_page in enumerate(reader.pages):
+                try:
+                    page_text = clean_text(pdf_page.extract_text())
+                    if clean_snippet in page_text:
+                        exact_page = idx + 1
+                        break
+                except Exception:
+                    pass
+            
+            if not exact_page and search_phrase:
+                for idx, pdf_page in enumerate(reader.pages):
+                    try:
+                        page_text = clean_text(pdf_page.extract_text())
+                        if search_phrase in page_text:
+                            exact_page = idx + 1
+                            break
+                    except Exception:
+                        pass
+                        
+            if not exact_page and len(words) >= 3:
+                short_phrase = " ".join(words[:3])
+                for idx, pdf_page in enumerate(reader.pages):
+                    try:
+                        page_text = clean_text(pdf_page.extract_text())
+                        if short_phrase in page_text:
+                            exact_page = idx + 1
+                            break
+                    except Exception:
+                        pass
+        except Exception as e:
+            print(f"[Paradise AI Debug] PDF search error: {e}")
+            
     return jsonify({
         "success": True,
         "name": details["name"],
         "content_text": details["content_text"],
         "has_pdf": has_pdf,
-        "pdf_url": f"/static/uploads/materials/{actual_id}.pdf" if has_pdf else None
+        "pdf_url": f"/static/uploads/materials/{actual_id}.pdf" if has_pdf else None,
+        "pdf_page": exact_page
     })
