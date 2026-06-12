@@ -1,26 +1,30 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>writer.AI — Estúdio de Escrita Inteligente</title>
-    
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- Custom Style -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/writer.css') }}?v=1.3">
 </head>
+
 <body>
 
     <!-- Main App Container -->
     <div class="app-layout">
-        
+
         <!-- Header -->
         <header class="app-header">
             <div class="header-left">
@@ -43,23 +47,25 @@
 
         <!-- Main Body -->
         <div class="app-body">
-            
+
             <!-- Left Panel: Workspaces and Documents -->
             <aside class="left-panel">
                 <div class="panel-section">
                     <div class="section-header">
                         <h3><i class="fa-solid fa-folder-open"></i> Ambientes</h3>
-                        <button class="icon-btn" id="new-env-btn" title="Novo Ambiente"><i class="fa-solid fa-plus"></i></button>
+                        <button class="icon-btn" id="new-env-btn" title="Novo Ambiente"><i
+                                class="fa-solid fa-plus"></i></button>
                     </div>
                     <div class="envs-list" id="envs-container">
                         <!-- Loaded dynamically -->
                     </div>
                 </div>
-                
+
                 <div class="panel-section docs-section">
                     <div class="section-header">
                         <h3><i class="fa-solid fa-file-signature"></i> Textos / Docs</h3>
-                        <button class="icon-btn" id="new-doc-btn" title="Novo Documento" disabled><i class="fa-solid fa-plus"></i></button>
+                        <button class="icon-btn" id="new-doc-btn" title="Novo Documento" disabled><i
+                                class="fa-solid fa-plus"></i></button>
                     </div>
                     <div class="docs-list" id="docs-container">
                         <!-- Loaded dynamically -->
@@ -69,7 +75,8 @@
                 <div class="panel-section context-section">
                     <div class="section-header">
                         <h3><i class="fa-solid fa-bullseye"></i> Contexto de Produção</h3>
-                        <button class="icon-btn" id="edit-context-btn" title="Adicionar Contexto de Produção" disabled><i class="fa-solid fa-plus"></i></button>
+                        <button class="icon-btn" id="edit-context-btn" title="Adicionar Contexto de Produção"
+                            disabled><i class="fa-solid fa-plus"></i></button>
                     </div>
                     <div class="context-info-box" id="context-display-container">
                         <div class="empty-list-info">Selecione um ambiente para ver o contexto.</div>
@@ -80,39 +87,50 @@
             <!-- Center Panel: The Writer Desk & Sheet -->
             <main class="center-panel">
                 <div class="editor-toolbar" id="text-toolbar">
-                    <button class="toolbar-btn" data-cmd="bold" title="Negrito"><i class="fa-solid fa-bold"></i></button>
-                    <button class="toolbar-btn" data-cmd="italic" title="Itálico"><i class="fa-solid fa-italic"></i></button>
-                    <button class="toolbar-btn" data-cmd="underline" title="Sublinhado"><i class="fa-solid fa-underline"></i></button>
+                    <button class="toolbar-btn" data-cmd="bold" title="Negrito"><i
+                            class="fa-solid fa-bold"></i></button>
+                    <button class="toolbar-btn" data-cmd="italic" title="Itálico"><i
+                            class="fa-solid fa-italic"></i></button>
+                    <button class="toolbar-btn" data-cmd="underline" title="Sublinhado"><i
+                            class="fa-solid fa-underline"></i></button>
                     <span class="toolbar-divider"></span>
                     <button class="toolbar-btn" data-cmd="formatBlock" data-val="h1" title="Título 1">H1</button>
                     <button class="toolbar-btn" data-cmd="formatBlock" data-val="h2" title="Título 2">H2</button>
                     <button class="toolbar-btn" data-cmd="formatBlock" data-val="p" title="Parágrafo">P</button>
                     <span class="toolbar-divider"></span>
-                    <button class="toolbar-btn" data-cmd="insertUnorderedList" title="Lista de Marcadores"><i class="fa-solid fa-list-ul"></i></button>
-                    <button class="toolbar-btn" data-cmd="insertOrderedList" title="Lista Numerada"><i class="fa-solid fa-list-ol"></i></button>
+                    <button class="toolbar-btn" data-cmd="insertUnorderedList" title="Lista de Marcadores"><i
+                            class="fa-solid fa-list-ul"></i></button>
+                    <button class="toolbar-btn" data-cmd="insertOrderedList" title="Lista Numerada"><i
+                            class="fa-solid fa-list-ol"></i></button>
                     <span class="toolbar-divider"></span>
-                    <button class="toolbar-btn" data-cmd="removeFormat" title="Limpar Formatação"><i class="fa-solid fa-eraser"></i></button>
+                    <button class="toolbar-btn" data-cmd="removeFormat" title="Limpar Formatação"><i
+                            class="fa-solid fa-eraser"></i></button>
                     <span class="toolbar-spacer"></span>
-                    <button class="save-indicator" id="save-status-btn"><i class="fa-solid fa-cloud-arrow-up"></i> Salvo</button>
+                    <button class="save-indicator" id="save-status-btn"><i class="fa-solid fa-cloud-arrow-up"></i>
+                        Salvo</button>
                 </div>
-                
+
                 <div class="desk-viewport">
                     <!-- Page Sheet simulating a real sheet of paper -->
                     <div class="paper-sheet" id="paper-editor-container" style="display: none;">
-                        <input type="text" class="paper-title" id="doc-title-input" placeholder="Documento Sem Título...">
+                        <input type="text" class="paper-title" id="doc-title-input"
+                            placeholder="Documento Sem Título...">
                         <div class="paper-divider"></div>
-                        <div class="paper-content" id="rich-editor" contenteditable="true" placeholder="Comece a escrever a sua obra de arte aqui..."></div>
+                        <div class="paper-content" id="rich-editor" contenteditable="true"
+                            placeholder="Comece a escrever a sua obra de arte aqui..."></div>
                         <div class="paper-footer">
                             <span id="char-count">0 caracteres</span>
                             <span id="word-count">0 palavras</span>
                         </div>
                     </div>
-                    
+
                     <div class="no-env-placeholder" id="no-env-screen">
                         <i class="fa-solid fa-feather-pointed"></i>
                         <h2>Bem-vindo ao writer.AI</h2>
-                        <p>Crie um ambiente de escrita ou selecione um existente na barra lateral esquerda para começar a redigir com a inteligência artificial.</p>
-                        <button class="btn-primary" id="start-env-btn"><i class="fa-solid fa-circle-plus"></i> Criar Meu Primeiro Ambiente</button>
+                        <p>Crie um ambiente de escrita ou selecione um existente na barra lateral esquerda para começar
+                            a redigir com a inteligência artificial.</p>
+                        <button class="btn-primary" id="start-env-btn"><i class="fa-solid fa-circle-plus"></i> Criar Meu
+                            Primeiro Ambiente</button>
                     </div>
 
                     <!-- AI Review Overlay -->
@@ -138,14 +156,17 @@
                 <div class="materials-subpanel">
                     <div class="subpanel-header">
                         <h3><i class="fa-solid fa-book-bookmark"></i> Materiais de Apoio</h3>
-                        <button class="btn-sm" id="upload-material-btn" disabled><i class="fa-solid fa-file-arrow-up"></i> Adicionar PDF</button>
+                        <button class="btn-sm" id="upload-material-btn" disabled><i
+                                class="fa-solid fa-file-arrow-up"></i> Adicionar PDF</button>
                     </div>
-                    
+
                     <div class="materials-tabs">
-                        <button class="material-tab-link active" onclick="switchMaterialTab(this, 'tab-models')">Modelos (Templates)</button>
-                        <button class="material-tab-link" onclick="switchMaterialTab(this, 'tab-references')">Base Teórica</button>
+                        <button class="material-tab-link active" onclick="switchMaterialTab(this, 'tab-models')">Modelos
+                            (Templates)</button>
+                        <button class="material-tab-link" onclick="switchMaterialTab(this, 'tab-references')">Base
+                            Teórica</button>
                     </div>
-                    
+
                     <div class="materials-content">
                         <!-- Models Tab -->
                         <div class="material-tab-pane active" id="tab-models">
@@ -153,7 +174,7 @@
                                 <div class="empty-list-info">Nenhum modelo de texto enviado.</div>
                             </div>
                         </div>
-                        
+
                         <!-- References Tab -->
                         <div class="material-tab-pane" id="tab-references">
                             <div class="materials-list" id="references-container">
@@ -163,32 +184,33 @@
                     </div>
                 </div>
 
-                <!-- Agents Sub-Panel -->
-                <div class="agents-subpanel" id="agents-subpanel">
-                    <div class="subpanel-header">
-                        <h3><i class="fa-solid fa-robot"></i> Agentes de IA</h3>
-                        <button class="btn-sm" id="create-agent-btn" disabled><i class="fa-solid fa-plus"></i> Novo Agente</button>
-                    </div>
-                    <div class="agents-list" id="agents-list-container">
-                        <div class="empty-list-info">Selecione um ambiente para ver os agentes.</div>
-                    </div>
-                </div>
+
 
                 <!-- Chat Sub-Panel -->
                 <div class="chat-subpanel">
                     <div class="subpanel-header">
                         <h3><i class="fa-solid fa-comments"></i> Assistente IA</h3>
-                        <span class="chat-hint" title="A IA analisa o documento no editor central e os materiais de apoio ao responder.">Como funciona? <i class="fa-solid fa-circle-question"></i></span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <button id="reset-chat-btn" title="Limpar histórico de chat" onclick="resetChatHistory()" disabled style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; padding: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.2s;" onmouseover="if(!this.disabled) this.style.color='#f87171'" onmouseout="this.style.color='var(--text-muted)'">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                            <span class="chat-hint"
+                                title="A IA analisa o documento no editor central e os materiais de apoio ao responder.">Como
+                                funciona? <i class="fa-solid fa-circle-question"></i></span>
+                        </div>
                     </div>
-                    
+
                     <div class="chat-messages" id="chat-messages-container">
                         <!-- Loaded dynamically -->
                     </div>
-                    
+
                     <div class="chat-input-bar">
-                        <textarea id="chat-input" placeholder="Pergunte à IA, sugira alterações ou peça revisões..." rows="1"></textarea>
-                        <button class="chat-mic-btn" id="chat-mic-btn" title="Falar por voz"><i class="fa-solid fa-microphone"></i></button>
-                        <button class="chat-send-btn" id="chat-send-btn" disabled><i class="fa-solid fa-paper-plane"></i></button>
+                        <textarea id="chat-input" placeholder="Pergunte à IA, sugira alterações ou peça revisões..."
+                            rows="1"></textarea>
+                        <button class="chat-mic-btn" id="chat-mic-btn" title="Falar por voz"><i
+                                class="fa-solid fa-microphone"></i></button>
+                        <button class="chat-send-btn" id="chat-send-btn" disabled><i
+                                class="fa-solid fa-paper-plane"></i></button>
                     </div>
                 </div>
             </section>
@@ -196,62 +218,7 @@
     </div>
 
     <!-- Modals -->
-    <!-- Create Agent Modal -->
-    <div class="modal-overlay" id="create-agent-modal">
-        <div class="modal-card">
-            <button class="close-modal" onclick="closeWriterModal('create-agent-modal')">&times;</button>
-            <h2 class="modal-title"><i class="fa-solid fa-robot" style="color:var(--accent-purple)"></i> Criar Sub-Agente</h2>
-            <form id="create-agent-form">
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <label for="agent-name-input">Nome do Agente <span style="color:var(--accent-pink)">*</span></label>
-                    <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
-                        <input type="text" id="agent-name-input" placeholder="Ex: Revisor de Coerência, Especialista em Citações" style="flex: 1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none;">
-                        <button type="button" class="modal-mic-btn" id="agent-name-mic" title="Falar por voz"><i class="fa-solid fa-microphone"></i></button>
-                    </div>
-                </div>
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <label for="agent-role-input">Função / Especialização</label>
-                    <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
-                        <input type="text" id="agent-role-input" placeholder="Ex: revisor, pesquisador, redator" style="flex: 1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none;">
-                        <button type="button" class="modal-mic-btn" id="agent-role-mic" title="Falar por voz"><i class="fa-solid fa-microphone"></i></button>
-                    </div>
-                </div>
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <label for="agent-prompt-input">Instruções específicas (system prompt)</label>
-                    <div style="display: flex; gap: 8px; align-items: flex-end; width: 100%;">
-                        <textarea id="agent-prompt-input" rows="4" placeholder="Ex: Você é um revisor especialista em normas ABNT. Analise o texto e aponte inconsistências nas citações e referências..." style="flex: 1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none; resize:vertical;"></textarea>
-                        <button type="button" class="modal-mic-btn" id="agent-prompt-mic" title="Falar por voz" style="height: 38px;"><i class="fa-solid fa-microphone"></i></button>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancel" onclick="closeWriterModal('create-agent-modal')">Cancelar</button>
-                    <button type="submit" class="btn-save" id="submit-agent-btn"><i class="fa-solid fa-robot"></i> Criar Agente</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
-    <!-- Agent Chat Modal -->
-    <div class="modal-overlay" id="agent-chat-modal">
-        <div class="modal-card" style="max-width: 680px; height: 80vh; display: flex; flex-direction: column;">
-            <button class="close-modal" onclick="closeWriterModal('agent-chat-modal')">&times;</button>
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-shrink: 0;">
-                <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink)); display: flex; align-items: center; justify-content: center; font-size: 1rem;">
-                    <i class="fa-solid fa-robot" style="color: white;"></i>
-                </div>
-                <div>
-                    <h2 class="modal-title" id="agent-chat-modal-title" style="margin: 0; font-size: 1.05rem;">Agente</h2>
-                    <span id="agent-chat-modal-role" style="font-size: 0.78rem; color: var(--text-muted);"></span>
-                </div>
-            </div>
-            <div id="agent-chat-messages" style="flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.15); border-radius: 8px; margin-bottom: 10px;"></div>
-            <div style="display: flex; gap: 8px; flex-shrink: 0;">
-                <textarea id="agent-chat-input" rows="2" placeholder="Fale com este agente..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none; resize:none; font-size:0.9rem;"></textarea>
-                <button id="agent-chat-mic-btn" title="Falar por voz"><i class="fa-solid fa-microphone"></i></button>
-                <button id="agent-chat-send-btn" onclick="sendAgentMessage()" style="background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink)); border: none; border-radius: 8px; color: white; padding: 0 18px; cursor: pointer; font-size: 1.1rem;"><i class="fa-solid fa-paper-plane"></i></button>
-            </div>
-        </div>
-    </div>
 
     <!-- Edit Context Modal -->
     <div class="modal-overlay" id="edit-context-modal">
@@ -262,24 +229,33 @@
                 <div class="form-group" style="margin-bottom: 12px;">
                     <label for="context-name-input">Nome do Contexto (Ex: Público-alvo, Persona, Regras)</label>
                     <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
-                        <input type="text" id="context-name-input" name="name" placeholder="Ex: Público-Alvo / Tom de Voz" style="flex: 1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none;">
-                        <button type="button" class="modal-mic-btn" id="context-name-mic" title="Falar por voz"><i class="fa-solid fa-microphone"></i></button>
+                        <input type="text" id="context-name-input" name="name"
+                            placeholder="Ex: Público-Alvo / Tom de Voz"
+                            style="flex: 1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none;">
+                        <button type="button" class="modal-mic-btn" id="context-name-mic" title="Falar por voz"><i
+                                class="fa-solid fa-microphone"></i></button>
                     </div>
                 </div>
                 <div class="form-group" style="margin-bottom: 12px;">
-                    <label for="context-text-input">Descreva o Contexto do Projeto (Instruções gerais, tema, objetivo)</label>
+                    <label for="context-text-input">Descreva o Contexto do Projeto (Instruções gerais, tema,
+                        objetivo)</label>
                     <div style="display: flex; gap: 8px; align-items: flex-end; width: 100%;">
-                        <textarea id="context-text-input" name="text_content" rows="4" placeholder="Ex: Este projeto é um artigo científico para a revista XYZ sobre o tema..." style="flex: 1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none; resize:vertical;"></textarea>
-                        <button type="button" class="modal-mic-btn" id="context-text-mic" title="Falar por voz" style="height: 38px;"><i class="fa-solid fa-microphone"></i></button>
+                        <textarea id="context-text-input" name="text_content" rows="4"
+                            placeholder="Ex: Este projeto é um artigo científico para a revista XYZ sobre o tema..."
+                            style="flex: 1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none; resize:vertical;"></textarea>
+                        <button type="button" class="modal-mic-btn" id="context-text-mic" title="Falar por voz"
+                            style="height: 38px;"><i class="fa-solid fa-microphone"></i></button>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="context-file-input">Ou envie um arquivo contendo o contexto (.pdf, .txt)</label>
                     <input type="file" name="file" id="context-file-input" accept=".pdf,.txt">
-                    <small style="color:var(--text-muted); display:block; margin-top:4px;">Enviar um arquivo extrairá o texto correspondente.</small>
+                    <small style="color:var(--text-muted); display:block; margin-top:4px;">Enviar um arquivo extrairá o
+                        texto correspondente.</small>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-cancel" onclick="closeWriterModal('edit-context-modal')">Cancelar</button>
+                    <button type="button" class="btn-cancel"
+                        onclick="closeWriterModal('edit-context-modal')">Cancelar</button>
                     <button type="submit" class="btn-save" id="submit-context-btn">Adicionar Contexto</button>
                 </div>
             </form>
@@ -294,8 +270,11 @@
             <div class="form-group">
                 <label for="env-name-input">Nome do Ambiente</label>
                 <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
-                    <input type="text" id="env-name-input" placeholder="Ex: TCC - Engenharia, Romance Policial, Artigo de Opinião" style="flex: 1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none;">
-                    <button type="button" class="modal-mic-btn" id="env-name-mic" title="Falar por voz"><i class="fa-solid fa-microphone"></i></button>
+                    <input type="text" id="env-name-input"
+                        placeholder="Ex: TCC - Engenharia, Romance Policial, Artigo de Opinião"
+                        style="flex: 1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none;">
+                    <button type="button" class="modal-mic-btn" id="env-name-mic" title="Falar por voz"><i
+                            class="fa-solid fa-microphone"></i></button>
                 </div>
             </div>
             <div class="modal-footer">
@@ -314,15 +293,19 @@
                 <div class="form-group" style="margin-bottom: 12px;">
                     <label for="material-name-input">Nome do Material (Opcional)</label>
                     <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
-                        <input type="text" name="name" id="material-name-input" placeholder="Ex: Guia de Tom, Capítulo 1 Base" style="flex: 1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none;">
-                        <button type="button" class="modal-mic-btn" id="material-name-mic" title="Falar por voz"><i class="fa-solid fa-microphone"></i></button>
+                        <input type="text" name="name" id="material-name-input"
+                            placeholder="Ex: Guia de Tom, Capítulo 1 Base"
+                            style="flex: 1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; color:white; font-family:inherit; outline:none;">
+                        <button type="button" class="modal-mic-btn" id="material-name-mic" title="Falar por voz"><i
+                                class="fa-solid fa-microphone"></i></button>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="material-type-select">Tipo de Material</label>
                     <select name="material_type" id="material-type-select">
                         <option value="model">Modelo de Texto / Template (A IA seguirá o estilo e estrutura)</option>
-                        <option value="reference">Base Teórica / Referência (A IA consultará e citará as fontes)</option>
+                        <option value="reference">Base Teórica / Referência (A IA consultará e citará as fontes)
+                        </option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -330,7 +313,8 @@
                     <input type="file" name="file" id="material-file-input" accept=".pdf,.txt" required>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-cancel" onclick="closeWriterModal('upload-material-modal')">Cancelar</button>
+                    <button type="button" class="btn-cancel"
+                        onclick="closeWriterModal('upload-material-modal')">Cancelar</button>
                     <button type="submit" class="btn-save" id="submit-upload-btn">Enviar Material</button>
                 </div>
             </form>
@@ -345,9 +329,11 @@
             <div class="popover-body">
                 <div class="popover-question">O que deseja fazer com este trecho?</div>
                 <div class="popover-input-group">
-                    <input type="text" id="selection-ia-input" placeholder="Ex: Reescrever mais formal, traduzir, expandir...">
+                    <input type="text" id="selection-ia-input"
+                        placeholder="Ex: Reescrever mais formal, traduzir, expandir...">
                     <button id="selection-ia-mic" title="Falar por voz"><i class="fa-solid fa-microphone"></i></button>
-                    <button id="selection-ia-submit" title="Reescrever com IA"><i class="fa-solid fa-paper-plane"></i></button>
+                    <button id="selection-ia-submit" title="Reescrever com IA"><i
+                            class="fa-solid fa-paper-plane"></i></button>
                 </div>
             </div>
         </div>
@@ -355,10 +341,12 @@
 
     <!-- Citation Source Modal -->
     <div class="modal-overlay" id="citation-modal">
-        <div class="modal-card" style="max-width: 800px; width: 90%; max-height: 80vh; display: flex; flex-direction: column;">
+        <div class="modal-card"
+            style="max-width: 800px; width: 90%; max-height: 80vh; display: flex; flex-direction: column;">
             <button class="close-modal" onclick="closeWriterModal('citation-modal')">&times;</button>
             <h2 class="modal-title" id="citation-modal-title">Fonte da Citação</h2>
-            <div id="citation-modal-content" style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.25); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: #e0e0e0; max-height: 55vh; margin-bottom: 15px;">
+            <div id="citation-modal-content"
+                style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.25); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: #e0e0e0; max-height: 55vh; margin-bottom: 15px;">
                 <!-- Carregando conteúdo... -->
             </div>
             <div class="modal-footer">
@@ -415,7 +403,8 @@
         </div>
     </div>
 
-    <!-- Main Javascript -->
-    <script src="{{ url_for('static', filename='js/writer/main.js') }}?v=1.5"></script>
+    <!-- Main Javascript (ES Module — imports state, editor, chat, workspaces, dragdrop) -->
+    <script type="module" src="{{ url_for('static', filename='js/writer/main.js') }}?v=2.0"></script>
 </body>
+
 </html>
