@@ -7,6 +7,11 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libffi-dev \
+    tesseract-ocr \
+    tesseract-ocr-por \
+    tesseract-ocr-eng \
+    poppler-utils \
+    libpoppler-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -17,6 +22,15 @@ RUN pip install --upgrade pip && \
 FROM python:3.12-slim
 
 WORKDIR /app
+
+# Install runtime OCR system dependencies (Tesseract + Poppler)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-por \
+    tesseract-ocr-eng \
+    poppler-utils \
+    libpoppler-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local

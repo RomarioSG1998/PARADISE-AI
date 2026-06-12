@@ -345,10 +345,23 @@
             style="max-width: 800px; width: 90%; max-height: 80vh; display: flex; flex-direction: column;">
             <button class="close-modal" onclick="closeWriterModal('citation-modal')">&times;</button>
             <h2 class="modal-title" id="citation-modal-title">Fonte da Citação</h2>
+            
+            <!-- Tabs Header for PDF reference files -->
+            <div class="materials-tabs" id="citation-modal-tabs" style="display: none; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 12px; gap: 8px;">
+                <button class="material-tab-link active" id="citation-btn-text" style="flex: 1; padding: 8px 16px; border-radius: 6px 6px 0 0;">Texto Destacado</button>
+                <button class="material-tab-link" id="citation-btn-pdf" style="flex: 1; padding: 8px 16px; border-radius: 6px 6px 0 0;">PDF Original</button>
+            </div>
+
             <div id="citation-modal-content"
                 style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.25); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: #e0e0e0; max-height: 55vh; margin-bottom: 15px;">
                 <!-- Carregando conteúdo... -->
             </div>
+
+            <div id="citation-modal-pdf-content"
+                style="display: none; flex: 1; height: 55vh; background: rgba(0,0,0,0.25); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); overflow: hidden; margin-bottom: 15px;">
+                <!-- PDF iframe will go here -->
+            </div>
+
             <div class="modal-footer">
                 <button class="btn-cancel" onclick="closeWriterModal('citation-modal')">Fechar</button>
             </div>

@@ -35,11 +35,54 @@ import { setupDragAndDrop } from './dragdrop.js';
 
 // ─── Citation modal ───────────────────────────────────────────────────────────
 // (inline here as it's a specialised UI that reads from workspaces + editor)
+function switchCitationModalTab(tab) {
+    const textBtn = document.getElementById('citation-btn-text');
+    const pdfBtn = document.getElementById('citation-btn-pdf');
+    const textPane = document.getElementById('citation-modal-content');
+    const pdfPane = document.getElementById('citation-modal-pdf-content');
+    
+    if (tab === 'text') {
+        if (textBtn) textBtn.classList.add('active');
+        if (pdfBtn) pdfBtn.classList.remove('active');
+        if (textPane) textPane.style.display = 'block';
+        if (pdfPane) pdfPane.style.display = 'none';
+        
+        // Scroll to highlighted text if available
+        const hl = document.getElementById('citation-highlight');
+        if (textPane && hl) {
+            textPane.scrollTo({
+                top: textPane.scrollTop + hl.getBoundingClientRect().top - textPane.getBoundingClientRect().top - (textPane.clientHeight / 2),
+                behavior: 'smooth'
+            });
+        }
+    } else {
+        if (pdfBtn) pdfBtn.classList.add('active');
+        if (textBtn) textBtn.classList.remove('active');
+        if (textPane) textPane.style.display = 'none';
+        if (pdfPane) pdfPane.style.display = 'block';
+    }
+}
+
 async function openCitationModal(materialId, snippet, page) {
     const modal = document.getElementById('citation-modal');
     const titleEl = document.getElementById('citation-modal-title');
     const contentEl = document.getElementById('citation-modal-content');
+    const pdfContentEl = document.getElementById('citation-modal-pdf-content');
+    const tabsEl = document.getElementById('citation-modal-tabs');
+    const textBtn = document.getElementById('citation-btn-text');
+    const pdfBtn = document.getElementById('citation-btn-pdf');
+
     if (!modal || !contentEl) return;
+
+    // Reset layout elements
+    contentEl.style.display = 'block';
+    if (pdfContentEl) {
+        pdfContentEl.style.display = 'none';
+        pdfContentEl.innerHTML = '';
+    }
+    if (tabsEl) tabsEl.style.display = 'none';
+    if (textBtn) textBtn.classList.add('active');
+    if (pdfBtn) pdfBtn.classList.remove('active');
 
     contentEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;color:var(--accent-purple);"></i> Carregando fonte original...</div>';
     openWriterModal('citation-modal');
@@ -53,35 +96,69 @@ async function openCitationModal(materialId, snippet, page) {
             const pageLabel = (page && page !== 'n/a') ? ` (Pág. ${page})` : '';
             if (titleEl) titleEl.textContent = `Origem da Citação: ${data.name}${pageLabel}`;
 
-            if (data.has_pdf && data.pdf_url) {
-                const pdfUrl = page && page !== 'n/a' ? `${data.pdf_url}#page=${page}` : data.pdf_url;
-                contentEl.innerHTML = `<iframe src="${pdfUrl}" style="width:100%;height:60vh;border:none;border-radius:4px;background:white;"></iframe>`;
-                return;
-            }
-
             let fullText = data.content_text || '';
+            let highlighted = false;
+            let index = -1, matchLength = 0;
+
             if (snippet && snippet.trim().length > 3) {
-                const normalize = (s) => s.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\[\]?]/g, '').replace(/\s+/g, ' ').trim();
+                // Normalize to lowercase, keep only alphanumeric and accented characters
+                const normalize = (s) => s.toLowerCase()
+                                          .replace(/[^a-z0-9à-ÿ]/g, ' ')
+                                          .replace(/\s+/g, ' ')
+                                          .trim();
                 const normFull = normalize(fullText);
                 const normSnippet = normalize(snippet.trim());
-                let index = -1, matchLength = 0;
 
+                // 1. Direct exact match of normalized snippet
                 const normIdx = normFull.indexOf(normSnippet);
                 if (normIdx !== -1) {
-                    const words = normSnippet.split(' ').map(w => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
-                    try {
-                        const m = fullText.match(new RegExp(words.join('[^a-zA-Z0-9À-ÿ]*'), 'i'));
-                        if (m) { index = m.index; matchLength = m[0].length; }
-                    } catch { }
+                    const words = normSnippet.split(' ').filter(w => w.length > 0)
+                                             .map(w => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
+                    if (words.length > 0) {
+                        try {
+                            const regexStr = words.join('[^a-zA-Z0-9À-ÿ]+');
+                            const m = fullText.match(new RegExp(regexStr, 'i'));
+                            if (m) { index = m.index; matchLength = m[0].length; }
+                        } catch (e) { }
+                    }
                 }
 
+                // 2. Fallback 1: Match first few words (up to 5 words)
                 if (index === -1) {
-                    const words = normSnippet.split(' ').filter(w => w.length > 2).slice(0, 4);
-                    if (words.length >= 4) {
+                    const words = normSnippet.split(' ').filter(w => w.length > 2);
+                    const sampleWords = words.slice(0, Math.min(5, words.length));
+                    if (sampleWords.length >= 2) {
                         try {
-                            const m = fullText.match(new RegExp(words.map(w => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('[^a-zA-Z0-9À-ÿ]*'), 'i'));
+                            const regexStr = sampleWords.map(w => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('[^a-zA-Z0-9À-ÿ]+');
+                            const m = fullText.match(new RegExp(regexStr, 'i'));
                             if (m) { index = m.index; matchLength = m[0].length; }
-                        } catch { }
+                        } catch (e) { }
+                    }
+                }
+
+                // 3. Fallback 2: Match last few words (up to 5 words)
+                if (index === -1) {
+                    const words = normSnippet.split(' ').filter(w => w.length > 2);
+                    const sampleWords = words.slice(-Math.min(5, words.length));
+                    if (sampleWords.length >= 2) {
+                        try {
+                            const regexStr = sampleWords.map(w => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('[^a-zA-Z0-9À-ÿ]+');
+                            const m = fullText.match(new RegExp(regexStr, 'i'));
+                            if (m) { index = m.index; matchLength = m[0].length; }
+                        } catch (e) { }
+                    }
+                }
+
+                // 4. Fallback 3: Longest word
+                if (index === -1) {
+                    const words = normSnippet.split(' ').filter(w => w.length > 4);
+                    if (words.length > 0) {
+                        words.sort((a, b) => b.length - a.length);
+                        const longestWord = words[0].replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                        try {
+                            const m = fullText.match(new RegExp(longestWord, 'i'));
+                            if (m) { index = m.index; matchLength = m[0].length; }
+                        } catch (e) { }
                     }
                 }
 
@@ -91,19 +168,64 @@ async function openCitationModal(materialId, snippet, page) {
                         `<mark id="citation-highlight" style="background:#eab308;color:#000;padding:2px 6px;border-radius:4px;font-weight:bold;border:1px solid #ca8a04;box-shadow:0 0 10px rgba(234,179,8,0.4);">` +
                         esc(fullText.substring(index, index + matchLength)) + '</mark>' +
                         esc(fullText.substring(index + matchLength));
-                    setTimeout(() => {
-                        const c = document.getElementById('citation-modal-content');
-                        const hl = document.getElementById('citation-highlight');
-                        if (c && hl) c.scrollTo({ top: c.scrollTop + hl.getBoundingClientRect().top - c.getBoundingClientRect().top - (c.clientHeight / 2), behavior: 'smooth' });
-                    }, 250);
-                    return;
+                    highlighted = true;
                 }
             }
-            contentEl.textContent = fullText;
+
+            if (!highlighted) {
+                contentEl.textContent = fullText;
+            }
+
+            // Setup PDF View if available
+            if (data.has_pdf && data.pdf_url && pdfContentEl && tabsEl) {
+                // Show tabs header
+                tabsEl.style.display = 'flex';
+                
+                // Embed PDF
+                const pdfPage = data.pdf_page || (page && page !== 'n/a' ? page : null);
+                const cleanSnippet = snippet ? snippet.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\[\]?]/g, '').replace(/\s+/g, ' ').trim() : '';
+                const words = cleanSnippet.split(' ').filter(w => w.length > 2);
+                const searchPhrase = words.slice(0, 4).join(' '); // 4 words is a safe length for browser search
+                
+                let pdfParams = [];
+                if (pdfPage) pdfParams.push(`page=${pdfPage}`);
+                if (searchPhrase) pdfParams.push(`search=${encodeURIComponent(searchPhrase)}`);
+                
+                const pdfUrl = pdfParams.length > 0 ? `${data.pdf_url}#${pdfParams.join('&')}` : data.pdf_url;
+                pdfContentEl.innerHTML = `<iframe src="${pdfUrl}" style="width:100%;height:100%;border:none;border-radius:4px;background:white;"></iframe>`;
+                
+                // Connect tab events
+                if (textBtn) textBtn.onclick = () => switchCitationModalTab('text');
+                if (pdfBtn) pdfBtn.onclick = () => switchCitationModalTab('pdf');
+                
+                // Show PDF tab by default as requested to load inside the PDF viewer
+                switchCitationModalTab('pdf');
+            } else {
+                if (tabsEl) tabsEl.style.display = 'none';
+                if (pdfContentEl) {
+                    pdfContentEl.style.display = 'none';
+                    pdfContentEl.innerHTML = '';
+                }
+                contentEl.style.display = 'block';
+            }
+
+            // Smooth scroll to highlight after a short delay
+            if (highlighted) {
+                setTimeout(() => {
+                    const hl = document.getElementById('citation-highlight');
+                    if (contentEl && hl) {
+                        contentEl.scrollTo({
+                            top: contentEl.scrollTop + hl.getBoundingClientRect().top - contentEl.getBoundingClientRect().top - (contentEl.clientHeight / 2),
+                            behavior: 'smooth'
+                        });
+                    }
+                }, 250);
+            }
         } else {
             contentEl.innerHTML = `<div style="color:var(--accent-pink);text-align:center;padding:20px;"><i class="fa-solid fa-triangle-exclamation" style="margin-bottom:10px;font-size:24px;"></i><br>${data.error || 'Erro ao carregar o conteúdo do material.'}</div>`;
         }
-    } catch {
+    } catch (err) {
+        console.error(err);
         contentEl.innerHTML = '<div style="color:var(--accent-pink);text-align:center;padding:20px;">Erro de rede ao carregar citação.</div>';
     }
 }
@@ -269,6 +391,7 @@ window.deleteMaterial = deleteMaterial;
 window.deleteProductionContext = deleteProductionContext;
 window.resetChatHistory = resetChatHistory;
 window.openCitationModal = openCitationModal;
+window.switchCitationModalTab = switchCitationModalTab;
 window.applyChatToEditor = applyChatToEditor;
 window.applyProposedChange = applyProposedChange;
 

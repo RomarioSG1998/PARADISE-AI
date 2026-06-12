@@ -95,7 +95,18 @@ async def generate_writer_chat_response_async(env_id, user_message, username, ac
             "2. Não reescreva o documento inteiro, reescreva APENAS o trecho selecionado.\n"
             "3. Mantenha 'document_update' as null.\n"
             "4. Vá direto ao ponto.\n"
-            "5. REQUISITO DE CITAÇÃO (ABNT): O texto citado deve aparecer por extenso no corpo do documento. Insira imediatamente após o texto citado a tag contendo APENAS a indicação bibliográfica ABNT: `<span class=\"writer-citation\" data-material-id=\"ID_DO_MATERIAL\" data-snippet=\"trecho exato citado de 10-50 palavras consecutivas\" data-page=\"X\">(SOBRENOME, Ano, p. X)</span>`. A tag deve conter unicamente os parênteses da citação bibliográfica, funcionando apenas como link de verificação para o usuário."
+            "5. REQUISITO DE CITAÇÃO ACADÊMICA OBRIGATÓRIA (ABNT):\n"
+            "   Ao basear-se ou citar trechos das referências fornecidas (Base Teórica), você DEVE obrigatoriamente incluir a tag de citação. O texto citado deve aparecer por extenso no corpo do documento.\n"
+            "   Insira imediatamente após o texto citado a tag contendo APENAS a indicação bibliográfica ABNT entre parênteses: "
+            "`<span class=\"writer-citation\" data-material-id=\"ID_DO_MATERIAL\" data-snippet=\"trecho exato de 10-50 palavras consecutivas do texto original da referência\" data-page=\"X\">(SOBRENOME, Ano, p. X)</span>`.\n"
+            "   REGRAS DE OURO PARA CITAÇÕES:\n"
+            "   - `data-material-id`: Substitua pelo ID exato do material fornecido no título do material (ex: se o título for '--- BASE TEÓRICA: Guia (ID: 15) ---', o ID é '15').\n"
+            "   - `data-snippet`: Cole um trecho de 10 a 50 palavras consecutivas COMPLETAMENTE IDÊNTICO (verbatim) ao texto original da referência (não traduza, não altere pontuação ou palavras, deve ser idêntico para que a busca encontre no arquivo base).\n"
+            "   - `data-page`: Insira a página estimada ou real em que o trecho original está, ou 'n/a' se não souber.\n"
+            "   - NÃO envolva a frase ou o parágrafo inteiro na tag `writer-citation`. A tag deve conter unicamente os parênteses da citação bibliográfica, servindo como link clicável de verificação.\n"
+            "   - EXEMPLO:\n"
+            "     Se o material tiver ID '42' e contiver a frase 'O método experimental consiste em submeter os objetos de estudo a variáveis...', e você usou isso, escreva no texto:\n"
+            "     'O método experimental consiste em submeter os objetos de estudo a variáveis <span class=\"writer-citation\" data-material-id=\"42\" data-snippet=\"O método experimental consiste em submeter os objetos de estudo a variáveis\" data-page=\"15\">(SILVA, 2020, p. 15)</span>.'"
         )
     else:
         system_prompt = (
@@ -112,9 +123,18 @@ async def generate_writer_chat_response_async(env_id, user_message, username, ac
             "1. EDITE O DOCUMENTO APENAS SE SOLICITADO: Retorne o campo 'document_update' como null a menos que o usuário EXPLICITAMENTE peça para você escrever, reescrever, alterar, formatar ou inserir algo no texto do editor (a 'folha'). Se ele pedir para modificar o documento, retorne o HTML atualizado do documento COMPLETO no campo 'document_update'.\n"
             "2. CONVERSA PADRÃO: Se o usuário estiver apenas fazendo uma pergunta, conversando normalmente, pedindo ideias, ou pedindo feedback/crítica sobre o texto (sem pedir para você alterar o texto), você DEVE retornar 'document_update' as null. Sua resposta deve ir apenas no campo 'message'.\n"
             "3. Mantenha as tags HTML básicas (<p>, <h1>, <h2>, <strong>, <em>, <ul>, <li>) no seu 'document_update' para não perder a formatação.\n"
-            "4. REQUISITO DE CITAÇÃO ACADÊMICA (ABNT): O texto citado (direta ou indiretamente) DEVE ser escrito por extenso no corpo do documento (ou da resposta no chat). Imediatamente após esse texto, você deve adicionar a indicação bibliográfica de citação formatada de acordo com as normas ABNT (ex: (SOBRENOME, Ano, p. X) ou (SOBRENOME, Ano)) envolta na seguinte tag HTML de verificação:\n"
-            "   `<span class=\"writer-citation\" data-material-id=\"ID_DO_MATERIAL\" data-snippet=\"trecho exato de 10-50 palavras consecutivas do texto original da referência\" data-page=\"X\">(SOBRENOME, Ano, p. X)</span>`\n"
-            "   NÃO envolva a frase ou o parágrafo inteiro na tag `writer-citation`. A tag deve envolver unicamente a indicação entre parênteses. Ela servirá como link clicável para o usuário validar a fonte original no arquivo base. Insira o ID correto do material e a página estimada (se disponível).\n"
+            "4. REQUISITO DE CITAÇÃO ACADÊMICA OBRIGATÓRIA (ABNT):\n"
+            "   Ao basear-se ou citar trechos das referências fornecidas (Base Teórica), você DEVE obrigatoriamente incluir a tag de citação. O texto citado deve aparecer por extenso no corpo do documento (ou da resposta no chat).\n"
+            "   Insira imediatamente após o texto citado a tag contendo APENAS a indicação bibliográfica ABNT entre parênteses: "
+            "`<span class=\"writer-citation\" data-material-id=\"ID_DO_MATERIAL\" data-snippet=\"trecho exato de 10-50 palavras consecutivas do texto original da referência\" data-page=\"X\">(SOBRENOME, Ano, p. X)</span>`.\n"
+            "   REGRAS DE OURO PARA CITAÇÕES:\n"
+            "   - `data-material-id`: Substitua pelo ID exato do material fornecido no título do material (ex: se o título for '--- BASE TEÓRICA: Guia (ID: 15) ---', o ID é '15').\n"
+            "   - `data-snippet`: Cole um trecho de 10 a 50 palavras consecutivas COMPLETAMENTE IDÊNTICO (verbatim) ao texto original da referência (não traduza, não altere pontuação ou palavras, deve ser idêntico para que a busca encontre no arquivo base).\n"
+            "   - `data-page`: Insira a página estimada ou real em que o trecho original está, ou 'n/a' se não souber.\n"
+            "   - NÃO envolva a frase ou o parágrafo inteiro na tag `writer-citation`. A tag deve conter unicamente os parênteses da citação bibliográfica, servindo como link clicável de verificação.\n"
+            "   - EXEMPLO:\n"
+            "     Se o material tiver ID '42' e contiver a frase 'O método experimental consiste em submeter os objetos de estudo a variáveis...', e você usou isso, escreva no texto:\n"
+            "     'O método experimental consiste em submeter os objetos de estudo a variáveis <span class=\"writer-citation\" data-material-id=\"42\" data-snippet=\"O método experimental consiste em submeter os objetos de estudo a variáveis\" data-page=\"15\">(SILVA, 2020, p. 15)</span>.'"
         )
 
     if models_context:
