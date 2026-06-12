@@ -35,7 +35,15 @@ export const classTranslations = {
         styleMedieval: "Arte Medieval (Idade Média)",
         styleCaveman: "Arte do Homem das Cavernas (Caveman)",
         styleAnime: "Anime / Desenho Japonês",
-        styleDisney: "Disney 3D / Pixar"
+        styleDisney: "Disney 3D / Pixar",
+        lblLayout: "Layout:",
+        optLayoutSplit: "Lado a Lado",
+        optLayoutBackground: "Fundo Inteiro",
+        lblAnimation: "Animação:",
+        optAnimNone: "Sem Animação",
+        optAnimZoomIn: "Zoom Lento (Ken Burns)",
+        optAnimEntrance: "Zoom ao Entrar",
+        optAnimPulse: "Pulsar Suave"
     },
     en: {
         backBtn: "<i class='fa-solid fa-arrow-left'></i> General Dashboard",
@@ -73,7 +81,15 @@ export const classTranslations = {
         styleMedieval: "Medieval Art (Middle Ages)",
         styleCaveman: "Caveman Art (Stone Age)",
         styleAnime: "Anime / Japanese Art",
-        styleDisney: "Disney 3D / Pixar"
+        styleDisney: "Disney 3D / Pixar",
+        lblLayout: "Layout:",
+        optLayoutSplit: "Side by Side",
+        optLayoutBackground: "Full Background",
+        lblAnimation: "Animation:",
+        optAnimNone: "No Animation",
+        optAnimZoomIn: "Slow Zoom (Ken Burns)",
+        optAnimEntrance: "Zoom on Entrance",
+        optAnimPulse: "Soft Pulse"
     },
     es: {
         backBtn: "<i class='fa-solid fa-arrow-left'></i> Panel General",
@@ -111,6 +127,14 @@ export const classTranslations = {
         styleMedieval: "Arte Medieval (Edad Media)",
         styleCaveman: "Arte de los Cavernícolas (Caveman)",
         styleAnime: "Anime / Dibujo Japonés",
-        styleDisney: "Disney 3D / Pixar"
+        styleDisney: "Disney 3D / Pixar",
+        lblLayout: "Diseño:",
+        optLayoutSplit: "Lado a Lado",
+        optLayoutBackground: "Fondo Completo",
+        lblAnimation: "Animación:",
+        optAnimNone: "Sin Animación",
+        optAnimZoomIn: "Zoom Lento (Ken Burns)",
+        optAnimEntrance: "Zoom al Entrar",
+        optAnimPulse: "Pulsar Suave"
     }
 };

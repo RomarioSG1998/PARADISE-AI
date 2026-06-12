@@ -135,9 +135,16 @@ export async function loadSlide(idx) {
         elements.boardImage.src = proxyUrl;
         elements.boardImage.onclick = () => window.open(rawUrl, '_blank');
         elements.boardImage.style.cursor = 'pointer';
+        if (elements.blackboardBgImage) {
+            elements.blackboardBgImage.src = proxyUrl;
+        }
     } else {
         elements.boardImage.src = '';
+        if (elements.blackboardBgImage) {
+            elements.blackboardBgImage.src = '';
+        }
     }
+    applyBoardVisualSettings();
     
     // Reset Audio
     elements.audioEl.pause();
@@ -332,9 +339,16 @@ export async function loadExplanation(explanation) {
         elements.boardImage.src = proxyUrl;
         elements.boardImage.onclick = () => window.open(rawUrl, '_blank');
         elements.boardImage.style.cursor = 'pointer';
+        if (elements.blackboardBgImage) {
+            elements.blackboardBgImage.src = proxyUrl;
+        }
     } else {
         elements.boardImage.src = '';
+        if (elements.blackboardBgImage) {
+            elements.blackboardBgImage.src = '';
+        }
     }
+    applyBoardVisualSettings();
 
     // Prepare Narration
     const narration = explanation.narration || '';
@@ -403,6 +417,50 @@ export function returnToLesson() {
     
     // Reload original slide
     loadSlide(state.currentSlideIdx);
+}
+
+export function applyBoardVisualSettings() {
+    const boardEl = document.querySelector('.blackboard');
+    if (!boardEl) return;
+    
+    // Apply Image Mode layout (split vs background)
+    if (state.imageMode === 'background') {
+        boardEl.classList.add('background-mode');
+    } else {
+        boardEl.classList.remove('background-mode');
+    }
+    
+    // Sync UI selectors
+    if (elements.boardImgModeSelect) {
+        elements.boardImgModeSelect.value = state.imageMode;
+    }
+    if (elements.boardAnimSelect) {
+        elements.boardAnimSelect.value = state.animationStyle;
+    }
+    
+    // Apply Animation Style
+    const bgImageEl = elements.blackboardBgImage;
+    const sideImageEl = elements.boardImage;
+    
+    if (bgImageEl) {
+        bgImageEl.classList.remove('anim-ken-burns', 'anim-zoom-entrance', 'anim-pulse');
+    }
+    if (sideImageEl) {
+        sideImageEl.classList.remove('anim-ken-burns', 'anim-zoom-entrance', 'anim-pulse');
+    }
+    
+    // Force animation restart by reflowing
+    if (bgImageEl) void bgImageEl.offsetWidth;
+    if (sideImageEl) void sideImageEl.offsetWidth;
+    
+    const animClass = state.animationStyle === 'zoom-in' ? 'anim-ken-burns' :
+                      state.animationStyle === 'entrance' ? 'anim-zoom-entrance' :
+                      state.animationStyle === 'pulse' ? 'anim-pulse' : '';
+                      
+    if (animClass) {
+        if (bgImageEl) bgImageEl.classList.add(animClass);
+        if (sideImageEl) sideImageEl.classList.add(animClass);
+    }
 }
 
 // composeThumbnailWithTitle is now imported from ../shared/thumbnail.js

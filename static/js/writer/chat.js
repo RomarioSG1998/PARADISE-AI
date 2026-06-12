@@ -105,7 +105,7 @@ export function renderChatMessages(msgs) {
 
 // ── Send Message ──────────────────────────────────────────────────────────────
 
-export async function sendChatMessage(loadAgentsCallback) {
+export async function sendChatMessage() {
     const chatInput = getEl('chat-input');
     const chatSendBtn = getEl('chat-send-btn');
     const container = getEl('chat-messages-container');
@@ -140,7 +140,6 @@ export async function sendChatMessage(loadAgentsCallback) {
         container?.querySelector('.loading-bubble')?.remove();
 
         if (data.success) {
-            if (loadAgentsCallback) loadAgentsCallback();
             await loadChatMessages(true);
 
             if (data.document_update != null) {
