@@ -43,7 +43,10 @@ export const classTranslations = {
         optAnimNone: "Sem Animação",
         optAnimZoomIn: "Zoom Lento (Ken Burns)",
         optAnimEntrance: "Zoom ao Entrar",
-        optAnimPulse: "Pulsar Suave"
+        optAnimPulse: "Pulsar Suave",
+        lblFormatLabel: "Formato",
+        optFormatYoutube: "YouTube (16:9)",
+        optFormatStories: "Stories (9:16)"
     },
     en: {
         backBtn: "<i class='fa-solid fa-arrow-left'></i> General Dashboard",
@@ -89,7 +92,10 @@ export const classTranslations = {
         optAnimNone: "No Animation",
         optAnimZoomIn: "Slow Zoom (Ken Burns)",
         optAnimEntrance: "Zoom on Entrance",
-        optAnimPulse: "Soft Pulse"
+        optAnimPulse: "Soft Pulse",
+        lblFormatLabel: "Format",
+        optFormatYoutube: "YouTube (16:9)",
+        optFormatStories: "Stories (9:16)"
     },
     es: {
         backBtn: "<i class='fa-solid fa-arrow-left'></i> Panel General",
@@ -135,6 +141,9 @@ export const classTranslations = {
         optAnimNone: "Sin Animación",
         optAnimZoomIn: "Zoom Lento (Ken Burns)",
         optAnimEntrance: "Zoom al Entrar",
-        optAnimPulse: "Pulsar Suave"
+        optAnimPulse: "Pulsar Suave",
+        lblFormatLabel: "Formato",
+        optFormatYoutube: "YouTube (16:9)",
+        optFormatStories: "Stories (9:16)"
     }
 };

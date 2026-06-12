@@ -9,16 +9,19 @@ export async function checkStatus() {
         
         const isConfigured = data.configured;
         const isActive = data.active;
+        
+        const lang = localStorage.getItem('paradise_language') || 'pt';
+        const t = bookTranslations[lang] || bookTranslations['pt'];
 
         if (isActive) {
             elements.statusDot.style.backgroundColor = '#10b981';
-            elements.statusLabel.textContent = 'Conectado';
+            elements.statusLabel.textContent = t.connectionOnline;
         } else if (isConfigured) {
             elements.statusDot.style.backgroundColor = '#f59e0b';
-            elements.statusLabel.textContent = 'Inativo/Erro';
+            elements.statusLabel.textContent = lang === 'en' ? 'Inactive/Error' : (lang === 'es' ? 'Inactivo/Error' : 'Inativo/Erro');
         } else {
             elements.statusDot.style.backgroundColor = '#ef4444';
-            elements.statusLabel.textContent = 'Desconectado';
+            elements.statusLabel.textContent = t.connectionOffline;
         }
     } catch (err) {
         elements.statusDot.style.backgroundColor = '#ef4444';

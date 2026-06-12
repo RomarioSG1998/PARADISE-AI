@@ -106,7 +106,7 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            max-width: 650px;
+            max-width: 950px;
             margin: 0 auto;
         }
 
@@ -1282,4 +1282,78 @@
         grid-column: 1 !important;
     }
 }
+
+/* --- BOOK STORIES MODE --- */
+.book-container.stories-mode {
+    max-width: 390px !important;
+    width: 100% !important;
+    height: 100% !important;
+    aspect-ratio: 9 / 16 !important;
+    margin: 0 auto !important;
+}
+
+.book-container.stories-mode .book-columns-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+}
+
+.book-container.stories-mode .book-column-illustration .illustration-frame {
+    width: 100% !important;
+    height: 280px !important;
+    max-height: 35vh !important;
+    aspect-ratio: 9 / 16 !important;
+}
+
+.book-container.stories-mode .book-column-text {
+    max-height: calc(100vh - 460px) !important;
+}
+
+.book-container.stories-mode .book-text {
+    font-size: 1.1rem !important;
+}
+
+.book-container.stories-mode .chapter-title {
+    font-size: 1.3rem !important;
+    padding: 0.4rem 0.8rem !important;
+    margin-bottom: 0.6rem !important;
+}
+
+/* Stories mode recording overrides */
+.book-outer-container.recording-mode.stories-mode {
+    background: #000000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.book-outer-container.recording-mode.stories-mode .book-container {
+    width: calc(100vh * 9 / 16) !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    aspect-ratio: 9 / 16 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 auto !important;
+}
+
+.book-outer-container.recording-mode.stories-mode .book-columns-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+}
+
+.book-outer-container.recording-mode.stories-mode .book-column-illustration .illustration-frame {
+    width: 100% !important;
+    height: 360px !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+}
+
+.book-outer-container.recording-mode.stories-mode .book-text p {
+    font-size: 1.25rem !important;
+    line-height: 1.5 !important;
+    margin-bottom: 0.75rem !important;
+}
+
 

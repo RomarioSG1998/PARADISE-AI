@@ -61,6 +61,17 @@ export function loadLessonFromHistory(lessonId) {
         elements.setupPanel.style.display = 'none';
         elements.stagePanel.style.display = 'flex';
         
+        const isStories = lesson.output_format === 'stories';
+        const stage = elements.stagePanel;
+        const blackboard = document.querySelector('.blackboard');
+        if (isStories) {
+            stage.classList.add('stories-mode');
+            if (blackboard) blackboard.classList.add('stories-mode');
+        } else {
+            stage.classList.remove('stories-mode');
+            if (blackboard) blackboard.classList.remove('stories-mode');
+        }
+        
         // Hide reservoir sidebar
         if (elements.reservoirSidebar) {
             elements.reservoirSidebar.classList.remove('active');

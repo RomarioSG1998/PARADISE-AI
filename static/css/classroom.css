@@ -1357,4 +1357,127 @@
         0 0 5px rgba(255, 255, 255, 0.6) !important;
 }
 
+/* --- CLASSROOM STORIES MODE --- */
+.stage-panel.stories-mode {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+}
+
+.stage-panel.stories-mode .classroom-board-area {
+    width: 100% !important;
+    max-width: 390px !important;
+    aspect-ratio: 9 / 16 !important;
+    min-height: auto !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.stage-panel.stories-mode .blackboard {
+    flex: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 1.5rem !important;
+    box-sizing: border-box !important;
+}
+
+.stage-panel.stories-mode .board-title {
+    font-size: 1.5rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.stage-panel.stories-mode .board-content {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    padding-bottom: 120px !important; /* Make room for floating avatar/teleprompter */
+    align-items: stretch !important;
+}
+
+.stage-panel.stories-mode .bullets-list {
+    font-size: 1.15rem !important;
+    gap: 0.75rem !important;
+}
+
+.stage-panel.stories-mode .board-illustration {
+    min-height: 180px !important;
+    height: 180px !important;
+}
+
+.stage-panel.stories-mode .avatar-container {
+    width: calc(100% - 3rem) !important;
+    bottom: 1rem !important;
+    left: 1.5rem !important;
+    padding: 0.5rem !important;
+}
+
+.stage-panel.stories-mode .avatar-container .teacher-avatar {
+    width: 70px !important;
+    height: 70px !important;
+    border-width: 2px !important;
+}
+
+.stage-panel.stories-mode .avatar-container .simple-subtitle-box {
+    height: 48px !important;
+    max-height: 48px !important;
+    font-size: 0.75rem !important;
+    padding: 0.25rem !important;
+}
+
+/* Stories mode recording overrides */
+.classroom-board-area.recording-mode.stories-mode {
+    background: #000000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.classroom-board-area.recording-mode.stories-mode .blackboard {
+    width: calc(100vh * 9 / 16) !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    aspect-ratio: 9 / 16 !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 2.5rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+}
+
+.classroom-board-area.recording-mode.stories-mode .board-title {
+    font-size: 2.5rem !important;
+    margin-bottom: 1.5rem !important;
+}
+
+.classroom-board-area.recording-mode.stories-mode .board-content {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+    padding-bottom: 0 !important;
+    align-items: stretch !important;
+}
+
+.classroom-board-area.recording-mode.stories-mode .bullets-list li {
+    font-size: 1.8rem !important;
+    margin-bottom: 1.5rem !important;
+    line-height: 1.4 !important;
+}
+
+.classroom-board-area.recording-mode.stories-mode .board-illustration {
+    min-height: 350px !important;
+    height: 350px !important;
+}
+
 

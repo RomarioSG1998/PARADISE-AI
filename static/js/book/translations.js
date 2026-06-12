@@ -27,7 +27,10 @@ export const bookTranslations = {
         themeOptionDisney: "Disney 3D / Pixar",
         lblBookLayout: "Layout:",
         layoutOptionSplit: "Lado a Lado",
-        layoutOptionBackground: "Texto sobre Fundo"
+        layoutOptionBackground: "Texto sobre Fundo",
+        lblBookFormat: "Formato",
+        formatOptionYoutube: "YouTube (16:9)",
+        formatOptionStories: "Stories (9:16)"
     },
     en: {
         brandTitle: "Book Generator Pro",
@@ -57,12 +60,15 @@ export const bookTranslations = {
         themeOptionDisney: "Disney 3D / Pixar",
         lblBookLayout: "Layout:",
         layoutOptionSplit: "Side by Side",
-        layoutOptionBackground: "Text over Background"
+        layoutOptionBackground: "Text over Background",
+        lblBookFormat: "Format",
+        formatOptionYoutube: "YouTube (16:9)",
+        formatOptionStories: "Stories (9:16)"
     },
     es: {
         brandTitle: "Generador de Libros Pro",
         panelTitle: "¡Cree su Libro de Dibujos Animados!",
-        panelDesc: "Complete los campos a continuación y vea cómo su libro cobra vida con audio y hermosas imágenes.",
+        panelDesc: "Complete los campos a continuación y vea cómo su libro cobra vida con audio y hermosas imagens.",
         lblTheme: "¿De qué tratará la historia?",
         placeholderTheme: "Ej: Un pequeño dinosaurio azul que perdió su juguete, El misterio del castillo volador...",
         lblLevel: "Nivel de Lectura",
@@ -87,6 +93,9 @@ export const bookTranslations = {
         themeOptionDisney: "Disney 3D / Pixar",
         lblBookLayout: "Diseño:",
         layoutOptionSplit: "Lado a Lado",
-        layoutOptionBackground: "Texto sobre Fondo"
+        layoutOptionBackground: "Texto sobre Fondo",
+        lblBookFormat: "Formato",
+        formatOptionYoutube: "YouTube (16:9)",
+        formatOptionStories: "Stories (9:16)"
     }
 };

@@ -107,7 +107,7 @@ def sanitize_image_prompt(prompt: str, style: str) -> str:
         
     return cleaned
 
-async def generate_classroom_async(content: str, lang_code: str, duration_min="3", style: str = "classic", username=None):
+async def generate_classroom_async(content: str, lang_code: str, duration_min="3", style: str = "classic", output_format="youtube", username=None):
     try:
         num_slides = max(2, min(20, int(duration_min) * 2))
     except ValueError:
@@ -253,7 +253,7 @@ Retorne exatamente {num_slides} slides. Retorne apenas o bloco JSON válido, sem
         # Inject selected style modifiers
         full_img_prompt = f"Gere uma imagem de: {cleaned_prompt}.{style_suffix}"
         
-        img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username)
+        img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username, output_format=output_format)
         if img_url:
             slide["image_url"] = img_url
         else:
@@ -262,7 +262,7 @@ Retorne exatamente {num_slides} slides. Retorne apenas o bloco JSON válido, sem
     # Generate the YouTube Thumbnail
     thumb_base_prompt = lesson_data.get("thumbnail_prompt", f"A beautiful cinematic cover artwork for an educational video about {lesson_data.get('subject', 'education')}")
     full_thumb_prompt = f"{thumb_base_prompt}.{thumb_suffix}"
-    thumb_url, thumb_err = await generate_image_unified_async(full_thumb_prompt, username=username)
+    thumb_url, thumb_err = await generate_image_unified_async(full_thumb_prompt, username=username, output_format=output_format)
     if thumb_url:
         lesson_data["thumbnail_url"] = thumb_url
     else:
@@ -271,7 +271,7 @@ Retorne exatamente {num_slides} slides. Retorne apenas o bloco JSON válido, sem
     return lesson_data
 
 
-async def generate_classroom_explanation_async(subject: str, slide_title: str, slide_narration: str, question: str, lang_code: str, style: str = "classic", username=None):
+async def generate_classroom_explanation_async(subject: str, slide_title: str, slide_narration: str, question: str, lang_code: str, style: str = "classic", output_format="youtube", username=None):
     lang_names = {
         "pt": "Português (Brasil)",
         "en": "Inglês",
@@ -389,7 +389,7 @@ Retorne apenas o bloco JSON válido, sem texto adicional antes ou depois."""
     cleaned_prompt = sanitize_image_prompt(img_prompt, style)
     full_img_prompt = f"Gere uma imagem de: {cleaned_prompt}.{style_suffix}"
     
-    img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username)
+    img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username, output_format=output_format)
     if img_url:
         explanation_data["image_url"] = img_url
     else:

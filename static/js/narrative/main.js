@@ -262,8 +262,13 @@ function setupEvents() {
             dom.loadingPanel.style.display = 'none';
             dom.theaterArena.style.display = 'flex';
 
-            if (state.outputFormat === 'stories') dom.theaterArena.classList.add('stories-mode');
-            else dom.theaterArena.classList.remove('stories-mode');
+            if (state.outputFormat === 'stories') {
+                dom.theaterArena.classList.add('stories-mode');
+                dom.theaterScreen?.classList.add('stories-mode');
+            } else {
+                dom.theaterArena.classList.remove('stories-mode');
+                dom.theaterScreen?.classList.remove('stories-mode');
+            }
 
             dom.storyTitle.textContent = state.narrativeData.title || "Narrativa";
             dom.storyBadge.textContent = dom.genreSelect.options[dom.genreSelect.selectedIndex].text.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').trim();

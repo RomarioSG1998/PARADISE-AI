@@ -90,6 +90,12 @@ export function applyLanguage(lang) {
     if (elements.lblBtnAsk) elements.lblBtnAsk.textContent = t.lblBtnAsk;
     if (elements.lblBtnReturn) elements.lblBtnReturn.textContent = t.lblBtnReturn;
 
+    if (elements.lblFormatLabel) elements.lblFormatLabel.textContent = t.lblFormatLabel;
+    const optFormatYoutube = document.querySelector('#classroom-format option[value="youtube"]');
+    if (optFormatYoutube) optFormatYoutube.textContent = t.optFormatYoutube;
+    const optFormatStories = document.querySelector('#classroom-format option[value="stories"]');
+    if (optFormatStories) optFormatStories.textContent = t.optFormatStories;
+
     const lblStyleLabel = document.getElementById('lbl-style-label');
     if (lblStyleLabel) lblStyleLabel.textContent = t.lblStyleLabel;
     const optStyleClassic = document.getElementById('opt-style-classic');
@@ -200,6 +206,9 @@ function setupEvents() {
             formData.append('style', styleSelect.value);
         }
         
+        const output_format = elements.classroomFormatSelect ? elements.classroomFormatSelect.value : 'youtube';
+        formData.append('output_format', output_format);
+        
         if (state.currentType === 'theme') {
             formData.append('content', elements.themeInput.value.trim());
         } else if (state.currentType === 'text') {
@@ -230,10 +239,22 @@ function setupEvents() {
             state.lessonData = await resp.json();
             state.lessonData.id = Date.now();
             state.lessonData.timestamp = new Date().toLocaleString();
+            state.lessonData.output_format = output_format;
             saveLessonToHistory(state.lessonData);
             
             elements.loadingPanel.style.display = 'none';
             elements.stagePanel.style.display = 'flex';
+            
+            const isStories = output_format === 'stories';
+            const stage = elements.stagePanel;
+            const blackboard = document.querySelector('.blackboard');
+            if (isStories) {
+                stage.classList.add('stories-mode');
+                if (blackboard) blackboard.classList.add('stories-mode');
+            } else {
+                stage.classList.remove('stories-mode');
+                if (blackboard) blackboard.classList.remove('stories-mode');
+            }
             
             state.currentSlideIdx = 0;
             renderLesson();

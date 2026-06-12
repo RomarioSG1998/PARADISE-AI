@@ -48,17 +48,26 @@ def generate_classroom():
     # Retrieve lang_code and style
     if request.is_json:
         data = request.get_json() or {}
+        print("[Paradise Debug] JSON Request Data:", data)
         lang_code = data.get("language") or request.cookies.get("paradise_language", "pt")
         style = data.get("style", "classic")
+        duration_min = data.get("duration", "3")
+        output_format = data.get("output_format", data.get("format", "youtube")).strip()
     else:
+        print("[Paradise Debug] Form Request Data:", request.form)
         lang_code = request.form.get("language") or request.cookies.get("paradise_language", "pt")
         style = request.form.get("style", "classic")
+        duration_min = request.form.get("duration", "3")
+        output_format = request.form.get("output_format", request.form.get("format", "youtube")).strip()
+
+    print(f"[Paradise Debug] Extracted parameters - type: {input_type}, style: {style}, duration: {duration_min}, output_format: {output_format}")
 
     try:
         username = session.get("username")
-        lesson_data = run_in_background(generate_classroom_async(content, lang_code, style=style, username=username))
+        lesson_data = run_in_background(generate_classroom_async(content, lang_code, duration_min=duration_min, style=style, output_format=output_format, username=username))
         return jsonify(lesson_data)
     except Exception as e:
+        print("[Paradise Debug] Error generating classroom:", e)
         return jsonify({"error": str(e)}), 500
 
 
@@ -74,6 +83,7 @@ def ask_teacher():
     question = data.get("question", "").strip()
     lang_code = data.get("language") or request.cookies.get("paradise_language", "pt")
     style = data.get("style", "classic").strip()
+    output_format = data.get("output_format", data.get("format", "youtube")).strip()
     
     if not question:
         return jsonify({"error": "A pergunta não pode ser vazia"}), 400
@@ -81,7 +91,7 @@ def ask_teacher():
     try:
         from services.classroom_service import generate_classroom_explanation_async
         username = session.get("username")
-        explanation = run_in_background(generate_classroom_explanation_async(subject, slide_title, slide_narration, question, lang_code, style=style, username=username))
+        explanation = run_in_background(generate_classroom_explanation_async(subject, slide_title, slide_narration, question, lang_code, style=style, output_format=output_format, username=username))
         return jsonify(explanation)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

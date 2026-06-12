@@ -1287,15 +1287,23 @@ header {
 /* ═══════════════════════════════════════════════════════════════
    STORIES MODE — Vertical 9:16 Player
 ═══════════════════════════════════════════════════════════════ */
-.theater-arena.stories-mode .theater-sidebar { display: none !important; }
-
 .theater-arena.stories-mode .theater-main {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
 }
 .theater-arena.stories-mode .theater-screen {
     max-width: 390px;
     width: 100%;
+    margin: 0 auto;
+}
+.theater-arena.stories-mode .theater-sidebar {
+    display: flex !important;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 390px;
     margin: 0 auto;
 }
 .theater-arena.stories-mode .screen-canvas {
@@ -1337,6 +1345,29 @@ header {
 .theater-arena.stories-mode .theater-header {
     justify-content: center;
     text-align: center;
+}
+
+/* Fullscreen stories aspect ratio locking and centered display */
+.theater-screen.stories-mode:fullscreen .screen-canvas,
+.theater-screen.stories-mode:-webkit-full-screen .screen-canvas {
+    height: 100vh !important;
+    width: calc(100vh * 9 / 16) !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    aspect-ratio: 9 / 16 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 auto !important;
+    box-shadow: none !important;
+}
+
+.theater-screen.stories-mode:fullscreen .subtitle-overlay,
+.theater-screen.stories-mode:-webkit-full-screen .subtitle-overlay {
+    bottom: 80px !important;
+    left: 20px !important;
+    right: 20px !important;
+    width: auto !important;
+    padding: 1rem 1.5rem !important;
 }
 
 /* --- VISUAL THEME SKINS FOR NARRATIVE SCREEN CANVAS --- */

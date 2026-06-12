@@ -7,7 +7,7 @@ from services.classroom_service import (
     sanitize_image_prompt
 )
 
-async def generate_book_async(theme, level, language, visual_theme="classic", duration_min="3", username=None):
+async def generate_book_async(theme, level, language, visual_theme="classic", duration_min="3", output_format="youtube", username=None):
     lang_lower = language.lower()
     style_suffix = STYLE_PROMPT_MAP.get(visual_theme, STYLE_PROMPT_MAP["classic"])
     llm_style = STYLE_LLM_PROMPT_MAP.get(visual_theme, STYLE_LLM_PROMPT_MAP["classic"])
@@ -117,7 +117,7 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
             sanitized = sanitize_image_prompt(img_prompt, visual_theme)
             full_img_prompt = f"{sanitized}. {style_suffix}"
             
-            img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username)
+            img_url, img_err = await generate_image_unified_async(full_img_prompt, username=username, output_format=output_format)
             if img_url:
                 chapter["image_url"] = img_url
             else:
@@ -128,7 +128,7 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
         sanitized_thumb = sanitize_image_prompt(thumb_base_prompt, visual_theme)
         thumb_suffix = STYLE_THUMB_MAP.get(visual_theme, STYLE_THUMB_MAP["classic"])
         full_thumb_prompt = f"Professional high-CTR YouTube video thumbnail poster artwork: {sanitized_thumb}. {thumb_suffix}"
-        thumb_url, thumb_err = await generate_image_unified_async(full_thumb_prompt, username=username)
+        thumb_url, thumb_err = await generate_image_unified_async(full_thumb_prompt, username=username, output_format=output_format)
         if thumb_url:
             book_data["thumbnail_url"] = thumb_url
         else:
@@ -138,11 +138,11 @@ Retorne APENAS o bloco JSON válido. Não inclua nenhuma introdução, marcaçã
     except Exception as e:
         return None, f"Failed to generate book: {str(e)}"
 
-async def illustrate_scene_async(prompt, visual_theme="classic", username=None):
+async def illustrate_scene_async(prompt, visual_theme="classic", output_format="youtube", username=None):
     style_suffix = STYLE_PROMPT_MAP.get(visual_theme, STYLE_PROMPT_MAP["classic"])
     sanitized = sanitize_image_prompt(prompt, visual_theme)
     full_prompt = f"{sanitized}. {style_suffix}"
-    img_url, img_err = await generate_image_unified_async(full_prompt, username=username)
+    img_url, img_err = await generate_image_unified_async(full_prompt, username=username, output_format=output_format)
     if img_url:
         return {"image_url": img_url}, None
     return None, img_err or "Nenhuma imagem retornada"

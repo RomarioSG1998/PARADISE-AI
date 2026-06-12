@@ -4,13 +4,39 @@ import { dom } from './dom.js';
 import { saveNarrativeToHistory } from './history.js';
 // composeThumbnailWithTitle lives in shared; re-exported for any external importers
 export { composeThumbnailWithTitle } from '../shared/thumbnail.js';
-import { composeThumbnailWithTitle as _compose } from '../shared/thumbnail.js';
-
-// composeThumbnailWithTitle is imported from ../shared/thumbnail.js
-
+import { composeThumbnailWithTitle as _compose, composeVerticalThumbnailWithTitle as _composeVertical } from '../shared/thumbnail.js';
 
 export function updateThumbnailUI() {
     if (!dom.thumbnailImg || !dom.thumbnailPlaceholder) return;
+
+    // Update title label based on current format and language
+    const lang = localStorage.getItem('paradise_language') || 'pt';
+    const isStories = state.outputFormat === 'stories';
+    const thumbTitleLabel = document.getElementById('thumbnail-title-label');
+    if (thumbTitleLabel) {
+        thumbTitleLabel.textContent = isStories 
+            ? (lang === 'en' ? 'Stories Cover' : lang === 'es' ? 'Portada de Stories' : 'Capa do Stories')
+            : (lang === 'en' ? 'YouTube Thumbnail' : lang === 'es' ? 'Miniatura de YouTube' : 'Thumbnail do YouTube');
+    }
+
+    // Update thumbnail container aspect ratio class
+    const thumbContainer = document.querySelector('.thumbnail-container');
+    if (thumbContainer) {
+        if (isStories) {
+            thumbContainer.style.aspectRatio = '9/16';
+        } else {
+            thumbContainer.style.aspectRatio = '16/9';
+        }
+    }
+
+    if (dom.btnDownloadThumbnail) {
+        dom.btnDownloadThumbnail.innerHTML = `<i class="fa-solid fa-download"></i> ` + 
+            (lang === 'en' ? 'Download' : lang === 'es' ? 'Descargar' : 'Baixar');
+    }
+    if (dom.btnChangeThumbnail) {
+        dom.btnChangeThumbnail.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> ` + 
+            (lang === 'en' ? 'Change' : lang === 'es' ? 'Cambiar' : 'Mudar');
+    }
 
     if (state.narrativeData && state.narrativeData.thumbnail_url) {
         let rawUrl = state.narrativeData.thumbnail_url;
@@ -20,7 +46,8 @@ export function updateThumbnailUI() {
         }
 
         const title = (state.narrativeData.title || '').trim();
-        _compose(proxyUrl, title)
+        const composeFn = isStories ? _composeVertical : _compose;
+        composeFn(proxyUrl, title)
             .then(dataUrl => {
                 state._composedThumbnailDataUrl = dataUrl;
                 dom.thumbnailImg.src = dataUrl;
@@ -63,12 +90,20 @@ export function resetThumbnailUI() {
 export function setupThumbnailEvents() {
     if (dom.btnChangeThumbnail) {
         dom.btnChangeThumbnail.addEventListener('click', async () => {
+            const isStories = state.outputFormat === 'stories';
+            const msgPt = isStories 
+                ? "Digite as instruções/prompt para a nova Capa do Stories (ou deixe em branco para regenerar baseado no título):" 
+                : "Digite as instruções/prompt para a nova Thumbnail do YouTube (ou deixe em branco para regenerar baseado no título):";
+            const msgEn = isStories 
+                ? "Enter instructions/prompt for the new Stories Cover (or leave blank to regenerate based on story title):" 
+                : "Enter instructions/prompt for the new YouTube thumbnail (or leave blank to regenerate based on story title):";
+            const msgEs = isStories 
+                ? "Ingrese instrucciones/prompt para la nueva portada de Stories (o deje en blanco para regenerar según el título):" 
+                : "Ingrese instrucciones/prompt para la nueva miniatura de YouTube (o deje en blanco para regenerar según el título):";
+
             const customPrompt = prompt(
-                localStorage.getItem('paradise_language') === 'en'
-                    ? "Enter instructions/prompt for the new YouTube thumbnail (or leave blank to regenerate based on story title):"
-                    : localStorage.getItem('paradise_language') === 'es'
-                        ? "Ingrese instrucciones/prompt para la nueva miniatura de YouTube (o deixe en blanco para regenerar según el título):"
-                        : "Digite as instruções/prompt para a nova Thumbnail do YouTube (ou deixe em branco para regenerar baseado no título):"
+                localStorage.getItem('paradise_language') === 'en' ? msgEn :
+                localStorage.getItem('paradise_language') === 'es' ? msgEs : msgPt
             );
             if (customPrompt === null) return;
 

@@ -54,13 +54,70 @@ export function setupClassroomExporter() {
                 audioTrack = stream.getAudioTracks()[0];
             }
 
-            const tracks = [stream.getVideoTracks()[0]];
-            if (audioTrack) tracks.push(audioTrack);
-            const combinedStream = new MediaStream(tracks);
+            let finalStream;
+            let canvasAnimFrame = null;
+            let recordVideoEl = null;
+            let canvasStream = null;
+
+            const isStories = state.lessonData.output_format === 'stories';
+            if (isStories) {
+                videoArea.classList.add('stories-mode');
+            } else {
+                videoArea.classList.remove('stories-mode');
+            }
+
+            if (isStories) {
+                // Stories Mode: Crop the center 9:16 region
+                recordVideoEl = document.createElement('video');
+                recordVideoEl.srcObject = stream;
+                recordVideoEl.autoplay = true;
+                recordVideoEl.playsInline = true;
+                recordVideoEl.muted = true;
+                
+                // Wait for the video metadata to load so we know its width/height
+                await new Promise((resolve) => {
+                    recordVideoEl.onloadedmetadata = resolve;
+                });
+                await recordVideoEl.play();
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 720;
+                canvas.height = 1280;
+                const ctx = canvas.getContext('2d');
+
+                const drawFrame = () => {
+                    if (recordVideoEl.paused || recordVideoEl.ended) return;
+
+                    const videoWidth = recordVideoEl.videoWidth;
+                    const videoHeight = recordVideoEl.videoHeight;
+
+                    // Crop 9:16 area from the center of the video stream
+                    const sourceHeight = videoHeight;
+                    const sourceWidth = videoHeight * (9 / 16);
+                    const sourceX = (videoWidth - sourceWidth) / 2;
+                    const sourceY = 0;
+
+                    ctx.drawImage(recordVideoEl, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+                    canvasAnimFrame = requestAnimationFrame(drawFrame);
+                };
+
+                drawFrame();
+
+                canvasStream = canvas.captureStream(30);
+                const croppedVideoTrack = canvasStream.getVideoTracks()[0];
+                
+                const tracks = [croppedVideoTrack];
+                if (audioTrack) tracks.push(audioTrack);
+                finalStream = new MediaStream(tracks);
+            } else {
+                const tracks = [stream.getVideoTracks()[0]];
+                if (audioTrack) tracks.push(audioTrack);
+                finalStream = new MediaStream(tracks);
+            }
 
             recordedChunks = [];
             const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
-            mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
+            mediaRecorder = new MediaRecorder(finalStream, { mimeType });
 
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) recordedChunks.push(event.data);
@@ -72,11 +129,32 @@ export function setupClassroomExporter() {
                 if (document.fullscreenElement) document.exitFullscreen();
                 videoArea.style.cursor = 'default';
                 videoArea.classList.remove('recording-mode');
+                
+                const originallyStories = state.lessonData.output_format === 'stories';
+                const stage = elements.stagePanel;
+                const blackboard = document.querySelector('.blackboard');
+                if (originallyStories) {
+                    if (stage) stage.classList.add('stories-mode');
+                    if (blackboard) blackboard.classList.add('stories-mode');
+                    videoArea.classList.add('stories-mode');
+                } else {
+                    if (stage) stage.classList.remove('stories-mode');
+                    if (blackboard) blackboard.classList.remove('stories-mode');
+                    videoArea.classList.remove('stories-mode');
+                }
+
                 elements.exportStatus.style.display = 'none';
                 elements.btnExportVideo.disabled = false;
                 if (lblExport) lblExport.textContent = 'Gravar Aula';
                 if (stopCheckInterval) clearInterval(stopCheckInterval);
+                if (canvasAnimFrame) cancelAnimationFrame(canvasAnimFrame);
+                if (recordVideoEl) {
+                    recordVideoEl.pause();
+                    recordVideoEl.srcObject = null;
+                }
+
                 stream.getTracks().forEach(t => t.stop());
+                if (canvasStream) canvasStream.getTracks().forEach(t => t.stop());
             };
 
             mediaRecorder.onstop = () => {

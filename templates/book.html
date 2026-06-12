@@ -71,7 +71,7 @@
                         </div>
                     </div>
 
-                    <div class="form-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+                    <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1.25rem;">
                         <div class="form-group">
                             <label for="book-level">Nível de Leitura</label>
                             <select id="book-level">
@@ -114,6 +114,14 @@
                                 <option value="caveman">Arte do Homem das Cavernas (Caveman)</option>
                                 <option value="anime">Anime / Desenho Japonês</option>
                                 <option value="disney">Disney 3D / Pixar</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="book-format" id="lbl-book-format">Formato</label>
+                            <select id="book-format">
+                                <option value="youtube" selected>YouTube (16:9)</option>
+                                <option value="stories">Stories (9:16)</option>
                             </select>
                         </div>
                     </div>

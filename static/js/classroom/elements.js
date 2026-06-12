@@ -59,6 +59,8 @@ export const elements = {
     exportStatus: document.getElementById('export-status'),
     boardImgModeSelect: document.getElementById('board-img-mode-select'),
     boardAnimSelect: document.getElementById('board-anim-select'),
-    blackboardBgImage: document.getElementById('blackboard-bg-image')
+    blackboardBgImage: document.getElementById('blackboard-bg-image'),
+    classroomFormatSelect: document.getElementById('classroom-format'),
+    lblFormatLabel: document.getElementById('lbl-format-label')
 };
 

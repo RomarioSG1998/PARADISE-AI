@@ -37,6 +37,7 @@ export async function handleAskQuestion() {
 
     try {
         const currentSlide = state.lessonData.slides[state.currentSlideIdx];
+        const output_format = state.lessonData.output_format || 'youtube';
         const response = await fetch('/api/classroom/ask', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -46,7 +47,8 @@ export async function handleAskQuestion() {
                 slide_narration: currentSlide.narration,
                 question,
                 language: currentLang,
-                style: state.lessonData.style || 'classic'
+                style: state.lessonData.style || 'classic',
+                output_format: output_format
             })
         });
 

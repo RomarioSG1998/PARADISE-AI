@@ -51,6 +51,7 @@ export const dom = {
 
     audioEl: document.getElementById('narrative-audio'),
     btnFullscreen: document.getElementById('btn-fullscreen'),
+    theaterScreen: document.querySelector('.theater-screen'),
 
     loadingStepTitle: document.getElementById('loading-step-title'),
     loadingStepDesc: document.getElementById('loading-step-desc'),

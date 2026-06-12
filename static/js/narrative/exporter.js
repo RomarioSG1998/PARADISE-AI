@@ -13,6 +13,9 @@ export function setupExporter() {
     let mediaRecorder;
     let recordedChunks = [];
     let stopCheckInterval;
+    let canvasAnimFrame = null;
+    let recordVideoEl = null;
+    let canvasStream = null;
 
     dom.btnExportVideo.addEventListener('click', async () => {
         if (!state.narrativeData) {
@@ -54,13 +57,63 @@ export function setupExporter() {
                 audioTrack = stream.getAudioTracks()[0];
             }
 
-            const tracks = [stream.getVideoTracks()[0]];
-            if (audioTrack) tracks.push(audioTrack);
-            const combinedStream = new MediaStream(tracks);
+            const videoTrack = stream.getVideoTracks()[0];
+            let finalStream;
+
+            if (state.outputFormat === 'stories') {
+                // Stories Mode: Crop the center 9:16 region
+                recordVideoEl = document.createElement('video');
+                recordVideoEl.srcObject = stream;
+                recordVideoEl.autoplay = true;
+                recordVideoEl.playsInline = true;
+                recordVideoEl.muted = true;
+                
+                // Wait for the video metadata to load so we know its width/height
+                await new Promise((resolve) => {
+                    recordVideoEl.onloadedmetadata = resolve;
+                });
+                await recordVideoEl.play();
+
+                const canvas = document.createElement('canvas');
+                // Standard vertical stories resolution (720x1280)
+                canvas.width = 720;
+                canvas.height = 1280;
+                const ctx = canvas.getContext('2d');
+
+                const drawFrame = () => {
+                    if (recordVideoEl.paused || recordVideoEl.ended) return;
+
+                    const videoWidth = recordVideoEl.videoWidth;
+                    const videoHeight = recordVideoEl.videoHeight;
+
+                    // Crop 9:16 area from the center of the video stream
+                    const sourceHeight = videoHeight;
+                    const sourceWidth = videoHeight * (9 / 16);
+                    const sourceX = (videoWidth - sourceWidth) / 2;
+                    const sourceY = 0;
+
+                    ctx.drawImage(recordVideoEl, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+                    canvasAnimFrame = requestAnimationFrame(drawFrame);
+                };
+
+                drawFrame();
+
+                canvasStream = canvas.captureStream(30);
+                const croppedVideoTrack = canvasStream.getVideoTracks()[0];
+                
+                const tracks = [croppedVideoTrack];
+                if (audioTrack) tracks.push(audioTrack);
+                finalStream = new MediaStream(tracks);
+            } else {
+                // YouTube Mode: Widescreen 16:9, record directly
+                const tracks = [videoTrack];
+                if (audioTrack) tracks.push(audioTrack);
+                finalStream = new MediaStream(tracks);
+            }
 
             recordedChunks = [];
             const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
-            mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
+            mediaRecorder = new MediaRecorder(finalStream, { mimeType });
 
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) recordedChunks.push(event.data);
@@ -73,8 +126,26 @@ export function setupExporter() {
 
                 dom.exportStatus.style.display = 'none';
                 dom.btnExportVideo.disabled = false;
-                dom.btnExportVideo.innerHTML = '<i class="fa-solid fa-record-vinyl"></i> Iniciar Gravação';
+                const lang = localStorage.getItem('paradise_language') || 'pt';
+                
+                dom.btnExportVideo.innerHTML = '<i class="fa-solid fa-record-vinyl"></i> ' + 
+                    (lang === 'en' ? 'Start Recording' : lang === 'es' ? 'Iniciar Grabación' : 'Iniciar Gravação');
+                
                 if (stopCheckInterval) clearInterval(stopCheckInterval);
+
+                if (canvasAnimFrame) {
+                    cancelAnimationFrame(canvasAnimFrame);
+                    canvasAnimFrame = null;
+                }
+                if (recordVideoEl) {
+                    recordVideoEl.pause();
+                    recordVideoEl.srcObject = null;
+                    recordVideoEl = null;
+                }
+                if (canvasStream) {
+                    canvasStream.getTracks().forEach(t => t.stop());
+                    canvasStream = null;
+                }
 
                 stream.getTracks().forEach(t => t.stop());
             };
@@ -100,7 +171,9 @@ export function setupExporter() {
             await new Promise(r => setTimeout(r, 1000));
 
             dom.btnExportVideo.disabled = true;
-            dom.btnExportVideo.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gravando...';
+            dom.btnExportVideo.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + 
+                (localStorage.getItem('paradise_language') === 'en' ? 'Recording...' : 
+                 localStorage.getItem('paradise_language') === 'es' ? 'Grabando...' : 'Gravando...');
             dom.exportStatus.style.display = 'block';
             mediaRecorder.start();
 
@@ -130,7 +203,9 @@ export function setupExporter() {
             alert("Falha ao iniciar a gravação. Verifique as permissões no navegador.");
             dom.exportStatus.style.display = 'none';
             dom.btnExportVideo.disabled = false;
-            dom.btnExportVideo.innerHTML = '<i class="fa-solid fa-record-vinyl"></i> Iniciar Gravação';
+            dom.btnExportVideo.innerHTML = '<i class="fa-solid fa-record-vinyl"></i> ' + 
+                (localStorage.getItem('paradise_language') === 'en' ? 'Start Recording' : 
+                 localStorage.getItem('paradise_language') === 'es' ? 'Iniciar Grabación' : 'Iniciar Gravação');
         }
     });
 }

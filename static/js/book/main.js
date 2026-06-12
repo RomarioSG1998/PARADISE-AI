@@ -65,7 +65,12 @@ export function applyLanguage(lang) {
     if (elements.statusLabel) {
         if (elements.statusLabel.textContent === 'Verificando...' || elements.statusLabel.textContent === 'Checking...') {
             elements.statusLabel.textContent = t.connectionChecking;
-        } else if (elements.statusLabel.textContent.includes('Ativa') || elements.statusLabel.textContent.includes('Active')) {
+        } else if (
+            elements.statusLabel.textContent.includes('Ativa') || 
+            elements.statusLabel.textContent.includes('Active') || 
+            elements.statusLabel.textContent.includes('Conectado') || 
+            elements.statusLabel.textContent.includes('Online')
+        ) {
             elements.statusLabel.textContent = t.connectionOnline;
         } else {
             elements.statusLabel.textContent = t.connectionOffline;
@@ -99,6 +104,14 @@ export function applyLanguage(lang) {
     if (elements.bookLayoutSelect) {
         elements.bookLayoutSelect.options[0].text = t.layoutOptionSplit;
         elements.bookLayoutSelect.options[1].text = t.layoutOptionBackground;
+    }
+
+    if (elements.lblBookFormat) {
+        elements.lblBookFormat.textContent = t.lblBookFormat;
+    }
+    if (elements.bookFormatSelect) {
+        elements.bookFormatSelect.options[0].text = t.formatOptionYoutube;
+        elements.bookFormatSelect.options[1].text = t.formatOptionStories;
     }
 
     updateAutoPlayUI();
@@ -169,6 +182,7 @@ function setupEvents() {
         const lang = document.getElementById('book-lang').value;
         const visual_theme = elements.visualThemeSelect ? elements.visualThemeSelect.value : 'cartoon';
         const duration = document.getElementById('book-duration') ? document.getElementById('book-duration').value : '3';
+        const output_format = elements.bookFormatSelect ? elements.bookFormatSelect.value : 'youtube';
 
         if (!theme) {
             alert("Por favor, digite uma ideia ou enredo de aventura!");
@@ -202,7 +216,7 @@ function setupEvents() {
             const resp = await fetch('/api/book/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ theme, level, language: lang, visual_theme, duration })
+                body: JSON.stringify({ theme, level, language: lang, visual_theme, duration, output_format })
             });
 
             clearTimeout(timer1);
@@ -220,12 +234,23 @@ function setupEvents() {
             state.currentBook = data;
             state.currentBook.id = Date.now();
             state.currentBook.visual_theme = visual_theme;
+            state.currentBook.output_format = output_format;
             saveBookToHistory(state.currentBook);
             state.currentChapterIndex = 0;
             
             setTimeout(() => {
                 elements.panelLoader.style.display = 'none';
                 elements.panelReader.style.display = 'flex';
+                
+                const isStories = output_format === 'stories';
+                if (isStories) {
+                    elements.physicalBook.classList.add('stories-mode');
+                    elements.panelReader.classList.add('stories-mode');
+                } else {
+                    elements.physicalBook.classList.remove('stories-mode');
+                    elements.panelReader.classList.remove('stories-mode');
+                }
+                
                 applyVisualTheme(visual_theme);
                 renderChapter();
             }, 1000);
@@ -306,10 +331,12 @@ function setupEvents() {
         elements.btnSubmitRedraw.disabled = true;
 
         try {
+            const output_format = (state.currentBook && state.currentBook.output_format) || 'youtube';
+            const visual_theme = (state.currentBook && state.currentBook.visual_theme) || 'cartoon';
             const resp = await fetch('/api/book/illustrate-scene', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: prompt })
+                body: JSON.stringify({ prompt: prompt, visual_theme: visual_theme, output_format: output_format })
             });
 
             if (!resp.ok) {
@@ -480,18 +507,83 @@ function setupEvents() {
                     preferCurrentTab: true
                 });
 
-                // Prepare video screen (fullscreen)
+                let finalStream = stream;
+                let canvasAnimFrame = null;
+                let recordVideoEl = null;
+                let canvasStream = null;
+
                 const videoArea = elements.panelReader;
+                const isStories = (state.currentBook && state.currentBook.output_format) === 'stories';
+
+                if (isStories) {
+                    elements.physicalBook.classList.add('stories-mode');
+                    videoArea.classList.add('stories-mode');
+                } else {
+                    elements.physicalBook.classList.remove('stories-mode');
+                    videoArea.classList.remove('stories-mode');
+                }
+
+                // Prepare video screen (fullscreen)
                 if (videoArea.requestFullscreen) {
-                    videoArea.requestFullscreen().catch(e => console.log("Fullscreen could not be automatically initiated:", e));
+                    await videoArea.requestFullscreen().catch(e => console.log("Fullscreen could not be automatically initiated:", e));
                 }
                 
                 videoArea.style.cursor = 'none';
                 videoArea.classList.add('recording-mode');
+
+                const videoTrack = stream.getVideoTracks()[0];
+                const audioTrack = stream.getAudioTracks()[0];
+
+                if (isStories) {
+                    // Stories Mode: Crop the center 9:16 region
+                    recordVideoEl = document.createElement('video');
+                    recordVideoEl.srcObject = stream;
+                    recordVideoEl.autoplay = true;
+                    recordVideoEl.playsInline = true;
+                    recordVideoEl.muted = true;
+                    
+                    // Wait for the video metadata to load so we know its width/height
+                    await new Promise((resolve) => {
+                        recordVideoEl.onloadedmetadata = resolve;
+                    });
+                    await recordVideoEl.play();
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 720;
+                    canvas.height = 1280;
+                    const ctx = canvas.getContext('2d');
+
+                    const drawFrame = () => {
+                        if (recordVideoEl.paused || recordVideoEl.ended) return;
+
+                        const videoWidth = recordVideoEl.videoWidth;
+                        const videoHeight = recordVideoEl.videoHeight;
+
+                        // Crop 9:16 area from the center of the video stream
+                        const sourceHeight = videoHeight;
+                        const sourceWidth = videoHeight * (9 / 16);
+                        const sourceX = (videoWidth - sourceWidth) / 2;
+                        const sourceY = 0;
+
+                        ctx.drawImage(recordVideoEl, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+                        canvasAnimFrame = requestAnimationFrame(drawFrame);
+                    };
+
+                    drawFrame();
+
+                    canvasStream = canvas.captureStream(30);
+                    const croppedVideoTrack = canvasStream.getVideoTracks()[0];
+                    
+                    const tracks = [croppedVideoTrack];
+                    if (audioTrack) tracks.push(audioTrack);
+                    finalStream = new MediaStream(tracks);
+                } else {
+                    finalStream = stream;
+                }
                 
                 recordedChunks = [];
                 const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
-                mediaRecorder = new MediaRecorder(stream, { mimeType });
+                mediaRecorder = new MediaRecorder(finalStream, { mimeType });
                 
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) {
@@ -504,11 +596,26 @@ function setupEvents() {
                     videoArea.style.cursor = 'default';
                     videoArea.classList.remove('recording-mode');
                     
+                    const originallyStories = (state.currentBook && state.currentBook.output_format) === 'stories';
+                    if (originallyStories) {
+                        elements.physicalBook.classList.add('stories-mode');
+                        videoArea.classList.add('stories-mode');
+                    } else {
+                        elements.physicalBook.classList.remove('stories-mode');
+                        videoArea.classList.remove('stories-mode');
+                    }
+                    
                     elements.exportStatusBook.style.display = 'none';
                     elements.btnExportBookVideo.disabled = false;
                     if (stopCheckInterval) clearInterval(stopCheckInterval);
+                    if (canvasAnimFrame) cancelAnimationFrame(canvasAnimFrame);
+                    if (recordVideoEl) {
+                        recordVideoEl.pause();
+                        recordVideoEl.srcObject = null;
+                    }
                     
                     stream.getTracks().forEach(t => t.stop());
+                    if (canvasStream) canvasStream.getTracks().forEach(t => t.stop());
                 };
                 
                 mediaRecorder.onstop = () => {

@@ -52,5 +52,7 @@ export const elements = {
     btnExportBookVideo: document.getElementById('btn-export-book-video'),
     exportStatusBook: document.getElementById('export-status-book'),
     bookLayoutSelect: document.getElementById('book-layout-select'),
-    lblBookLayout: document.getElementById('lbl-book-layout')
+    lblBookLayout: document.getElementById('lbl-book-layout'),
+    bookFormatSelect: document.getElementById('book-format'),
+    lblBookFormat: document.getElementById('lbl-book-format')
 };

@@ -50,6 +50,16 @@ export function loadBookFromHistory(bookId) {
         state.currentChapterIndex = 0;
         elements.panelForm.style.display = 'none';
         elements.panelReader.style.display = 'flex';
+        
+        const isStories = book.output_format === 'stories';
+        if (isStories) {
+            elements.physicalBook.classList.add('stories-mode');
+            elements.panelReader.classList.add('stories-mode');
+        } else {
+            elements.physicalBook.classList.remove('stories-mode');
+            elements.panelReader.classList.remove('stories-mode');
+        }
+        
         applyVisualTheme(book.visual_theme || 'cartoon');
         renderChapter();
     }

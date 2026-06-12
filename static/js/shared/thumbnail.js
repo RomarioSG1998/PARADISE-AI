@@ -93,3 +93,96 @@ export function composeThumbnailWithTitle(imgSrc, title) {
         img.src = imgSrc;
     });
 }
+
+/**
+ * Composes a 720×1280 JPEG stories cover thumbnail: background image + gradient overlay
+ * + bold title text in Stories style, returned as a data URL.
+ *
+ * @param {string} imgSrc - URL of the background image (proxy-safe)
+ * @param {string} title  - Story title to overlay
+ * @returns {Promise<string>} data URL (image/jpeg)
+ */
+export function composeVerticalThumbnailWithTitle(imgSrc, title) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const W = 720, H = 1280;
+            const canvas = document.createElement('canvas');
+            canvas.width = W;
+            canvas.height = H;
+            const ctx = canvas.getContext('2d');
+
+            // Background image
+            ctx.drawImage(img, 0, 0, W, H);
+
+            // Gradient overlay (bottom 60% of height) for text legibility
+            const grad = ctx.createLinearGradient(0, H * 0.4, 0, H);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(0.3, 'rgba(0,0,0,0.6)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.9)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+
+            // Dynamic font sizing to fit title width
+            const maxWidth = W - 80;
+            const lineHeight = 66;
+            let fontSize = 54;
+            ctx.font = `900 ${fontSize}px "Impact", "Arial Black", sans-serif`;
+            while (ctx.measureText(title).width > maxWidth && fontSize > 28) {
+                fontSize -= 2;
+                ctx.font = `900 ${fontSize}px "Impact", "Arial Black", sans-serif`;
+            }
+
+            // Word-wrap helper
+            function wrapText(text, maxW) {
+                const words = text.split(' ');
+                const lines = [];
+                let cur = '';
+                for (const w of words) {
+                    const test = cur ? cur + ' ' + w : w;
+                    if (ctx.measureText(test).width > maxW && cur) {
+                        lines.push(cur);
+                        cur = w;
+                    } else { cur = test; }
+                }
+                if (cur) lines.push(cur);
+                return lines;
+            }
+
+            const lines = wrapText(title.toUpperCase(), maxWidth);
+            const totalH = lines.length * lineHeight;
+            let y = H - 80 - totalH + lineHeight;
+
+            // Drop-shadow
+            ctx.shadowColor = 'rgba(0,0,0,0.98)';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 3;
+
+            // Black stroke + white→yellow fill
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = fontSize < 40 ? 5 : 7;
+            ctx.lineJoin = 'round';
+            ctx.textAlign = 'center'; // Center align for stories
+            ctx.textBaseline = 'alphabetic';
+
+            const tGrad = ctx.createLinearGradient(0, y - lineHeight * 0.8, 0, y + totalH);
+            tGrad.addColorStop(0, '#FFFFFF');
+            tGrad.addColorStop(1, '#FFE033');
+
+            for (const line of lines) {
+                ctx.strokeText(line, W / 2, y);
+                ctx.fillStyle = tGrad;
+                ctx.fillText(line, W / 2, y);
+                y += lineHeight;
+            }
+
+            ctx.shadowColor = 'transparent';
+            resolve(canvas.toDataURL('image/jpeg', 0.93));
+        };
+        img.onerror = () => reject(new Error('Image load failed'));
+        img.src = imgSrc;
+    });
+}
+

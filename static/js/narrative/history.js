@@ -66,8 +66,13 @@ export function loadNarrativeFromHistory(id, onThumbnail) {
 
     const savedFormat = narrative.format || 'youtube';
     state.outputFormat = savedFormat;
-    if (savedFormat === 'stories') dom.theaterArena.classList.add('stories-mode');
-    else dom.theaterArena.classList.remove('stories-mode');
+    if (savedFormat === 'stories') {
+        dom.theaterArena.classList.add('stories-mode');
+        dom.theaterScreen?.classList.add('stories-mode');
+    } else {
+        dom.theaterArena.classList.remove('stories-mode');
+        dom.theaterScreen?.classList.remove('stories-mode');
+    }
 
     dom.storyTitle.textContent = narrative.title || "Narrativa";
 
