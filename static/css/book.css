@@ -1140,3 +1140,146 @@
     mix-blend-mode: normal;
     filter: none;
 }
+
+/* --- BOOK BACKGROUND LAYOUT MODE --- */
+
+/* In split mode, don't show the background image on .book-page-body */
+.book-container:not(.background-mode) .book-page-body {
+    background-image: none !important;
+}
+
+/* Hide the illustration frame in background mode */
+.book-container.background-mode .book-column-illustration {
+    display: none !important;
+}
+
+/* Position text on the right column in background mode */
+.book-container.background-mode .book-columns-grid {
+    grid-template-columns: 1fr 1.25fr !important;
+    gap: 2rem !important;
+}
+
+.book-container.background-mode .book-column-text {
+    grid-column: 2 !important;
+}
+
+/* Render overlay in background mode for readability */
+.book-container.background-mode .book-page-overlay {
+    display: block !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    transition: background 0.3s ease;
+}
+
+/* Custom overlay tints matching themes in background mode */
+.book-container.background-mode.style-classic .book-page-overlay {
+    background: rgba(16, 42, 30, 0.42) !important;
+}
+.book-container.background-mode.style-realistic .book-page-overlay {
+    background: rgba(15, 23, 42, 0.45) !important;
+}
+.book-container.background-mode.style-medieval .book-page-overlay {
+    background: rgba(230, 215, 184, 0.38) !important;
+}
+.book-container.background-mode.style-caveman .book-page-overlay {
+    background: rgba(44, 44, 44, 0.45) !important;
+}
+.book-container.background-mode.style-anime .book-page-overlay {
+    background: rgba(12, 11, 30, 0.4) !important;
+}
+.book-container.background-mode.style-disney .book-page-overlay {
+    background: rgba(26, 27, 58, 0.42) !important;
+}
+
+/* Make text, headers, and speech bubble boxes transparent and use shadows in background mode */
+.book-container.background-mode .book-header,
+.book-container.background-mode .chapter-title,
+.book-container.background-mode .book-text p {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Clean up spacing in background mode */
+.book-container.background-mode .book-text p {
+    margin-bottom: 1.25rem !important;
+    padding: 0.5rem 0 !important;
+}
+
+.book-container.background-mode .chapter-title {
+    margin-bottom: 1.5rem !important;
+    padding: 0 !important;
+}
+
+.book-container.background-mode .book-header {
+    margin-bottom: 2rem !important;
+    padding: 0.5rem 0 !important;
+}
+
+/* Add high-contrast readability shadows for text elements in background mode */
+.book-container.background-mode.style-classic .book-text p,
+.book-container.background-mode.style-classic .chapter-title,
+.book-container.background-mode.style-classic .book-header,
+.book-container.background-mode.style-classic .book-meta {
+    color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 2px 6px rgba(0,0,0,0.95);
+}
+
+.book-container.background-mode.style-realistic .book-text p,
+.book-container.background-mode.style-realistic .chapter-title,
+.book-container.background-mode.style-realistic .book-header,
+.book-container.background-mode.style-realistic .book-meta {
+    color: #f8fafc !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 2px 6px rgba(0,0,0,0.95);
+}
+
+.book-container.background-mode.style-medieval .book-text p,
+.book-container.background-mode.style-medieval .chapter-title,
+.book-container.background-mode.style-medieval .book-header,
+.book-container.background-mode.style-medieval .book-meta {
+    color: #3b2314 !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.95), 0 0 5px rgba(255,255,255,0.8);
+}
+
+.book-container.background-mode.style-caveman .book-text p,
+.book-container.background-mode.style-caveman .chapter-title,
+.book-container.background-mode.style-caveman .book-header,
+.book-container.background-mode.style-caveman .book-meta {
+    color: #ebdcb9 !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 2px 6px rgba(0,0,0,0.95);
+}
+
+.book-container.background-mode.style-anime .book-text p,
+.book-container.background-mode.style-anime .chapter-title,
+.book-container.background-mode.style-anime .book-header,
+.book-container.background-mode.style-anime .book-meta {
+    color: #fdf4ff !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 2px 6px rgba(0,0,0,0.95);
+}
+
+.book-container.background-mode.style-disney .book-text p,
+.book-container.background-mode.style-disney .chapter-title,
+.book-container.background-mode.style-disney .book-header,
+.book-container.background-mode.style-disney .book-meta {
+    color: #e0e7ff !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 2px 6px rgba(0,0,0,0.95);
+}
+
+/* Responsiveness for mobile screens in background mode */
+@media (max-width: 800px) {
+    .book-container.background-mode .book-columns-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    .book-container.background-mode .book-column-text {
+        grid-column: 1 !important;
+    }
+}
+

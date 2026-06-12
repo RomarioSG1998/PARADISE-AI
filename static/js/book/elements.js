@@ -50,5 +50,7 @@ export const elements = {
     btnMicBookTheme: document.getElementById('btn-mic-book-theme'),
     btnMicRedraw: document.getElementById('btn-mic-redraw'),
     btnExportBookVideo: document.getElementById('btn-export-book-video'),
-    exportStatusBook: document.getElementById('export-status-book')
+    exportStatusBook: document.getElementById('export-status-book'),
+    bookLayoutSelect: document.getElementById('book-layout-select'),
+    lblBookLayout: document.getElementById('lbl-book-layout')
 };
