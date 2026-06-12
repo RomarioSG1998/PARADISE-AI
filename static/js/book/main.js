@@ -93,6 +93,14 @@ export function applyLanguage(lang) {
     const langSelect = document.getElementById('global-lang-select');
     if (langSelect) langSelect.value = lang;
 
+    if (elements.lblBookLayout) {
+        elements.lblBookLayout.innerHTML = `<i class="fa-solid fa-shapes"></i> ${t.lblBookLayout}`;
+    }
+    if (elements.bookLayoutSelect) {
+        elements.bookLayoutSelect.options[0].text = t.layoutOptionSplit;
+        elements.bookLayoutSelect.options[1].text = t.layoutOptionBackground;
+    }
+
     updateAutoPlayUI();
 }
 
@@ -412,6 +420,22 @@ function setupEvents() {
         });
     }
 
+    // Layout Select control
+    if (elements.bookLayoutSelect) {
+        elements.bookLayoutSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            state.imageMode = val;
+            localStorage.setItem('book_image_mode', val);
+            
+            // Toggle class on physicalBook
+            if (val === 'background') {
+                elements.physicalBook.classList.add('background-mode');
+            } else {
+                elements.physicalBook.classList.remove('background-mode');
+            }
+        });
+    }
+
     // Global Lang select change
     document.getElementById('global-lang-select').addEventListener('change', (e) => {
         applyLanguage(e.target.value);
@@ -565,6 +589,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elements.bgOpacityRange) {
         elements.bgOpacityRange.value = defaultOpacity;
         updateBgOpacity(defaultOpacity);
+    }
+
+    // Default Layout setup
+    if (elements.bookLayoutSelect) {
+        elements.bookLayoutSelect.value = state.imageMode;
+        if (state.imageMode === 'background') {
+            elements.physicalBook.classList.add('background-mode');
+        } else {
+            elements.physicalBook.classList.remove('background-mode');
+        }
     }
 
     // Default Language setup

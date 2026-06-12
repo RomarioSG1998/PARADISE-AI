@@ -56,5 +56,9 @@ export const elements = {
     btnMicAsk: document.getElementById('btn-mic-ask'),
     btnMicText: document.getElementById('btn-mic-text'),
     btnExportVideo: document.getElementById('btn-export-video'),
-    exportStatus: document.getElementById('export-status')
+    exportStatus: document.getElementById('export-status'),
+    boardImgModeSelect: document.getElementById('board-img-mode-select'),
+    boardAnimSelect: document.getElementById('board-anim-select'),
+    blackboardBgImage: document.getElementById('blackboard-bg-image')
 };
+

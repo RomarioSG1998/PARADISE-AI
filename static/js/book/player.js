@@ -290,6 +290,14 @@ export function renderChapter() {
 
     stopNarration();
 
+    // Apply layout mode
+    const layout = state.imageMode || 'split';
+    if (layout === 'background') {
+        elements.physicalBook.classList.add('background-mode');
+    } else {
+        elements.physicalBook.classList.remove('background-mode');
+    }
+
     if (state.currentBook.thumbnail_url) {
         const thumbBtn = document.getElementById('btn-download-book-thumbnail');
         if (thumbBtn) {

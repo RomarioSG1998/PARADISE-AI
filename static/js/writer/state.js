@@ -9,7 +9,7 @@ export const state = {
     documents: [],
     materials: [],
     chatLoading: false,
-    agentsListPollInterval: null,
+    chatMessagesPollInterval: null,
     lastMessagesJson: null,
 };
 

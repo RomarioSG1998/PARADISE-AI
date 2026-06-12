@@ -10,5 +10,8 @@ export const state = {
     wordRanges: [],
     isPlaying: false,
     animationFrameId: null,
-    explanationActive: false
+    explanationActive: false,
+    imageMode: localStorage.getItem('classroom_image_mode') || 'split',
+    animationStyle: localStorage.getItem('classroom_animation_style') || 'none'
 };
+

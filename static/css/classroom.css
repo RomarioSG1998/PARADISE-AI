@@ -1221,3 +1221,140 @@
     opacity: 1;
 }
 
+/* --- BLACKBOARD BACKGROUND IMAGE MODE & ANIMATIONS --- */
+.blackboard-bg-image-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+/* Add a pseudo-element overlay on top of the background image */
+.blackboard-bg-image-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    transition: background 0.3s ease;
+}
+
+.blackboard.background-mode .blackboard-bg-image-wrapper {
+    opacity: 0.92;
+}
+
+.bg-image-el {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+/* Custom Overlays and Filters for each board style to preserve readability and texture */
+.blackboard.style-classic .blackboard-bg-image-wrapper::after {
+    background: rgba(16, 42, 30, 0.42);
+}
+.blackboard.style-classic .bg-image-el {
+    filter: contrast(1.15) brightness(0.9) grayscale(0.1);
+}
+
+.blackboard.style-realistic .blackboard-bg-image-wrapper::after {
+    background: rgba(15, 23, 42, 0.45);
+}
+.blackboard.style-realistic .bg-image-el {
+    filter: brightness(0.85) contrast(1.1);
+}
+
+.blackboard.style-medieval .blackboard-bg-image-wrapper::after {
+    background: rgba(230, 215, 184, 0.38);
+}
+.blackboard.style-medieval .bg-image-el {
+    filter: sepia(0.4) contrast(1.2) brightness(0.92);
+}
+
+.blackboard.style-caveman .blackboard-bg-image-wrapper::after {
+    background: rgba(44, 44, 44, 0.45);
+}
+.blackboard.style-caveman .bg-image-el {
+    filter: sepia(0.4) contrast(1.15) brightness(0.85);
+}
+
+.blackboard.style-anime .blackboard-bg-image-wrapper::after {
+    background: rgba(12, 11, 30, 0.40);
+}
+.blackboard.style-anime .bg-image-el {
+    filter: saturate(1.25) brightness(0.85) contrast(1.1);
+}
+
+.blackboard.style-disney .blackboard-bg-image-wrapper::after {
+    background: rgba(26, 27, 58, 0.42);
+}
+.blackboard.style-disney .bg-image-el {
+    filter: saturate(1.15) brightness(0.85) contrast(1.1);
+}
+
+/* Animations */
+.anim-ken-burns {
+    animation: kenBurnsAnim 30s linear infinite alternate;
+}
+@keyframes kenBurnsAnim {
+    0% { transform: scale(1) translate(0, 0); }
+    100% { transform: scale(1.3) translate(-2%, -2%); }
+}
+
+.anim-zoom-entrance {
+    animation: zoomEntranceAnim 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+@keyframes zoomEntranceAnim {
+    0% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+}
+
+.anim-pulse {
+    animation: softPulseAnim 4s ease-in-out infinite alternate;
+}
+@keyframes softPulseAnim {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.1); }
+}
+
+/* Layout changes in background mode */
+.blackboard.background-mode .board-content {
+    grid-template-columns: 1fr;
+}
+.blackboard.background-mode .board-illustration {
+    display: none;
+}
+
+/* Ensure text and content stay on top of the background image */
+.board-header-bar, .board-content {
+    position: relative;
+    z-index: 2;
+}
+
+/* Text readability enhancements in background mode */
+.blackboard.background-mode:not(.style-medieval) .board-title,
+.blackboard.background-mode:not(.style-medieval) .bullets-list {
+    text-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.95), 
+        0 2px 6px rgba(0, 0, 0, 0.95),
+        0 0 10px rgba(0, 0, 0, 0.7) !important;
+}
+
+.blackboard.background-mode.style-medieval .board-title,
+.blackboard.background-mode.style-medieval .bullets-list {
+    text-shadow: 
+        0 1px 2px rgba(255, 255, 255, 0.9),
+        0 0 5px rgba(255, 255, 255, 0.6) !important;
+}
+
+

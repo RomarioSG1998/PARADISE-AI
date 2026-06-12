@@ -9,7 +9,8 @@ import {
     startSubtitleLoop,
     stopSubtitleLoop,
     formatTime,
-    returnToLesson
+    returnToLesson,
+    applyBoardVisualSettings
 } from './player.js';
 import { initializeAvatarHandlers } from './avatar.js';
 import { attachVoiceInput } from '../voice_input.js';
@@ -104,7 +105,33 @@ export function applyLanguage(lang) {
     const optStyleDisney = document.getElementById('opt-style-disney');
     if (optStyleDisney) optStyleDisney.textContent = t.styleDisney;
 
+    // Translate new board controls
+    const lblLayoutEl = document.querySelector('label[for="board-img-mode-select"]');
+    if (lblLayoutEl) lblLayoutEl.innerHTML = `<i class="fa-solid fa-shapes"></i> ${t.lblLayout}`;
+    
+    const optLayoutSplit = document.querySelector('#board-img-mode-select option[value="split"]');
+    if (optLayoutSplit) optLayoutSplit.textContent = t.optLayoutSplit;
+    
+    const optLayoutBackground = document.querySelector('#board-img-mode-select option[value="background"]');
+    if (optLayoutBackground) optLayoutBackground.textContent = t.optLayoutBackground;
+    
+    const lblAnimationEl = document.querySelector('label[for="board-anim-select"]');
+    if (lblAnimationEl) lblAnimationEl.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${t.lblAnimation}`;
+    
+    const optAnimNone = document.querySelector('#board-anim-select option[value="none"]');
+    if (optAnimNone) optAnimNone.textContent = t.optAnimNone;
+    
+    const optAnimZoomIn = document.querySelector('#board-anim-select option[value="zoom-in"]');
+    if (optAnimZoomIn) optAnimZoomIn.textContent = t.optAnimZoomIn;
+    
+    const optAnimEntrance = document.querySelector('#board-anim-select option[value="entrance"]');
+    if (optAnimEntrance) optAnimEntrance.textContent = t.optAnimEntrance;
+    
+    const optAnimPulse = document.querySelector('#board-anim-select option[value="pulse"]');
+    if (optAnimPulse) optAnimPulse.textContent = t.optAnimPulse;
+
     updateAutoPlayUI();
+    applyBoardVisualSettings();
     renderHistoryList();
 }
 
@@ -332,6 +359,24 @@ function setupEvents() {
         elements.speedLabel.textContent = `Velocidade: ${speed.toFixed(1)}x`;
         elements.audioEl.playbackRate = speed;
     });
+
+    // Image Mode Selector
+    if (elements.boardImgModeSelect) {
+        elements.boardImgModeSelect.addEventListener('change', (e) => {
+            state.imageMode = e.target.value;
+            localStorage.setItem('classroom_image_mode', state.imageMode);
+            applyBoardVisualSettings();
+        });
+    }
+
+    // Animation Style Selector
+    if (elements.boardAnimSelect) {
+        elements.boardAnimSelect.addEventListener('change', (e) => {
+            state.animationStyle = e.target.value;
+            localStorage.setItem('classroom_animation_style', state.animationStyle);
+            applyBoardVisualSettings();
+        });
+    }
     
     // Language dropdown selection
     document.getElementById('global-lang-select').addEventListener('change', (e) => {

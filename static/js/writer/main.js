@@ -6,7 +6,6 @@
      ui.js           — modals, toasts, markdown, diff engine, speech
      editor.js       — document editor, autosave, selection popover
      chat.js         — main AI chat panel
-     agents.js       — agent list + agent chat modal
      workspaces.js   — environments, documents, materials, contexts
      dragdrop.js     — drag-and-drop file uploads
    ========================================================================= */
@@ -131,8 +130,8 @@ async function selectEnvironment(id, name) {
     await loadProductionContext();
 
     // Start background polling
-    if (state.agentsListPollInterval) clearInterval(state.agentsListPollInterval);
-    state.agentsListPollInterval = setInterval(async () => {
+    if (state.chatMessagesPollInterval) clearInterval(state.chatMessagesPollInterval);
+    state.chatMessagesPollInterval = setInterval(async () => {
         if (state.currentEnvId) {
             await loadChatMessages();
         }

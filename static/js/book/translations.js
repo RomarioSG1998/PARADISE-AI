@@ -24,7 +24,10 @@ export const bookTranslations = {
         themeOptionMedieval: "Arte Medieval (Idade Média)",
         themeOptionCaveman: "Arte do Homem das Cavernas (Caveman)",
         themeOptionAnime: "Anime / Desenho Japonês",
-        themeOptionDisney: "Disney 3D / Pixar"
+        themeOptionDisney: "Disney 3D / Pixar",
+        lblBookLayout: "Layout:",
+        layoutOptionSplit: "Lado a Lado",
+        layoutOptionBackground: "Texto sobre Fundo"
     },
     en: {
         brandTitle: "Book Generator Pro",
@@ -51,7 +54,10 @@ export const bookTranslations = {
         themeOptionMedieval: "Medieval Art (Middle Ages)",
         themeOptionCaveman: "Caveman Art (Prehistoric)",
         themeOptionAnime: "Anime / Japanese Drawing",
-        themeOptionDisney: "Disney 3D / Pixar"
+        themeOptionDisney: "Disney 3D / Pixar",
+        lblBookLayout: "Layout:",
+        layoutOptionSplit: "Side by Side",
+        layoutOptionBackground: "Text over Background"
     },
     es: {
         brandTitle: "Generador de Libros Pro",
@@ -63,7 +69,7 @@ export const bookTranslations = {
         lblLang: "Idioma del Libro",
         btnGenerate: "<i class='fa-solid fa-wand-magic-sparkles'></i> ¡Escribir e Ilustrar Libro!",
         lblSavedBooks: "Sus Libros Guardados",
-        descSavedBooks: "Haga clic para leer nuevamente cualquiera de los libros ya generados en este navegador.",
+        descSavedBooks: "Haga clic para leer novamente cualquiera de los libros ya generados en este navegador.",
         connectionChecking: "Verificando...",
         connectionOnline: "Conexión Pro Activa",
         connectionOffline: "Sin Conexión Pro",
@@ -78,6 +84,9 @@ export const bookTranslations = {
         themeOptionMedieval: "Arte Medieval (Edad Media)",
         themeOptionCaveman: "Arte de las Cavernas (Caveman)",
         themeOptionAnime: "Anime / Dibujo Japonés",
-        themeOptionDisney: "Disney 3D / Pixar"
+        themeOptionDisney: "Disney 3D / Pixar",
+        lblBookLayout: "Diseño:",
+        layoutOptionSplit: "Lado a Lado",
+        layoutOptionBackground: "Texto sobre Fondo"
     }
 };
