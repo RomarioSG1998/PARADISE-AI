@@ -1,6 +1,7 @@
 import os
 from flask import Blueprint, request, jsonify, render_template, Response, send_file, session, redirect, url_for
-from services.ai_service import ENV_PATH, image_cache
+from services.ai_service import ENV_PATH
+from services.image_service import image_cache
 from services.tts_service import generate_official_gemini_tts_async, pcm_to_wav, generate_edge_tts_async
 from utils.async_loop import run_in_background
 from dotenv import load_dotenv

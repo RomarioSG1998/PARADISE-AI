@@ -9,11 +9,12 @@ import {
     startSubtitleLoop,
     stopSubtitleLoop,
     formatTime,
-    loadExplanation,
     returnToLesson
 } from './player.js';
 import { initializeAvatarHandlers } from './avatar.js';
 import { attachVoiceInput } from '../voice_input.js';
+import { setupAskTeacher } from './ask.js';
+import { setupClassroomExporter } from './exporter.js';
 
 // Check if generate button should be enabled
 function checkInputs() {
@@ -357,77 +358,9 @@ function setupEvents() {
         });
     }
 
-    // Ask the Teacher actions
-    async function handleAskQuestion() {
-        const question = elements.askTeacherInput.value.trim();
-        const currentLang = localStorage.getItem('paradise_language') || 'pt';
-        const t = classTranslations[currentLang] || classTranslations.pt;
-        
-        if (!question) {
-            alert(t.askEmptyError);
-            return;
-        }
+    // Ask the Teacher — delegated to ask.js
+    setupAskTeacher();
 
-        // Pause/stop current narration audio
-        elements.audioEl.pause();
-        elements.audioEl.src = '';
-        elements.teacherAvatar.classList.remove('speaking');
-        window.isSpeaking3D = false;
-        state.isPlaying = false;
-        stopSubtitleLoop();
-        elements.playIcon.className = 'fa-solid fa-play';
-
-        // Disable query input UI
-        elements.askTeacherInput.disabled = true;
-        elements.btnAskTeacher.disabled = true;
-
-        // Show classroom loading state on blackboard
-        elements.boardSlideTitle.textContent = question;
-        elements.boardBullets.innerHTML = `<li><span style="display:inline-block; width:1.2rem; height:1.2rem; border-radius:50%; border:2px solid rgba(255,255,255,0.2); border-top-color:#a78bfa; animation:spin 1s linear infinite; vertical-align:middle; margin-right:8px;"></span> ${t.askingTeacher}</li>`;
-        elements.boardImage.className = 'loading';
-        elements.downloadBoardBtn.style.display = 'none';
-
-        try {
-            const currentSlide = state.lessonData.slides[state.currentSlideIdx];
-            const response = await fetch('/api/classroom/ask', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subject: state.lessonData.subject,
-                    slide_title: currentSlide.title,
-                    slide_narration: currentSlide.narration,
-                    question: question,
-                    language: currentLang,
-                    style: state.lessonData.style || 'classic'
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || "Erro ao consultar o professor.");
-            }
-
-            const explanation = await response.json();
-            loadExplanation(explanation);
-            elements.askTeacherInput.value = '';
-        } catch (err) {
-            alert(err.message);
-            // Restore current slide to recover
-            loadSlide(state.currentSlideIdx);
-        } finally {
-            elements.askTeacherInput.disabled = false;
-            elements.btnAskTeacher.disabled = false;
-        }
-    }
-
-    if (elements.btnAskTeacher) {
-        elements.btnAskTeacher.addEventListener('click', handleAskQuestion);
-    }
-    if (elements.askTeacherInput) {
-        elements.askTeacherInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') handleAskQuestion();
-        });
-    }
     if (elements.btnReturnLesson) {
         elements.btnReturnLesson.addEventListener('click', returnToLesson);
     }
@@ -446,141 +379,8 @@ function setupEvents() {
         elements.textInput.addEventListener('change', checkInputs);
     }
 
-    // Video Export Logic for Classroom
-    if (elements.btnExportVideo) {
-        let mediaRecorder;
-        let recordedChunks = [];
-        let stopCheckInterval;
-        
-        elements.btnExportVideo.addEventListener('click', async () => {
-            if (!state.lessonData) {
-                alert('Nenhuma aula carregada para gravar.');
-                return;
-            }
-            
-            try {
-                // 1. Request Display Media first
-                const stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: { displaySurface: "browser" },
-                    audio: true,
-                    preferCurrentTab: true
-                });
-
-                // 2. Prepare video screen (fullscreen and hide controls)
-                const videoArea = document.querySelector('.classroom-board-area');
-                if (videoArea.requestFullscreen) {
-                    await videoArea.requestFullscreen();
-                }
-                videoArea.style.cursor = 'none';
-                videoArea.classList.add('recording-mode');
-                
-                // 3. Guarantee Audio via Web Audio API
-                let audioTrack = null;
-                try {
-                    if (!window._classroomAudioDest) {
-                        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                        const source = audioCtx.createMediaElementSource(elements.audioEl);
-                        const dest = audioCtx.createMediaStreamDestination();
-                        source.connect(dest);
-                        source.connect(audioCtx.destination);
-                        window._classroomAudioDest = dest;
-                    }
-                    audioTrack = window._classroomAudioDest.stream.getAudioTracks()[0];
-                } catch (e) {
-                    console.warn("WebAudio capture failed, falling back to system audio", e);
-                    audioTrack = stream.getAudioTracks()[0]; // fallback
-                }
-                
-                // Combine Video + Audio
-                const tracks = [stream.getVideoTracks()[0]];
-                if (audioTrack) tracks.push(audioTrack);
-                const combinedStream = new MediaStream(tracks);
-                
-                recordedChunks = [];
-                const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
-                mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
-                
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        recordedChunks.push(event.data);
-                    }
-                };
-                
-                const restoreUI = () => {
-                    if (document.fullscreenElement) document.exitFullscreen();
-                    videoArea.style.cursor = 'default';
-                    videoArea.classList.remove('recording-mode');
-                    
-                    elements.exportStatus.style.display = 'none';
-                    elements.btnExportVideo.disabled = false;
-                    document.getElementById('lbl-btn-export').textContent = 'Gravar Aula';
-                    if (stopCheckInterval) clearInterval(stopCheckInterval);
-                    
-                    stream.getTracks().forEach(t => t.stop());
-                };
-                
-                mediaRecorder.onstop = () => {
-                    restoreUI();
-                    
-                    const blob = new Blob(recordedChunks, { type: mimeType });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    const safeTitle = (state.lessonData.subject || 'aula').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-                    a.download = `${safeTitle}.webm`;
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => {
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                    }, 100);
-                };
-                
-                // Wait a moment for fullscreen animation and UI changes to settle
-                await new Promise(r => setTimeout(r, 1000));
-
-                // Update UI and start
-                elements.btnExportVideo.disabled = true;
-                document.getElementById('lbl-btn-export').textContent = 'Gravando...';
-                elements.exportStatus.style.display = 'block';
-                mediaRecorder.start();
-                
-                // Restart video from beginning automatically and ensure autoplay is true
-                state.autoPlayEnabled = true;
-                localStorage.setItem('classroom_autoplay', state.autoPlayEnabled);
-                updateAutoPlayUI();
-                
-                state.currentSlideIdx = 0;
-                loadSlide(0);
-                setTimeout(() => {
-                    if (elements.audioEl.paused) elements.btnPlay.click();
-                }, 800);
-                
-                // Stop when stream ends by user
-                stream.getVideoTracks()[0].onended = () => {
-                    if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-                };
-                
-                // Auto-stop checking loop
-                stopCheckInterval = setInterval(() => {
-                    if (state.currentSlideIdx >= state.lessonData.slides.length - 1) {
-                        if (!state.isPlaying && elements.audioEl.paused && !state.audioLoading && elements.audioEl.currentTime > 0.5) {
-                            if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-                            clearInterval(stopCheckInterval);
-                        }
-                    }
-                }, 1000);
-                
-            } catch (err) {
-                console.error("Error starting screen record: ", err);
-                alert("Falha ao iniciar a gravação. Verifique as permissões no navegador.");
-                elements.exportStatus.style.display = 'none';
-                elements.btnExportVideo.disabled = false;
-                document.getElementById('lbl-btn-export').textContent = 'Gravar Aula';
-            }
-        });
-    }
+    // Video Export — delegated to exporter.js
+    setupClassroomExporter();
 }
 
 // Initialize application

@@ -23,7 +23,7 @@ COPY --from=builder /install /usr/local
 
 # Copy application source
 COPY app.py .
-COPY database.py .
+COPY database/ ./database/
 COPY templates/ ./templates/
 COPY static/ ./static/
 COPY routes/ ./routes/
